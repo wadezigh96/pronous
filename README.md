@@ -4,33 +4,51 @@ PRONOUS is a public-first autonomous agent for the BNB Hack: Tokenized Stocks Ed
 
 ## Submission positioning
 
-PRONOUS is intentionally built around the two $2,000 stack-special surfaces:
-- Best Use of Agentic Wallet / Wallet Skills — real wallet state, quote, policy validation and spot execution flow.
-- Best Use of BNB Agent Studio — persistent agent runtime, ERC-8004 identity, ERC-8183 task interface and x402 self-funding.
+PRONOUS combines two parts of the BNB stack in one product:
 
-These are special prizes, not separate tracks, and the official rules allow one project to win a main placement and a special. PRONOUS does not claim a prize outcome; the implementation is being built to satisfy the published criteria.
+- **Agentic Wallet / Wallet Skills** — wallet state, tokenized-stock data, quotes, policy checks, simulation and spot execution.
+- **BNB Agent Studio** — an autonomous agent runtime with on-chain identity, task handling and x402-based payments.
 
-See: agent/AGENTIC_WALLET.md, agent/AGENT_STUDIO_DEPLOY.md, agent/task-schema.json
+The goal is a working end-to-end flow: discover a tokenized stock, compare its token price with the reference price, create a structured action, run safety checks and simulation, then execute through a scoped wallet when the user enables live execution.
 
-## Two special-prize integrations
+See: `agent/AGENTIC_WALLET.md`, `agent/AGENT_STUDIO_DEPLOY.md`, `agent/task-schema.json`
 
-1. **Best Use of Agentic Wallet / Wallet Skills** — the agent is designed around an execution layer that can read strategy, inspect tokenized-stock data, prepare a trade, simulate it, and request/execute the action through a scoped wallet.
-2. **Best Use of BNB Agent Studio** — the repository includes an Agent Studio deployment prompt/configuration path for an on-chain agent with ERC-8004 identity, ERC-8183 task interface and x402 self-funding.
+## Integrations
 
-The hackathon officially requires at least one of bStocks, Ondo or xStocks to be central, spot-only execution, and BSC mainnet for the final demo.
+### Agentic Wallet / Wallet Skills
+
+PRONOUS uses the wallet layer as the execution boundary. The agent can:
+
+1. read wallet state;
+2. inspect tokenized-stock market data;
+3. prepare a structured trade intent;
+4. request a quote;
+5. validate the configured policy;
+6. simulate the transaction;
+7. request confirmation when required;
+8. execute a spot transaction through the scoped wallet;
+9. return the execution result and transaction/order reference.
+
+### BNB Agent Studio
+
+PRONOUS is designed to run as an autonomous agent through BNB Agent Studio. The Studio side covers the agent runtime, on-chain identity, task interface and x402 payments.
+
+The web application remains the user-facing control and observation layer, while the agent runtime handles autonomous tasks.
 
 ## Product idea
 
-**Pronous Market Gap Agent** watches tokenized-equity price versus the underlying reference price. It explains the spread, checks market status, and produces a deterministic execution plan. The same plan can be run in demo mode by anyone or connected to a funded wallet for live BSC execution.
+**Pronous Market Gap Agent** watches tokenized-equity prices against their underlying reference prices. It identifies the current spread, checks market status and produces a structured execution plan.
 
-The default safety policy is:
+The execution policy is deliberately simple:
+
+- BSC mainnet;
 - spot only;
-- no leverage/perps;
-- simulate before live execution;
-- explicit spend cap;
-- explicit allowlist;
-- never expose API secrets to the browser;
-- public demo mode when credentials are absent.
+- no leverage or perpetuals;
+- simulation before live execution;
+- explicit spend limits;
+- token allowlist;
+- secrets stay server-side;
+- demo/read-only mode when live credentials are not configured.
 
 ## Quick start
 
@@ -43,19 +61,16 @@ Set these server-side environment variables for live Binance Web3 API access:
 - `BINANCE_WEB3_SIGN_ALGO` = `HMAC_SHA256` or `ED25519`
 - optional `BINANCE_WEB3_RECV_WINDOW` (default 5000)
 
-The API signing pre-hash follows the current Binance Web3 API guidance: `timestamp + METHOD + requestPath + body`.
-
-For Agent Studio, follow `agent/AGENT_STUDIO_DEPLOY.md` and deploy the agent with BNB Agent Studio. The public web UI remains useful even before the managed agent runtime is deployed.
+For Agent Studio, follow `agent/AGENT_STUDIO_DEPLOY.md` and deploy the agent through BNB Agent Studio.
 
 ## Demo
 
-Open the deployed site and:
 1. Search a ticker such as NVDA.
-2. Inspect tokenized assets from Ondo/bStocks.
+2. Inspect tokenized-stock data.
 3. Compare token price and reference price.
-4. Generate a strategy plan.
+4. Generate the execution plan.
 5. Run the plan in simulation.
-6. Connect the real API + wallet only when ready.
+6. Enable the wallet execution layer only when ready.
 
 ## Hackathon deliverables
 
@@ -63,10 +78,6 @@ Open the deployed site and:
 - Public web experience: `index.html`.
 - API integration: `api/agent.js`.
 - Agent Studio path: `agent/`.
-- Developer-experience report template: `docs/DEVEX_REPORT.md`.
+- Developer Experience Report template: `docs/DEVEX_REPORT.md`.
 
-AI-assisted code is used in this repository, but the Developer Experience Report must be based on the builder's actual experience and observations.
-
-## Deployment verification
-
-Production verification checkpoint: 2026-09-23. The production deployment must be tested separately from branch preview deployments because Vercel scopes environment variables by deployment environment.
+AI-assisted code is used in this repository, but the Developer Experience Report should reflect the builder's actual experience and observations.
