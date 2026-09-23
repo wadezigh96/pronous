@@ -12,7 +12,7 @@ function signHmac(secret, payload) {
 
 function signedHeaders(method, requestPath, body = "") {
   const apiKey = (process.env.BINANCE_WEB3_API_KEY || "").trim();
-  const secret = process.env.BINANCE_WEB3_API_SECRET || "";
+  const secret = (process.env.BINANCE_WEB3_API_SECRET || "").trim();
   if (!apiKey || !secret) return null;
 
   // PRONOUS is configured for a Binance Web3 HMAC-SHA256 credential.
@@ -183,6 +183,11 @@ module.exports = async function handler(req,res) {
     const action=url.searchParams.get("action")||"scan";
     const ticker=(url.searchParams.get("ticker")||"NVDA").trim().toUpperCase();
     if(!/^[A-Z0-9.-]{1,20}$/.test(ticker)) return res.status(400).json({error:"Invalid ticker"});
+
+    if(action==="authcheck") {
+      const data = await binanceGet("/api/v1/dex/balance/supported/chain",{binanceChainId:"56"});
+      return res.status(200).json({mode:"live-auth-ok",network:"BSC",supported:data.data||[],timestamp:data.timestamp});
+    }
 
     if(action==="assets") {
       if(process.env.BINANCE_WEB3_API_KEY) {
