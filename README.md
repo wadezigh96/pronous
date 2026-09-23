@@ -2,6 +2,16 @@
 
 PRONOUS is a public-first autonomous agent for the BNB Hack: Tokenized Stocks Edition.
 
+## Submission positioning
+
+PRONOUS is intentionally built around the two $2,000 stack-special surfaces:
+- Best Use of Agentic Wallet / Wallet Skills — real wallet state, quote, policy validation and spot execution flow.
+- Best Use of BNB Agent Studio — persistent agent runtime, ERC-8004 identity, ERC-8183 task interface and x402 self-funding.
+
+These are special prizes, not separate tracks, and the official rules allow one project to win a main placement and a special. PRONOUS does not claim a prize outcome; the implementation is being built to satisfy the published criteria.
+
+See: agent/AGENTIC_WALLET.md, agent/AGENT_STUDIO_DEPLOY.md, agent/task-schema.json
+
 ## Two special-prize integrations
 
 1. **Best Use of Agentic Wallet / Wallet Skills** — the agent is designed around an execution layer that can read strategy, inspect tokenized-stock data, prepare a trade, simulate it, and request/execute the action through a scoped wallet.
