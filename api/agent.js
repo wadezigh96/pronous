@@ -45,6 +45,22 @@ async function binanceGet(path, params = {}) {
   return data;
 }
 
+async function binancePost(path, body = {}) {
+  const requestBody = JSON.stringify(body);
+  const headers = signedHeaders("POST", path, requestBody);
+  if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
+  headers["Content-Type"] = "application/json";
+  const r = await fetch(BASE + path, {method:"POST",headers,body:requestBody});
+  const data = await r.json();
+  if (!r.ok || (data.code !== undefined && data.code !== 0)) {
+    const e = new Error(data.msg || "Binance Web3 API error");
+    e.status = r.status || 502;
+    e.data = data;
+    throw e;
+  }
+  return data;
+}
+
 const demoAssets = [
   ["NVDA","NVIDIA","181.20"],["AAPL","Apple","252.40"],["TSLA","Tesla","431.70"],
   ["MSFT","Microsoft","512.30"],["AMZN","Amazon","226.90"],["GOOGL","Alphabet","251.80"],
@@ -182,6 +198,48 @@ module.exports = async function handler(req,res) {
     }
 
     const asset=process.env.BINANCE_WEB3_API_KEY?await findLiveAsset(ticker):demoAsset(ticker);
+    if(action==="quote") {
+      const fromTokenAddress=(url.searchParams.get("fromTokenAddress")||"").trim();
+      const toTokenAddress=(url.searchParams.get("toTokenAddress")||asset.tokenContractAddress||"").trim();
+      const amount=(url.searchParams.get("amount")||"").trim();
+      const userWalletAddress=(url.searchParams.get("userWalletAddress")||"").trim();
+      if(!fromTokenAddress || !toTokenAddress || !amount) return res.status(400).json({error:"fromTokenAddress, toTokenAddress and amount are required"});
+      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"QUOTE_REQUIRES_LIVE_API",ticker,asset});
+      const params={binanceChainId:"56",amount,fromTokenAddress,toTokenAddress};
+      if(userWalletAddress) params.userWalletAddress=userWalletAddress;
+      const quote=await binanceGet("/api/v1/dex/aggregator/quote",params);
+      return res.status(200).json({mode:"live-quote",network:"BSC",ticker,asset,quote});
+    }
+
+    if(action==="build") {
+      const required=["fromTokenAddress","toTokenAddress","amount","userWalletAddress","quoteId"];
+      const missing=required.filter(k=>!(url.searchParams.get(k)||"").trim());
+      if(missing.length) return res.status(400).json({error:"Missing required parameters",missing});
+      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"BUILD_REQUIRES_LIVE_API",ticker,asset});
+      const params={
+        binanceChainId:"56",
+        amount:url.searchParams.get("amount"),
+        fromTokenAddress:url.searchParams.get("fromTokenAddress"),
+        toTokenAddress:url.searchParams.get("toTokenAddress"),
+        userWalletAddress:url.searchParams.get("userWalletAddress"),
+        quoteId:url.searchParams.get("quoteId"),
+        slippagePercent:url.searchParams.get("slippagePercent")||"0.5",
+        approveTransaction:url.searchParams.get("approveTransaction")||"false"
+      };
+      const built=await binanceGet("/api/v1/dex/aggregator/swap",params);
+      return res.status(200).json({mode:"live-build",network:"BSC",ticker,asset,built,broadcast:false,next:"Client wallet signature required before broadcast."});
+    }
+
+    if(action==="simulateTx") {
+      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"SIMULATION_REQUIRES_LIVE_API",broadcast:false});
+      const raw=url.searchParams.get("evmTx");
+      if(!raw) return res.status(400).json({error:"evmTx JSON query parameter is required"});
+      let evmTx;
+      try { evmTx=JSON.parse(raw); } catch (_) { return res.status(400).json({error:"Invalid evmTx JSON"}); }
+      const simulation=await binancePost("/api/v1/dex/pre-transaction/simulate",{binanceChainId:"56",evmTx});
+      return res.status(200).json({mode:"live-simulation",network:"BSC",ticker,simulation,broadcast:false});
+    }
+
     if(action==="preflight") {\n      const amount=url.searchParams.get("amount")||"0";\n      const maxSpend=url.searchParams.get("maxSpend")||"100";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend}),broadcast:false});\n    }\n    if(action==="loop") {\n      const simulated=url.searchParams.get("simulated")==="true";\n      const confirmed=url.searchParams.get("confirmed")==="true";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});\n    }\n    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
