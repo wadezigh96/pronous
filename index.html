@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PRONOUS — Tokenized Stock Agent</title>
 <style>
-:root{font-family:Inter,system-ui,sans-serif;color:#eef2ff;background:#070b16}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17213c 0,#070b16 45%);min-height:100vh}.wrap{max-width:1050px;margin:auto;padding:28px 18px}.nav{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:900;letter-spacing:.16em}.pill{font-size:12px;padding:7px 10px;border:1px solid #34405e;border-radius:999px;color:#aab7d6}.hero{padding:72px 0 35px}.eyebrow{color:#7dd3fc;font-weight:700}.hero h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin:12px 0}.hero p{color:#aeb9d3;max-width:700px;font-size:18px;line-height:1.6}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.card{background:#0d1425;border:1px solid #25314b;border-radius:20px;padding:20px;box-shadow:0 20px 50px #0005}.row{display:flex;gap:10px}.row>*{flex:1}input,button{width:100%;border-radius:12px;padding:13px;border:1px solid #34405e;background:#0a1020;color:#fff}button{cursor:pointer;background:#e8f0ff;color:#07101f;font-weight:800}.secondary{background:#18233a;color:#dbe7ff}.result{margin-top:16px;white-space:pre-wrap;color:#c9d5ed;line-height:1.55}.metric{font-size:30px;font-weight:900}.muted{color:#8e9ab5}.tag{display:inline-block;margin:4px 5px 0 0;padding:5px 8px;border-radius:999px;background:#17243b;color:#a8c7ff;font-size:12px}.chat{margin-top:16px}.chatlog{height:250px;overflow:auto;background:#09101e;border:1px solid #25314b;border-radius:14px;padding:14px}.msg{margin:0 0 12px;line-height:1.5}.you{color:#9ec5ff}.agent{color:#dce6fb}.small{font-size:12px}.feature{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.feature div{padding:14px;border:1px solid #25314b;border-radius:14px;background:#0b1221}.feature b{display:block;margin-bottom:5px}@media(max-width:780px){.grid{grid-template-columns:1fr}.hero{padding-top:45px}.feature{grid-template-columns:1fr}}
+:root{font-family:Inter,system-ui,sans-serif;color:#eef2ff;background:#070b16}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17213c 0,#070b16 45%);min-height:100vh}.wrap{max-width:1050px;margin:auto;padding:28px 18px}.nav{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:900;letter-spacing:.16em}.pill{font-size:12px;padding:7px 10px;border:1px solid #34405e;border-radius:999px;color:#aab7d6}.hero{padding:72px 0 35px}.eyebrow{color:#7dd3fc;font-weight:700}.hero h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin:12px 0}.hero p{color:#aeb9d3;max-width:700px;font-size:18px;line-height:1.6}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.card{background:#0d1425;border:1px solid #25314b;border-radius:20px;padding:20px;box-shadow:0 20px 50px #0005}.row{display:flex;gap:10px}.row>*{flex:1}input,button{width:100%;border-radius:12px;padding:13px;border:1px solid #34405e;background:#0a1020;color:#fff}button{cursor:pointer;background:#e8f0ff;color:#07101f;font-weight:800}.secondary{background:#18233a;color:#dbe7ff}.result{margin-top:16px;white-space:pre-wrap;color:#c9d5ed;line-height:1.55}.metric{font-size:30px;font-weight:900}.muted{color:#8e9ab5}.tag{display:inline-block;margin:4px 5px 0 0;padding:5px 8px;border-radius:999px;background:#17243b;color:#a8c7ff;font-size:12px}.chat{margin-top:16px}.chatlog{height:250px;overflow:auto;background:#09101e;border:1px solid #25314b;border-radius:14px;padding:14px}.msg{margin:0 0 12px;line-height:1.5}.you{color:#9ec5ff}.agent{color:#dce6fb}.small{font-size:12px}.feature{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.feature div{padding:14px;border:1px solid #25314b;border-radius:14px;background:#0b1221}.market-head{display:flex;justify-content:space-between;align-items:center}.market-wrap{overflow:auto}.market{width:100%;border-collapse:collapse;font-size:13px}.market th,.market td{padding:10px 8px;border-bottom:1px solid #202b42;text-align:left;white-space:nowrap}.market th{color:#8290ad;font-weight:600}.pos{color:#7dd3fc}.neg{color:#fda4af}.live{color:#86efac}.demo{color:#fbbf24}.feature b{display:block;margin-bottom:5px}@media(max-width:780px){.grid{grid-template-columns:1fr}.hero{padding-top:45px}.feature{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -34,7 +34,19 @@
 </section>
 </div>
 
-<section class="card chat">
+
+<section class="card market-card">
+<h2>Tokenized market</h2>
+<div class="market-head"><div><span id="marketMode" class="tag">LOADING</span> <span id="marketUpdated" class="muted small">—</span></div><button class="secondary" style="max-width:130px" onclick="loadMarket()">Refresh</button></div>
+<div class="row" style="margin-top:10px"><input id="marketSearch" placeholder="Search ticker or company" oninput="renderMarket()"><button class="secondary" onclick="setFilter('all')">ALL</button><button class="secondary" onclick="setFilter('ondo')">ONDO</button><button class="secondary" onclick="setFilter('bstock')">bSTOCKS</button><button class="secondary" onclick="setFilter('xstocks')">xSTOCKS</button></div>
+<div id="marketTable" class="result">Loading live RWA data…</div>
+</section>
+
+<section class="grid">
+<section class="card"><h2>Divergence radar</h2><div class="muted">Find token/reference price gaps and reference-market state across the live asset universe.</div><div id="radar" class="result">Waiting for market data…</div></section>
+<section class="card"><h2>Market clock</h2><div class="muted">Token trading can remain active while the reference market is closed.</div><div id="clock" class="result">Select an asset to inspect its market state.</div></section>
+</section>
+\n<section class="card chat">
 <h2>Ask PRONOUS <span class="muted small">24/7</span></h2>
 <div class="muted">Ask about tokenized stocks, market hours, price gaps, bStocks, Ondo, BSC or the current ticker.</div>
 <div id="chatlog" class="chatlog">
@@ -54,7 +66,26 @@
 </div>
 
 <script>
-let last=null;
+let last=null, marketAssets=[], marketFilter='all';
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+function setFilter(f){marketFilter=f;renderMarket()}
+function renderMarket(){
+ const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
+ const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
+ const box=document.getElementById('marketTable');
+ if(!rows.length){box.textContent='No matching assets.';return}
+ box.innerHTML='<div class="market-wrap"><table class="market"><thead><tr><th>Ticker</th><th>Platform</th><th>Token</th><th>Reference</th><th>Gap</th><th>Market</th></tr></thead><tbody>'+rows.slice(0,100).map(x=>{const gap=Number(x.spreadPct);return '<tr><td><b>'+esc(x.ticker)+'</b><br><span class="muted small">'+esc(x.companyName)+'</span></td><td>'+esc(x.platformId)+'</td><td>'+esc(x.tokenPrice??'—')+'</td><td>'+esc(x.referencePrice??'—')+'</td><td class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</td><td>'+esc(x.marketStatus||x.openState||'—')+'</td></tr>'}).join('')+'</tbody></table></div>';
+}
+function renderRadar(){
+ const rows=[...marketAssets].filter(x=>Number.isFinite(Number(x.spreadPct))).sort((a,b)=>Math.abs(Number(b.spreadPct))-Math.abs(Number(a.spreadPct))).slice(0,5);
+ document.getElementById('radar').innerHTML=rows.length?rows.map(x=>'<div style="margin:0 0 10px"><b>'+esc(x.ticker)+'</b> · '+esc(x.platformId)+' · <span class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%</span><br><span class="muted small">Token '+esc(x.tokenPrice)+' vs reference '+esc(x.referencePrice)+' · '+esc(x.marketStatus||x.openState||'state unavailable')+'</span></div>').join(''):'No spread data available.';
+}
+function renderClock(x){document.getElementById('clock').innerHTML=x?'<div class="metric">'+esc(x.marketStatus||x.openState||'—')+'</div><div class="muted small">'+esc(x.ticker)+' · '+esc(x.platformId)+'</div><p class="small">Next open: '+esc(x.nextOpenTime||'—')+'<br>Next close: '+esc(x.nextCloseTime||'—')+'</p>':'Select an asset to inspect its market state.'}
+async function loadMarket(){
+ const box=document.getElementById('marketTable'); box.textContent='Loading…';
+ try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];document.getElementById('marketMode').textContent=(j.mode||'unknown').toUpperCase();document.getElementById('marketMode').className='tag '+(j.mode==='live-data'?'live':'demo');document.getElementById('marketUpdated').textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';renderMarket();renderRadar();renderClock(marketAssets[0]);}
+ catch(e){box.textContent='Market data error: '+e.message}
+}
 function addMessage(type,text){
  const log=document.getElementById('chatlog');
  const p=document.createElement('p');
@@ -94,6 +125,7 @@ async function ask(){
  }catch(e){addMessage('agent','The 24/7 desk is temporarily unavailable. You can still use Market Intelligence.');}
 }
 document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
+loadMarket();
 </script>
 </body>
 </html>
