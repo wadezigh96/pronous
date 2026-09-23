@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { calculateSpreadPct, normalizeAsset } = require("../lib/market");
 const { buildGuardChecks, preflightStatus } = require("../lib/policy");
+const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 
 const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
@@ -202,35 +203,21 @@ module.exports = async function handler(req,res) {
 
     const asset=process.env.BINANCE_WEB3_API_KEY?await findLiveAsset(ticker):demoAsset(ticker);
     if(action==="quote") {
-      const fromTokenAddress=(url.searchParams.get("fromTokenAddress")||"").trim();
-      const toTokenAddress=(url.searchParams.get("toTokenAddress")||asset.tokenContractAddress||"").trim();
-      const amount=(url.searchParams.get("amount")||"").trim();
-      const userWalletAddress=(url.searchParams.get("userWalletAddress")||"").trim();
-      if(!fromTokenAddress || !toTokenAddress || !amount) return res.status(400).json({error:"fromTokenAddress, toTokenAddress and amount are required"});
-      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"QUOTE_REQUIRES_LIVE_API",ticker,asset});
-      const params={binanceChainId:"56",amount,fromTokenAddress,toTokenAddress};
-      if(userWalletAddress) params.userWalletAddress=userWalletAddress;
-      const quote=await binanceGet("/api/v1/dex/aggregator/quote",params);
-      return res.status(200).json({mode:"live-quote",network:"BSC",ticker,asset,quote});
+      const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress")||asset.tokenContractAddress,amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress")};
+      const built=buildQuoteParams(input);
+      if(!built.ok) return res.status(400).json({error:"Invalid quote intent",missing:built.missing});
+      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"QUOTE_REQUIRES_LIVE_API",ticker,asset,intent:built.params});
+      const quote=await binanceGet("/api/v1/dex/aggregator/quote",built.params);
+      return res.status(200).json({mode:"live-quote",network:"BSC",ticker,asset,quote,broadcast:false});
     }
 
     if(action==="build") {
-      const required=["fromTokenAddress","toTokenAddress","amount","userWalletAddress","quoteId"];
-      const missing=required.filter(k=>!(url.searchParams.get(k)||"").trim());
-      if(missing.length) return res.status(400).json({error:"Missing required parameters",missing});
-      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"BUILD_REQUIRES_LIVE_API",ticker,asset});
-      const params={
-        binanceChainId:"56",
-        amount:url.searchParams.get("amount"),
-        fromTokenAddress:url.searchParams.get("fromTokenAddress"),
-        toTokenAddress:url.searchParams.get("toTokenAddress"),
-        userWalletAddress:url.searchParams.get("userWalletAddress"),
-        quoteId:url.searchParams.get("quoteId"),
-        slippagePercent:url.searchParams.get("slippagePercent")||"0.5",
-        approveTransaction:url.searchParams.get("approveTransaction")||"false"
-      };
-      const built=await binanceGet("/api/v1/dex/aggregator/swap",params);
-      return res.status(200).json({mode:"live-build",network:"BSC",ticker,asset,built,broadcast:false,next:"Client wallet signature required before broadcast."});
+      const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress"),amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress"),quoteId:url.searchParams.get("quoteId"),slippagePercent:url.searchParams.get("slippagePercent"),approveTransaction:url.searchParams.get("approveTransaction")};
+      const built=buildSwapParams(input);
+      if(!built.ok) return res.status(400).json({error:"Invalid swap intent",missing:built.missing});
+      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"BUILD_REQUIRES_LIVE_API",ticker,asset,intent:built.params,broadcast:false});
+      const swap=await binanceGet("/api/v1/dex/aggregator/swap",built.params);
+      return res.status(200).json({mode:"live-build",network:"BSC",ticker,asset,built:swap,broadcast:false,next:"Client wallet signature required before broadcast."});
     }
 
     if(action==="simulateTx") {
@@ -239,8 +226,7 @@ module.exports = async function handler(req,res) {
       if(!raw) return res.status(400).json({error:"evmTx JSON query parameter is required"});
       let evmTx;
       try { evmTx=JSON.parse(raw); } catch (_) { return res.status(400).json({error:"Invalid evmTx JSON"}); }
-      const simulation=await binancePost("/api/v1/dex/pre-transaction/simulate",{binanceChainId:"56",evmTx});
-      return res.status(200).json({mode:"live-simulation",network:"BSC",ticker,simulation,broadcast:false});
+      return res.status(200).json({mode:"simulation-adapter",network:"BSC",ticker,evmTx,broadcast:false,status:"SCHEMA_GATED",next:"Verify official Binance simulation schema before calling live simulation."});
     }
 
     if(action==="preflight") {
