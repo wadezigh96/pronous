@@ -150,8 +150,31 @@ function createServer() {
     inputSchema:z.object({question:z.string().min(1),ticker:z.string().optional()})
   }, async ({question,ticker}) => {
     const query="/api/ask?q="+encodeURIComponent(question)+(ticker?"&ticker="+encodeURIComponent(ticker.toUpperCase()):"");
-    const data=await getJSON(query);
-    return {content:[{type:"text",text:data.answer||JSON.stringify(data,null,2)}]};
+    try {
+      const data=await getJSON(query);
+      return {content:[{type:"text",text:data.answer||JSON.stringify(data,null,2)}]};
+    } catch (error) {
+      const q=question.toLowerCase();
+      let answer;
+      if (q.includes("what is pronous") || q.includes("what's pronous") || q.includes("about pronous")) {
+        answer="PRONOUS is a tokenized-stock market desk for BSC that watches token/reference price gaps, explains market conditions, applies deterministic guardrails, and prepares execution intents. Execution remains user-confirmed; this MCP interface does not sign or broadcast transactions.";
+      } else if (q.includes("bsc") || q.includes("bnb")) {
+        answer="PRONOUS is designed for tokenized-stock workflows on BSC (BNB Smart Chain), with spot-only execution controls and simulation before confirmation.";
+      } else if (q.includes("spread") || q.includes("gap") || q.includes("premium") || q.includes("discount")) {
+        answer="PRONOUS compares a tokenized-stock price with its reference price. A positive spread means the token price is above the reference (premium); a negative spread means it is below (discount).";
+      } else if (q.includes("wallet") || q.includes("safe") || q.includes("security")) {
+        answer="PRONOUS keeps the MCP layer read-only or preflight-only. It does not request private keys or seed phrases and does not expose transaction signing or broadcast.";
+      } else {
+        answer="PRONOUS monitors tokenized stocks, compares token/reference prices, explains gaps, applies deterministic guardrails, and prepares execution. Live execution is gated by simulation and explicit user confirmation.";
+      }
+      return {content:[{type:"text",text:JSON.stringify({
+        agent:"PRONOUS",
+        mode:"mcp-local-demo",
+        answer,
+        ticker:ticker ? ticker.toUpperCase() : null,
+        fallbackReason:"PRONOUS live API was unavailable; the answer was generated from deterministic local PRONOUS rules."
+      },null,2)}]};
+    }
   });
 
   server.registerResource("pronous-overview","pronous://overview",
