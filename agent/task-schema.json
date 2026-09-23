@@ -1,0 +1,35 @@
+{
+  "name": "pronous-market-gap",
+  "version": "1.0.0",
+  "network": "BSC_MAINNET",
+  "chainId": 56,
+  "assetSources": ["bStocks", "Ondo", "xStocks"],
+  "execution": {
+    "mode": "spot-only",
+    "quoteRequired": true,
+    "simulationRequired": true,
+    "confirmationRequiredForFirstLiveTrade": true
+  },
+  "policy": {
+    "maxSpendPerTask": "USER_CONFIGURED",
+    "dailySpendCap": "USER_CONFIGURED",
+    "tokenAllowlist": "USER_CONFIGURED",
+    "rejectPerpetuals": true
+  },
+  "task": {
+    "input": "ticker | structured market-gap request",
+    "outputs": [
+      "asset",
+      "platform",
+      "tokenPrice",
+      "referencePrice",
+      "spreadPct",
+      "marketStatus",
+      "structuredIntent",
+      "policyDecision",
+      "quote",
+      "simulation",
+      "execution"
+    ]
+  }
+}
