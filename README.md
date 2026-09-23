@@ -18,6 +18,31 @@
 
 ---
 
+## Connect PRONOUS MCP
+
+**One copy. One connection. PRONOUS inside your AI client.**
+
+```json
+{
+  "mcpServers": {
+    "pronous": {
+      "command": "npx",
+      "args": ["-y", "github:wadezigh96/pronous"]
+    }
+  }
+}
+```
+
+Then ask:
+
+> **Use PRONOUS to scan NVDA and explain the token/reference gap.**
+
+**Tools:** `market_assets` · `scan_asset` · `preflight` · `ask_pronous`
+
+[Full MCP setup →](docs/MCP.md)
+
+---
+
 ## What is PRONOUS?
 
 PRONOUS is a focused on-chain market desk for **tokenized stocks on BNB Smart Chain**.
