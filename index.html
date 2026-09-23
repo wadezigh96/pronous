@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRONOUS — Tokenized Stock Agent</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#eef2ff;background:#070b16}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17213c 0,#070b16 45%);min-height:100vh}.wrap{max-width:1050px;margin:auto;padding:28px 18px}.nav{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:900;letter-spacing:.16em}.pill{font-size:12px;padding:7px 10px;border:1px solid #34405e;border-radius:999px;color:#aab7d6}.hero{padding:72px 0 35px}.eyebrow{color:#7dd3fc;font-weight:700}.hero h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin:12px 0}.hero p{color:#aeb9d3;max-width:700px;font-size:18px;line-height:1.6}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.card{background:#0d1425;border:1px solid #25314b;border-radius:20px;padding:20px;box-shadow:0 20px 50px #0005}.row{display:flex;gap:10px}.row>*{flex:1}input,button{width:100%;border-radius:12px;padding:13px;border:1px solid #34405e;background:#0a1020;color:#fff}button{cursor:pointer;background:#e8f0ff;color:#07101f;font-weight:800}.secondary{background:#18233a;color:#dbe7ff}.result{margin-top:16px;white-space:pre-wrap;color:#c9d5ed;line-height:1.55}.metric{font-size:30px;font-weight:900}.muted{color:#8e9ab5}.tag{display:inline-block;margin:4px 5px 0 0;padding:5px 8px;border-radius:999px;background:#17243b;color:#a8c7ff;font-size:12px}@media(max-width:780px){.grid{grid-template-columns:1fr}.hero{padding-top:45px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="nav"><div class="logo">PRONOUS</div><div class="pill">BSC • TOKENIZED STOCK AGENT</div></nav>
+<section class="hero">
+<div class="eyebrow">PUBLIC-FIRST AUTONOMOUS AGENT</div>
+<h1>Watch the gap.<br>Explain it. Act safely.</h1>
+<p>Pronous monitors tokenized stocks against their underlying reference price, creates an auditable execution plan, and can move from simulation to scoped wallet execution.</p>
+<div><span class="tag">Ondo</span><span class="tag">bStocks</span><span class="tag">Agentic Wallet</span><span class="tag">Agent Studio</span><span class="tag">x402</span></div>
+</section>
+<div class="grid">
+<section class="card">
+<h2>Market intelligence</h2>
+<div class="row"><input id="ticker" value="NVDA" placeholder="Ticker, e.g. NVDA"><button onclick="scan()">Scan</button></div>
+<div id="scan" class="result">Demo mode is ready. Add Binance API credentials server-side for live RWA data.</div>
+</section>
+<section class="card">
+<h2>Agent plan</h2>
+<div class="muted">Deterministic guardrails keep the public demo safe.</div>
+<div class="result" id="plan">No plan yet.</div>
+<button class="secondary" onclick="simulate()">Simulate execution</button>
+</section>
+</div>
+</div>
+<script>
+let last=null;
+async function scan(){
+ const t=document.getElementById('ticker').value.trim().toUpperCase();
+ if(!t)return;
+ document.getElementById('scan').textContent='Scanning…';
+ try{
+  const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));
+  const j=await r.json(); last=j;
+  document.getElementById('scan').textContent=JSON.stringify(j,null,2);
+  document.getElementById('plan').textContent=j.plan||'No plan returned.';
+ }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
+}
+async function simulate(){
+ const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
+ document.getElementById('plan').textContent='Simulating…';
+ const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
+ const j=await r.json();
+ document.getElementById('plan').textContent=JSON.stringify(j,null,2);
+}
+</script>
+</body>
+</html>
