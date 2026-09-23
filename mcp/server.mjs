@@ -105,9 +105,21 @@ function createServer() {
   server.registerTool("market_assets", {
     description:"Get tokenized-stock market assets monitored by PRONOUS.",
     inputSchema:z.object({ ticker:z.string().optional() })
-  }, async ({ticker}) => ({
-    content:[{type:"text",text:JSON.stringify(await getJSON("/api/agent?action=assets"+(ticker?"&ticker="+encodeURIComponent(ticker.toUpperCase()):"")),null,2)}]
-  }));
+  }, async ({ticker}) => {
+    const path="/api/agent?action=assets"+(ticker?"&ticker="+encodeURIComponent(ticker.toUpperCase()):"");
+    try {
+      return {content:[{type:"text",text:JSON.stringify(await getJSON(path),null,2)}]};
+    } catch (error) {
+      const assets = ticker ? [localAsset(ticker)] : Object.keys(DEMO_ASSETS).map(localAsset);
+      return {content:[{type:"text",text:JSON.stringify({
+        agent:"PRONOUS",
+        mode:"mcp-local-demo",
+        network:"BSC",
+        assets,
+        fallbackReason:"PRONOUS live API was unavailable; deterministic demo market assets were returned locally. No transaction was executed."
+      },null,2)}]};
+    }
+  });
 
   server.registerTool("scan_asset", {
     description:"Scan one tokenized stock and return its PRONOUS market-gap assessment.",
