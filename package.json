@@ -1,8 +1,17 @@
 {
-  "name":"pronous",
-  "private":true,
-  "version":"1.0.0",
-  "type":"module",
-  "scripts":{"mcp":"node mcp/server.mjs"},
-  "dependencies":{"@modelcontextprotocol/server":"latest","zod":"^4.0.0"}
+  "name": "pronous",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "pronous-mcp": "mcp/server.mjs"
+  },
+  "files": ["mcp", "lib"],
+  "scripts": {
+    "mcp": "node mcp/server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "latest",
+    "zod": "^4.0.0"
+  }
 }
