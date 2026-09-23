@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
   const text = q.toLowerCase();
   let answer;
 
-  if (/24.?7|always.?on|jam|hours|open|closed|weekend|holiday/.test(text)) {
+  if (/skill|agent skill|kemampuan|sentinel|guard|radar|scan|monitor/.test(text)) {\n    answer = "PRONOUS uses layered skills: Market Sentinel scans the asset universe, Gap Guard checks divergence and market state, Cross-Venue Check compares supported representations, Execution Planner prepares a constrained spot-only intent, Preflight Guard blocks unsafe execution, Portfolio Drift proposes rebalancing, Agent Treasury monitors operating budget, and Decision Ledger records the reasoning trail. Consequential actions remain behind explicit policy checks.";\n  } else if (/24.?7|always.?on|jam|hours|open|closed|weekend|holiday/.test(text)) {
     answer = "PRONOUS treats tokenized-stock availability and the reference market schedule as two separate signals. A reference exchange can be closed while an on-chain token market may still show activity. The agent should show the market-status context and avoid treating an off-hours gap as an automatic trade signal.";
   } else if (/gap|spread|premium|discount|selisih/.test(text)) {
     answer = "The market gap is the difference between the tokenized-stock price and its reference price. PRONOUS reports the spread first, then applies policy checks and simulation before any live execution.";
