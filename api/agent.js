@@ -75,27 +75,33 @@ function makePlan(asset) {
 }
 
 async function liveAssets() {
-  const platforms = ["ondo","bstock","xstocks"];
-  const out = [];
-  for (const platformId of platforms) {
-    try {
-      const data = await binanceGet("/api/v1/dex/market/rwa/tokens",{binanceChainId:"56",platformId});
-      for (const x of (data.data || [])) {
-        out.push({
-          ticker:x.ticker || x.symbol || x.tokenSymbol || "UNKNOWN",
-          companyName:x.companyName || x.underlyingName || "",
-          platformId,
-          tokenSymbol:x.tokenSymbol || x.symbol || "",
-          tokenContractAddress:x.tokenContractAddress || "",
-          tokenPrice:x.tokenPrice ?? null,
-          referencePrice:x.referencePrice ?? null,
-          marketStatus:x.statusInfo?.marketStatus || null,
-          openState:x.statusInfo?.openState ?? null
-        });
-      }
-    } catch (_) {}
-  }
-  return out;
+  // Ask Binance for the complete BSC RWA universe, then keep the equity-like
+  // rows used by the tokenized-stock desk. The current public RWA endpoint
+  // documents Ondo and bStocks as supported issuance platforms.
+  const data = await binanceGet("/api/v1/dex/market/rwa/tokens",{binanceChainId:"56"});
+  return (data.data || [])
+    .filter(x => x.underlyingTicker && x.tokenContractAddress)
+    .map(x => {
+      const tokenPrice = Number(x.tokenPrice || 0);
+      const referencePrice = Number(x.referencePrice || 0);
+      return {
+        ticker:x.underlyingTicker,
+        companyName:x.underlyingName || x.tokenName || "",
+        platformId:x.platformId || "unknown",
+        tokenSymbol:x.tokenSymbol || "",
+        tokenContractAddress:x.tokenContractAddress,
+        tokenPrice:x.tokenPrice ?? null,
+        referencePrice:x.referencePrice ?? null,
+        spreadPct:referencePrice ? Number(((tokenPrice / referencePrice - 1) * 100).toFixed(3)) : null,
+        marketStatus:x.statusInfo?.marketStatus || null,
+        openState:x.statusInfo?.openState ?? null,
+        nextOpenTime:x.statusInfo?.nextOpenTime ?? null,
+        nextCloseTime:x.statusInfo?.nextCloseTime ?? null,
+        volume24H:x.volume24H ?? null,
+        marketCap:x.marketCap ?? null,
+        tokenToShareRatio:x.tokenToShareRatio ?? null
+      };
+    });
 }
 
 async function findLiveAsset(ticker) {
@@ -103,16 +109,25 @@ async function findLiveAsset(ticker) {
   const candidates=(data.data||[]).flatMap(x=>(x.assets||[]).map(a=>({...x,...a})));
   const asset=candidates.find(x=>["ondo","bstock","xstocks"].includes(x.platformId))||candidates[0];
   if(!asset) throw Object.assign(new Error("TOKEN_NOT_FOUND"),{status:404});
-  const price=asset.tokenPrice&&asset.referencePrice
-    ? {data:[{tokenPrice:asset.tokenPrice,referencePrice:asset.referencePrice}]}
-    : await binanceGet("/api/v1/dex/market/rwa/tokens",{binanceChainId:"56",platformId:asset.platformId});
-  const row=price.data?.find(x=>x.tokenContractAddress===asset.tokenContractAddress)||price.data?.[0]||{};
-  const tokenPrice=Number(row.tokenPrice||0), referencePrice=Number(row.referencePrice||0);
+  const price = await binanceGet("/api/v1/dex/market/rwa/price",{
+    binanceChainId:"56",
+    tokenContractAddresses:asset.tokenContractAddress
+  });
+  const quote=price.data?.[0]||{};
+  let market={};
+  try {
+    const m=await binanceGet("/api/v1/dex/market/rwa/underlying-market",{
+      binanceChainId:"56",tokenContractAddress:asset.tokenContractAddress
+    });
+    market=m.data||{};
+  } catch (_) {}
+  const tokenPrice=Number(quote.tokenPrice||0), referencePrice=Number(quote.referencePrice||0);
   return {demo:false,ticker:asset.ticker||ticker,companyName:asset.companyName||asset.underlyingName,
     platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,tokenContractAddress:asset.tokenContractAddress,
     tokenPrice:String(tokenPrice),referencePrice:String(referencePrice),
     spreadPct:referencePrice?Number(((tokenPrice/referencePrice-1)*100).toFixed(3)):null,
-    marketStatus:row.statusInfo?.marketStatus||null,openState:row.statusInfo?.openState??null};
+    marketStatus:market.statusInfo?.marketStatus||null,openState:market.statusInfo?.openState??null,
+    nextOpenTime:market.statusInfo?.nextOpenTime??null,nextCloseTime:market.statusInfo?.nextCloseTime??null};
 }
 
 module.exports = async function handler(req,res) {
@@ -124,10 +139,14 @@ module.exports = async function handler(req,res) {
 
     if(action==="assets") {
       if(process.env.BINANCE_WEB3_API_KEY) {
-        const assets=await liveAssets();
-        if(assets.length) return res.status(200).json({mode:"live-data",network:"BSC",assets});
+        try {
+          const assets=await liveAssets();
+          if(assets.length) return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),assets});
+        } catch (e) {
+          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:e.data||undefined});
+        }
       }
-      return res.status(200).json({mode:"demo",network:"BSC",assets:demoAssets.map(x=>demoAsset(x[0]))});
+      return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});
     }
 
     const asset=process.env.BINANCE_WEB3_API_KEY?await findLiveAsset(ticker):demoAsset(ticker);
