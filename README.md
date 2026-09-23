@@ -1,97 +1,230 @@
 # PRONOUS
 
-**See the gap. Understand the market. Act with guardrails.**
+<div align="center">
 
-PRONOUS is a simple on-chain market desk for tokenized stocks on BNB Smart Chain. It watches tokenized-equity prices against their reference prices, explains the difference, and turns a market signal into a controlled action plan.
+**TOKENIZED STOCK MARKET DESK**
 
-## What it does
+[![BNB Chain](https://img.shields.io/badge/BNB_Smart_Chain-Mainnet-F0B90B?style=for-the-badge&logo=binance&logoColor=white)](https://www.bnbchain.org/)
+[![Stack](https://img.shields.io/badge/Stack-HTML_%2B_JS-111111?style=for-the-badge)](./index.html)
+[![Agent](https://img.shields.io/badge/Agent-Guarded_Execution-7C3AED?style=for-the-badge)](./api/agent.js)
+[![Market](https://img.shields.io/badge/RWA-Tokenized_Stocks-00A86B?style=for-the-badge)](./docs/PRODUCT.md)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-1. **Watch** — track tokenized stocks and market status.
-2. **Compare** — see token price vs. reference price and the spread.
-3. **Explain** — ask PRONOUS why the gap exists or what the market state means.
-4. **Guard** — apply spot-only rules, spend limits and token checks.
-5. **Prepare** — build a structured plan and run preflight/simulation before any live action.
-6. **Confirm** — keep the final wallet action under user control.
+**Watch → Compare → Explain → Guard → Prepare → Confirm**
 
-PRONOUS is built for the tokenized-stock workflow highlighted by the [BNB Hack: Tokenized Stocks Edition](https://www.bnbchain.org/en/hackathons/tokenized-stocks), where bStocks, Ondo and xStocks can be used as the tokenized-equity layer.
+[Live App](https://pronous.vercel.app/) · [Architecture](docs/ARCHITECTURE.md) · [Product](docs/PRODUCT.md) · [Design](docs/DESIGN.md)
 
-## Why PRONOUS?
+</div>
 
-Traditional market hours and on-chain availability do not always move together. PRONOUS makes that difference visible instead of hiding it.
+---
 
-The core idea is intentionally simple:
+## What is PRONOUS?
 
-**Token price → Reference price → Gap → Market state → Guardrails → Action**
+PRONOUS is a focused on-chain market desk for **tokenized stocks on BNB Smart Chain**.
 
-## Core features
+> **See the token price, compare it with the reference price, understand the gap, then decide what happens next.**
 
-- Tokenized-stock market terminal
-- Token/reference price comparison
-- Divergence radar
-- Market-hours awareness
-- 24/7 natural-language questions
-- Agent skills for observation, detection and safety checks
-- Preflight checks with explicit spend limits
-- Simulation-first execution flow
-- Agentic Wallet / Wallet Skills integration path
-- BNB Agent Studio integration path
-- BSC mainnet, spot-only execution policy
+PRONOUS separates market intelligence from execution. A market signal is not permission to spend.
+
+## The core loop
+
+**WATCH → COMPARE → EXPLAIN → GUARD → PREPARE → CONFIRM**
+
+| Step | PRONOUS |
+|---|---|
+| Watch | Tokenized-stock universe and market status |
+| Compare | Token price vs. reference price |
+| Explain | Gap, premium/discount and market-state context |
+| Guard | Spot-only rules, spend limits and asset checks |
+| Prepare | Structured execution intent |
+| Confirm | Simulation and explicit wallet confirmation |
+
+---
+
+## Product surfaces
+
+### Market Desk
+
+A compact terminal for tokenized equities.
+
+- Asset universe
+- Token/reference prices
+- Spread percentage
+- Market status
+- Next open / close
+- Platform and token metadata
+
+### Divergence Radar
+
+Finds the largest observed token/reference gaps so the user can inspect them instead of searching manually.
+
+### Asset Detail
+
+Click an asset to inspect token price, reference price, spread, market state, volume, market cap, token contract and share ratio.
+
+### Agent Console
+
+PRONOUS turns an observation into a constrained plan.
+
+**Observe → Detect → Verify → Guard → Plan**
+
+### Execution Cockpit
+
+Execution is intentionally staged:
+
+**Preflight → Quote → Simulation → Confirmation → Execution**
+
+No blank-check transaction flow.
+
+### Ask PRONOUS
+
+A lightweight 24/7 assistant explains tokenized stocks, market hours, gaps, BSC and the execution model.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    UI["PRONOUS Desk<br/>HTML / JS"]
+    UI --> MARKET["Market Layer"]
+    UI --> AGENT["Agent Controller"]
+    MARKET --> RWA["RWA / Market Data"]
+    AGENT --> INTEL["Intelligence"]
+    INTEL --> POLICY["Policy / Guard"]
+    POLICY --> EXEC["Execution Boundary"]
+    EXEC --> QUOTE["Quote"]
+    EXEC --> BUILD["Build"]
+    EXEC --> SIM["Simulation Gate"]
+    SIM --> CONFIRM["User Confirmation"]
+    RWA --> BSC["BNB Smart Chain"]
+    CONFIRM --> WALLET["Wallet Boundary"]
+    SKILLS["Agent Skills"] --> INTEL
+    ASK["Ask PRONOUS"] --> INTEL
+```
+
+### Repository layers
+
+```text
+PRONOUS/
+├── index.html              # Product dashboard
+│
+├── api/
+│   ├── agent.js            # Agent / market API controller
+│   ├── skills.js           # Skills API controller
+│   └── ask.js              # Assistant API controller
+│
+├── lib/
+│   ├── market.js           # Asset normalization + spread logic
+│   ├── policy.js           # Deterministic safety checks
+│   ├── skills.js           # Skill registry + routing
+│   └── execution.js        # Quote/build/simulation boundary
+│
+├── agent/
+│   ├── AGENTIC_WALLET.md
+│   ├── AGENT_STUDIO_DEPLOY.md
+│   └── task-schema.json
+│
+└── docs/
+    ├── ARCHITECTURE.md
+    ├── DESIGN.md
+    └── PRODUCT.md
+```
+
+---
 
 ## Safety model
 
-PRONOUS does not treat a market signal as permission to spend.
+PRONOUS uses explicit gates:
 
-The execution path is separated into:
+| Gate | Purpose |
+|---|---|
+| **Network** | BNB Smart Chain |
+| **Asset** | Resolve a supported tokenized asset |
+| **Spot** | No leverage / perps in the execution policy |
+| **Price** | Require token + reference price |
+| **Spend cap** | Keep intent inside a defined limit |
+| **Simulation** | Required before live action |
+| **Confirmation** | User remains the final approval boundary |
 
-**Observe → Detect → Verify → Guard → Plan → Simulate → Confirm → Execute → Record**
+Execution state:
 
-Live execution remains behind wallet confirmation and configured policy controls.
+```text
+BLOCKED
+   ↓
+READY_FOR_QUOTE
+   ↓
+READY_FOR_SIMULATION
+   ↓
+WAITING_CONFIRMATION
+   ↓
+READY_TO_EXECUTE
+```
+
+Live broadcast remains deliberately gated while transaction schemas and wallet execution are verified.
+
+---
 
 ## Integrations
 
-### Binance Web3 API
+PRONOUS is structured around the Binance Web3 stack relevant to tokenized stocks:
 
-PRONOUS uses Binance Web3 APIs for the tokenized-stock data and execution workflow. The project is structured around RWA data, market information, trading/quote flows, transaction simulation and wallet state.
+- RWA / market data
+- Trading and aggregated quote flows
+- Wallet state
+- Agentic Wallet / Wallet Skills
+- BNB Agent Studio
+- x402 integration path
 
-### Agentic Wallet / Wallet Skills
+The application keeps these integrations behind clear domain boundaries so market data does not become automatic transaction permission.
 
-The wallet layer is used as the execution boundary. PRONOUS is designed to read relevant wallet/asset state, prepare an action, apply policy checks and require confirmation before a consequential transaction.
+---
 
-### BNB Agent Studio
+## Design language
 
-PRONOUS can be extended into a persistent agent through BNB Agent Studio, using its agent runtime, identity/task capabilities and x402 payment layer.
+PRONOUS uses a compact product-terminal style:
 
-## Run locally
+- Dark neutral workspace
+- Gold BNB accent
+- Thin borders
+- Dense information hierarchy
+- Inter for product copy
+- IBM Plex Mono for system/data labels
+- Explicit system states
+- Mobile-responsive layout
 
-This repository is intentionally dependency-light.
+The goal is **utility first**: every panel should answer what the asset is, what the gap is, what the market state is, and what can happen next.
 
-Set these server-side environment variables for live Binance Web3 API access:
+See [docs/DESIGN.md](docs/DESIGN.md).
 
-- `BINANCE_WEB3_API_KEY`
-- `BINANCE_WEB3_API_SECRET`
-- `BINANCE_WEB3_SIGN_ALGO` = `HMAC_SHA256` or `ED25519`
-- optional `BINANCE_WEB3_RECV_WINDOW` (default `5000`)
+---
 
-Then deploy the project to Vercel or run it with a static/serverless JavaScript environment.
+## Quick start
 
-For Agent Studio deployment, see:
+Set the server-side environment variables:
 
-- `agent/AGENT_STUDIO_DEPLOY.md`
-- `agent/AGENTIC_WALLET.md`
-- `agent/task-schema.json`
+```text
+BINANCE_WEB3_API_KEY
+BINANCE_WEB3_API_SECRET
+BINANCE_WEB3_SIGN_ALGO
+BINANCE_WEB3_RECV_WINDOW   # optional
+```
 
-## Project structure
+Then deploy the repository to a serverless JavaScript environment such as Vercel.
 
-- `index.html` — PRONOUS market desk and user interface
-- `api/agent.js` — market intelligence, plans and guarded execution adapters
-- `api/skills.js` — agent skill definitions and routing
-- `api/ask.js` — simple 24/7 PRONOUS assistant
-- `agent/` — Agentic Wallet and Agent Studio integration notes
+For Agent Studio setup, see:
+
+- [agent/AGENT_STUDIO_DEPLOY.md](agent/AGENT_STUDIO_DEPLOY.md)
+- [agent/AGENTIC_WALLET.md](agent/AGENTIC_WALLET.md)
+
+---
 
 ## Status
 
-PRONOUS is an active hackathon build. Read-only market intelligence and guarded planning are the primary product surface; live execution remains deliberately gated while transaction flows are verified.
+**Active build.**
+
+The primary product surface is market intelligence, asset analysis and guarded execution planning. Live execution is deliberately separated behind policy, simulation and user confirmation.
 
 ## License
 
-See the repository for the applicable license and project terms.
+See [LICENSE](LICENSE).
