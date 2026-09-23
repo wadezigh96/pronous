@@ -26,7 +26,8 @@ function signedHeaders(method, requestPath, body = "") {
     "X-OC-APIKEY": apiKey,
     "X-OC-TIMESTAMP": timestamp,
     "X-OC-SIGN": signature,
-    "X-OC-RECV-WINDOW": RECV_WINDOW
+    "X-OC-RECV-WINDOW": RECV_WINDOW,
+    _debug:{algorithm:"HMAC_SHA256",method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
   };
 }
 
@@ -35,12 +36,13 @@ async function binanceGet(path, params = {}) {
   const requestPath = path + (qs ? "?" + qs : "");
   const headers = signedHeaders("GET", requestPath, "");
   if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
+  const debug = headers._debug; delete headers._debug;
   const r = await fetch(BASE + requestPath, {headers});
   const data = await r.json();
   if (!r.ok || (data.code !== undefined && data.code !== 0)) {
     const e = new Error(data.msg || "Binance Web3 API error");
     e.status = r.status || 502;
-    e.data = data;
+    e.data = data; e.authDebug = debug;
     throw e;
   }
   return data;
@@ -235,6 +237,6 @@ module.exports = async function handler(req,res) {
     if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
-    return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined});
+    return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined,authDebug:e.authDebug||undefined});
   }
 };
