@@ -1,4 +1,6 @@
 const crypto = require("crypto");
+const { calculateSpreadPct, normalizeAsset } = require("../lib/market");
+const { buildGuardChecks, preflightStatus } = require("../lib/policy");
 
 const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
@@ -86,16 +88,15 @@ function demoAsset(ticker) {
 function buildPreflight(asset, params={}) {
   const amount=Number(params.amount||0);
   const maxSpend=Number(params.maxSpend||100);
-  const spread=Number(asset.spreadPct||0);
-  const checks=[
-    {id:"network",label:"BSC mainnet",pass:true},
-    {id:"asset",label:"Tokenized-stock asset resolved",pass:Boolean(asset.tokenContractAddress||asset.ticker)},
-    {id:"spot",label:"Spot only",pass:true},
-    {id:"price",label:"Token/reference prices available",pass:Number(asset.tokenPrice)>0&&Number(asset.referencePrice)>0},
-    {id:"spend_cap",label:"Spend cap",pass:amount>0&&amount<=maxSpend},
-    {id:"simulation",label:"Simulation required",pass:false}
-  ];
-  return {status:checks.every(x=>x.pass)?"READY_FOR_SIMULATION":"BLOCKED",amount,maxSpend,spreadPct:spread,checks,next:checks.find(x=>!x.pass)?.id||"simulation"};
+  const checks=buildGuardChecks(asset,{amount,maxSpend});
+  return {
+    status:preflightStatus(checks),
+    amount,
+    maxSpend,
+    spreadPct:calculateSpreadPct(asset.tokenPrice,asset.referencePrice) ?? Number(asset.spreadPct||0),
+    checks,
+    next:checks.find(x=>!x.pass)?.id||"simulation"
+  };
 }
 
 function evaluateLoop(asset, opts={}) {
