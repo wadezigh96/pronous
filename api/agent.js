@@ -190,7 +190,7 @@ module.exports = async function handler(req,res) {
           const assets=await liveAssets();
           if(assets.length) return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),assets});
         } catch (e) {
-          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:e.data||undefined});
+          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:e.data||undefined,authDebug:e.authDebug||undefined});
         }
       }
       return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});
