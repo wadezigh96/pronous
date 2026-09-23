@@ -46,6 +46,13 @@
 <section class="card"><h2>Divergence radar</h2><div class="muted">Find token/reference price gaps and reference-market state across the live asset universe.</div><div id="radar" class="result">Waiting for market data…</div></section>
 <section class="card"><h2>Market clock</h2><div class="muted">Token trading can remain active while the reference market is closed.</div><div id="clock" class="result">Select an asset to inspect its market state.</div></section>
 </section>
+\n
+<section class="card">
+<h2>Agent skills</h2>
+<div class="muted">PRONOUS routes every observation through specialized skills before a consequential action.</div>
+<div id="skills" class="feature" style="margin-top:14px">Loading skills…</div>
+<div id="loop" class="result" style="margin-top:14px">Observe → Detect → Verify → Guard → Plan → Simulate → Confirm → Execute → Record</div>
+</section>
 \n<section class="card chat">
 <h2>Ask PRONOUS <span class="muted small">24/7</span></h2>
 <div class="muted">Ask about tokenized stocks, market hours, price gaps, bStocks, Ondo, BSC or the current ticker.</div>
@@ -81,6 +88,7 @@ function renderRadar(){
  document.getElementById('radar').innerHTML=rows.length?rows.map(x=>'<div style="margin:0 0 10px"><b>'+esc(x.ticker)+'</b> · '+esc(x.platformId)+' · <span class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%</span><br><span class="muted small">Token '+esc(x.tokenPrice)+' vs reference '+esc(x.referencePrice)+' · '+esc(x.marketStatus||x.openState||'state unavailable')+'</span></div>').join(''):'No spread data available.';
 }
 function renderClock(x){document.getElementById('clock').innerHTML=x?'<div class="metric">'+esc(x.marketStatus||x.openState||'—')+'</div><div class="muted small">'+esc(x.ticker)+' · '+esc(x.platformId)+'</div><p class="small">Next open: '+esc(x.nextOpenTime||'—')+'<br>Next close: '+esc(x.nextCloseTime||'—')+'</p>':'Select an asset to inspect its market state.'}
+async function loadSkills(){try{const r=await fetch('/api/skills?action=list');const j=await r.json();document.getElementById('skills').innerHTML=(j.skills||[]).map(s=>'<div><b>'+esc(s.icon)+' '+esc(s.name)+'</b><span class="muted small">'+esc(s.purpose)+'</span><br><span class="tag">'+esc(s.risk)+'</span><span class="tag">'+esc(s.output)+'</span></div>').join('')}catch(e){document.getElementById('skills').textContent='Skills unavailable.'}}
 async function loadMarket(){
  const box=document.getElementById('marketTable'); box.textContent='Loading…';
  try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];document.getElementById('marketMode').textContent=(j.mode||'unknown').toUpperCase();document.getElementById('marketMode').className='tag '+(j.mode==='live-data'?'live':'demo');document.getElementById('marketUpdated').textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';renderMarket();renderRadar();renderClock(marketAssets[0]);}
@@ -125,7 +133,7 @@ async function ask(){
  }catch(e){addMessage('agent','The 24/7 desk is temporarily unavailable. You can still use Market Intelligence.');}
 }
 document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
-loadMarket();
+loadMarket();\nloadSkills();
 </script>
 </body>
 </html>
