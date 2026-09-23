@@ -3,53 +3,106 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PRONOUS — Tokenized Stock Agent</title>
-<style>
-:root{font-family:Inter,system-ui,sans-serif;color:#eef2ff;background:#070b16}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17213c 0,#070b16 45%);min-height:100vh}.wrap{max-width:1050px;margin:auto;padding:28px 18px}.nav{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:900;letter-spacing:.16em}.pill{font-size:12px;padding:7px 10px;border:1px solid #34405e;border-radius:999px;color:#aab7d6}.hero{padding:72px 0 35px}.eyebrow{color:#7dd3fc;font-weight:700}.hero h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin:12px 0}.hero p{color:#aeb9d3;max-width:700px;font-size:18px;line-height:1.6}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.card{background:#0d1425;border:1px solid #25314b;border-radius:20px;padding:20px;box-shadow:0 20px 50px #0005}.row{display:flex;gap:10px}.row>*{flex:1}input,button{width:100%;border-radius:12px;padding:13px;border:1px solid #34405e;background:#0a1020;color:#fff}button{cursor:pointer;background:#e8f0ff;color:#07101f;font-weight:800}.secondary{background:#18233a;color:#dbe7ff}.result{margin-top:16px;white-space:pre-wrap;color:#c9d5ed;line-height:1.55}.metric{font-size:30px;font-weight:900}.muted{color:#8e9ab5}.tag{display:inline-block;margin:4px 5px 0 0;padding:5px 8px;border-radius:999px;background:#17243b;color:#a8c7ff;font-size:12px}@media(max-width:780px){.grid{grid-template-columns:1fr}.hero{padding-top:45px}}
-</style>
+<meta name="theme-color" content="#f5f7f4">
+<meta name="description" content="PRONOUS monitors tokenized-stock market gaps and creates safe, auditable execution plans.">
+<title>PRONOUS — Market gap intelligence</title>
+<link rel="stylesheet" href="/globals.css">
 </head>
 <body>
-<div class="wrap">
-<nav class="nav"><div class="logo">PRONOUS</div><div class="pill">BSC • TOKENIZED STOCK AGENT</div></nav>
-<section class="hero">
-<div class="eyebrow">PUBLIC-FIRST AUTONOMOUS AGENT</div>
-<h1>Watch the gap.<br>Explain it. Act safely.</h1>
-<p>Pronous monitors tokenized stocks against their underlying reference price, creates an auditable execution plan, and can move from simulation to scoped wallet execution.</p>
-<div><span class="tag">Ondo</span><span class="tag">bStocks</span><span class="tag">Agentic Wallet</span><span class="tag">Agent Studio</span><span class="tag">x402</span></div>
-</section>
-<div class="grid">
-<section class="card">
-<h2>Market intelligence</h2>
-<div class="row"><input id="ticker" value="NVDA" placeholder="Ticker, e.g. NVDA"><button onclick="scan()">Scan</button></div>
-<div id="scan" class="result">Demo mode is ready. Add Binance API credentials server-side for live RWA data.</div>
-</section>
-<section class="card">
-<h2>Agent plan</h2>
-<div class="muted">Deterministic guardrails keep the public demo safe.</div>
-<div class="result" id="plan">No plan yet.</div>
-<button class="secondary" onclick="simulate()">Simulate execution</button>
-</section>
-</div>
-</div>
+<main class="shell">
+  <nav class="topbar" aria-label="Main navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">P</span> PRONOUS</div>
+    <div class="network"><span class="dot" aria-hidden="true"></span><span>BSC MAINNET · PUBLIC DEMO</span></div>
+  </nav>
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <p class="kicker">Tokenized market intelligence</p>
+      <h1 id="hero-title">See the gap.<br>Move with intent.</h1>
+      <p class="hero-copy">PRONOUS compares tokenized equities with their underlying reference price, explains the spread, and turns the signal into a deterministic, safety-first plan.</p>
+      <div class="chips" aria-label="Supported surfaces">
+        <span class="chip">Ondo</span><span class="chip">bStocks</span><span class="chip">Agentic Wallet</span><span class="chip">Spot only</span>
+      </div>
+    </div>
+    <aside class="hero-note" aria-label="System status">
+      <div class="note-label">System posture</div>
+      <div class="note-value">Observe before action.</div>
+      <p class="note-copy">Every signal starts in simulation. Live execution stays scoped, allowlisted, and off by default.</p>
+    </aside>
+  </section>
+
+  <section class="dashboard" aria-label="Market intelligence dashboard">
+    <article class="card card-main">
+      <div class="card-head">
+        <div><h2>Market intelligence</h2><p class="card-sub">Compare a tokenized stock to its reference price.</p></div>
+        <span class="badge">Live-ready</span>
+      </div>
+      <form class="search" onsubmit="event.preventDefault(); scan();">
+        <label class="sr-only" for="ticker">Ticker symbol</label>
+        <input id="ticker" value="NVDA" placeholder="Ticker, e.g. NVDA" autocomplete="off" spellcheck="false">
+        <button id="scan-button" type="submit">Scan market</button>
+      </form>
+      <div id="stats" class="stats" hidden></div>
+      <div id="scan" class="result">Enter a ticker to inspect its tokenized market signal.</div>
+    </article>
+
+    <aside class="card card-side">
+      <div class="card-head">
+        <div><h2>Agent plan</h2><p class="card-sub">Guardrails stay attached to every recommendation.</p></div>
+      </div>
+      <div class="policy" aria-label="Safety guardrails">
+        <div class="policy-row"><span class="check" aria-hidden="true">✓</span> Spot execution only</div>
+        <div class="policy-row"><span class="check" aria-hidden="true">✓</span> Simulate before broadcast</div>
+        <div class="policy-row"><span class="check" aria-hidden="true">✓</span> Spend cap required</div>
+        <div class="policy-row"><span class="check" aria-hidden="true">✓</span> Allowlist required</div>
+      </div>
+      <div id="plan" class="result">No plan generated yet.</div>
+      <button class="secondary" id="simulate-button" type="button" onclick="simulate()">Simulate execution</button>
+    </aside>
+  </section>
+</main>
 <script>
-let last=null;
-async function scan(){
- const t=document.getElementById('ticker').value.trim().toUpperCase();
- if(!t)return;
- document.getElementById('scan').textContent='Scanning…';
- try{
-  const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));
-  const j=await r.json(); last=j;
-  document.getElementById('scan').textContent=JSON.stringify(j,null,2);
-  document.getElementById('plan').textContent=j.plan||'No plan returned.';
- }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
+let last = null;
+const scanEl = document.getElementById('scan');
+const planEl = document.getElementById('plan');
+const statsEl = document.getElementById('stats');
+const scanButton = document.getElementById('scan-button');
+const simulateButton = document.getElementById('simulate-button');
+
+function setBusy(button, busy, label) {
+  button.disabled = busy;
+  button.textContent = busy ? 'Working…' : label;
 }
-async function simulate(){
- const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
- document.getElementById('plan').textContent='Simulating…';
- const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
- const j=await r.json();
- document.getElementById('plan').textContent=JSON.stringify(j,null,2);
+function renderStats(asset) {
+  statsEl.hidden = false;
+  statsEl.innerHTML = `<div class="stat"><div class="stat-label">Token price</div><div class="stat-value">$${asset.tokenPrice ?? '—'}</div></div><div class="stat"><div class="stat-label">Reference</div><div class="stat-value">$${asset.referencePrice ?? '—'}</div></div><div class="stat"><div class="stat-label">Spread</div><div class="stat-value">${asset.spreadPct ?? '—'}%</div></div>`;
+}
+async function scan() {
+  const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+  if (!ticker) return;
+  setBusy(scanButton, true, 'Scan market');
+  scanEl.classList.add('active'); scanEl.textContent = 'Scanning market signal…';
+  try {
+    const response = await fetch('/api/agent?action=scan&ticker=' + encodeURIComponent(ticker));
+    const data = await response.json(); last = data;
+    if (!response.ok) throw new Error(data.error || 'Scan failed');
+    renderStats(data.asset);
+    scanEl.textContent = JSON.stringify(data.asset, null, 2);
+    planEl.classList.add('active'); planEl.textContent = JSON.stringify(data.plan, null, 2);
+  } catch (error) { scanEl.textContent = 'Unable to scan: ' + error.message; }
+  finally { setBusy(scanButton, false, 'Scan market'); }
+}
+async function simulate() {
+  const ticker = (document.getElementById('ticker').value || 'NVDA').trim().toUpperCase();
+  setBusy(simulateButton, true, 'Simulate execution');
+  planEl.classList.add('active'); planEl.textContent = 'Preparing a safe simulation…';
+  try {
+    const response = await fetch('/api/agent?action=simulate&ticker=' + encodeURIComponent(ticker));
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Simulation failed');
+    planEl.textContent = JSON.stringify(data, null, 2);
+  } catch (error) { planEl.textContent = 'Unable to simulate: ' + error.message; }
+  finally { setBusy(simulateButton, false, 'Simulate execution'); }
 }
 </script>
 </body>
