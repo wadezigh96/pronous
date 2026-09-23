@@ -1,83 +1,97 @@
-# PRONOUS — Tokenized Stock Agent
+# PRONOUS
 
-PRONOUS is a public-first autonomous agent for the BNB Hack: Tokenized Stocks Edition.
+**See the gap. Understand the market. Act with guardrails.**
 
-## Submission positioning
+PRONOUS is a simple on-chain market desk for tokenized stocks on BNB Smart Chain. It watches tokenized-equity prices against their reference prices, explains the difference, and turns a market signal into a controlled action plan.
 
-PRONOUS combines two parts of the BNB stack in one product:
+## What it does
 
-- **Agentic Wallet / Wallet Skills** — wallet state, tokenized-stock data, quotes, policy checks, simulation and spot execution.
-- **BNB Agent Studio** — an autonomous agent runtime with on-chain identity, task handling and x402-based payments.
+1. **Watch** — track tokenized stocks and market status.
+2. **Compare** — see token price vs. reference price and the spread.
+3. **Explain** — ask PRONOUS why the gap exists or what the market state means.
+4. **Guard** — apply spot-only rules, spend limits and token checks.
+5. **Prepare** — build a structured plan and run preflight/simulation before any live action.
+6. **Confirm** — keep the final wallet action under user control.
 
-The goal is a working end-to-end flow: discover a tokenized stock, compare its token price with the reference price, create a structured action, run safety checks and simulation, then execute through a scoped wallet when the user enables live execution.
+PRONOUS is built for the tokenized-stock workflow highlighted by the [BNB Hack: Tokenized Stocks Edition](https://www.bnbchain.org/en/hackathons/tokenized-stocks), where bStocks, Ondo and xStocks can be used as the tokenized-equity layer.
 
-See: `agent/AGENTIC_WALLET.md`, `agent/AGENT_STUDIO_DEPLOY.md`, `agent/task-schema.json`
+## Why PRONOUS?
+
+Traditional market hours and on-chain availability do not always move together. PRONOUS makes that difference visible instead of hiding it.
+
+The core idea is intentionally simple:
+
+**Token price → Reference price → Gap → Market state → Guardrails → Action**
+
+## Core features
+
+- Tokenized-stock market terminal
+- Token/reference price comparison
+- Divergence radar
+- Market-hours awareness
+- 24/7 natural-language questions
+- Agent skills for observation, detection and safety checks
+- Preflight checks with explicit spend limits
+- Simulation-first execution flow
+- Agentic Wallet / Wallet Skills integration path
+- BNB Agent Studio integration path
+- BSC mainnet, spot-only execution policy
+
+## Safety model
+
+PRONOUS does not treat a market signal as permission to spend.
+
+The execution path is separated into:
+
+**Observe → Detect → Verify → Guard → Plan → Simulate → Confirm → Execute → Record**
+
+Live execution remains behind wallet confirmation and configured policy controls.
 
 ## Integrations
 
+### Binance Web3 API
+
+PRONOUS uses Binance Web3 APIs for the tokenized-stock data and execution workflow. The project is structured around RWA data, market information, trading/quote flows, transaction simulation and wallet state.
+
 ### Agentic Wallet / Wallet Skills
 
-PRONOUS uses the wallet layer as the execution boundary. The agent can:
-
-1. read wallet state;
-2. inspect tokenized-stock market data;
-3. prepare a structured trade intent;
-4. request a quote;
-5. validate the configured policy;
-6. simulate the transaction;
-7. request confirmation when required;
-8. execute a spot transaction through the scoped wallet;
-9. return the execution result and transaction/order reference.
+The wallet layer is used as the execution boundary. PRONOUS is designed to read relevant wallet/asset state, prepare an action, apply policy checks and require confirmation before a consequential transaction.
 
 ### BNB Agent Studio
 
-PRONOUS is designed to run as an autonomous agent through BNB Agent Studio. The Studio side covers the agent runtime, on-chain identity, task interface and x402 payments.
+PRONOUS can be extended into a persistent agent through BNB Agent Studio, using its agent runtime, identity/task capabilities and x402 payment layer.
 
-The web application remains the user-facing control and observation layer, while the agent runtime handles autonomous tasks.
+## Run locally
 
-## Product idea
-
-**Pronous Market Gap Agent** watches tokenized-equity prices against their underlying reference prices. It identifies the current spread, checks market status and produces a structured execution plan.
-
-The execution policy is deliberately simple:
-
-- BSC mainnet;
-- spot only;
-- no leverage or perpetuals;
-- simulation before live execution;
-- explicit spend limits;
-- token allowlist;
-- secrets stay server-side;
-- demo/read-only mode when live credentials are not configured.
-
-## Quick start
-
-This repository is intentionally dependency-light and deploys cleanly to Vercel.
+This repository is intentionally dependency-light.
 
 Set these server-side environment variables for live Binance Web3 API access:
 
 - `BINANCE_WEB3_API_KEY`
 - `BINANCE_WEB3_API_SECRET`
 - `BINANCE_WEB3_SIGN_ALGO` = `HMAC_SHA256` or `ED25519`
-- optional `BINANCE_WEB3_RECV_WINDOW` (default 5000)
+- optional `BINANCE_WEB3_RECV_WINDOW` (default `5000`)
 
-For Agent Studio, follow `agent/AGENT_STUDIO_DEPLOY.md` and deploy the agent through BNB Agent Studio.
+Then deploy the project to Vercel or run it with a static/serverless JavaScript environment.
 
-## Demo
+For Agent Studio deployment, see:
 
-1. Search a ticker such as NVDA.
-2. Inspect tokenized-stock data.
-3. Compare token price and reference price.
-4. Generate the execution plan.
-5. Run the plan in simulation.
-6. Enable the wallet execution layer only when ready.
+- `agent/AGENT_STUDIO_DEPLOY.md`
+- `agent/AGENTIC_WALLET.md`
+- `agent/task-schema.json`
 
-## Hackathon deliverables
+## Project structure
 
-- Public repository: this repo.
-- Public web experience: `index.html`.
-- API integration: `api/agent.js`.
-- Agent Studio path: `agent/`.
-- Developer Experience Report template: `docs/DEVEX_REPORT.md`.
+- `index.html` — PRONOUS market desk and user interface
+- `api/agent.js` — market intelligence, plans and guarded execution adapters
+- `api/skills.js` — agent skill definitions and routing
+- `api/ask.js` — simple 24/7 PRONOUS assistant
+- `agent/` — Agentic Wallet and Agent Studio integration notes
 
-AI-assisted code is used in this repository, but the Developer Experience Report should reflect the builder's actual experience and observations.
+## Status
+
+PRONOUS is an active hackathon build. Read-only market intelligence and guarded planning are the primary product surface; live execution remains deliberately gated while transaction flows are verified.
+
+## License
+
+See the repository for the applicable license and project terms.
