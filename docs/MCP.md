@@ -1,46 +1,72 @@
 # PRONOUS MCP
 
-PRONOUS can be used as an MCP server so an MCP-compatible AI client can ask about the tokenized-stock market and run guarded analysis.
+## Connect PRONOUS
 
-The current MCP surface exposes:
+PRONOUS can be connected to an MCP-compatible AI client as a local stdio server.
 
-- `market_assets` — inspect monitored tokenized stocks
-- `scan_asset` — scan a ticker and return the market-gap assessment
-- `preflight` — run deterministic spend/policy checks without executing a transaction
-- `ask_pronous` — ask the PRONOUS market assistant
-- `pronous://overview` — MCP resource describing capabilities and safety
+### One-copy setup
 
-## Run locally
+Copy this configuration into your MCP client's server configuration:
 
-Requirements: Node.js 20+.
+```json
+{
+  "mcpServers": {
+    "pronous": {
+      "command": "npx",
+      "args": ["-y", "github:wadezigh96/pronous"]
+    }
+  }
+}
+```
+
+The server defaults to `https://pronous.vercel.app`.
+
+To use another deployment, add:
+
+```json
+"env": {
+  "PRONOUS_API_URL": "https://your-pronous-deployment.example"
+}
+```
+
+### What you can ask
+
+- **market_assets** — inspect monitored tokenized stocks
+- **scan_asset** — scan a ticker and its token/reference gap
+- **preflight** — check a proposed spend against deterministic guardrails
+- **ask_pronous** — ask about tokenized stocks, gaps, market hours, BSC and execution
+
+Example:
+
+```text
+Use PRONOUS to scan NVDA and explain the token/reference gap.
+```
+
+### Safety boundary
+
+MCP exposes market intelligence and preflight only.
+
+It does **not** expose:
+- private keys
+- seed phrases
+- wallet signing
+- transaction broadcast
+
+The user remains the final approval boundary for any wallet action.
+
+### Local test
+
+Requires Node.js 20+.
 
 ```bash
 npm install
 npm run mcp
 ```
 
-The server uses `PRONOUS_API_URL` when set; otherwise it uses the deployed PRONOUS API.
+For the official MCP Inspector:
 
-Example MCP client configuration:
-
-```json
-{
-  "mcpServers": {
-    "pronous": {
-      "command": "node",
-      "args": ["/absolute/path/to/pronous/mcp/server.mjs"],
-      "env": {
-        "PRONOUS_API_URL": "https://pronous.vercel.app"
-      }
-    }
-  }
-}
+```bash
+npx @modelcontextprotocol/inspector npx pronous-mcp
 ```
 
-## Safety boundary
-
-MCP does **not** expose private keys, seed phrases, wallet signing, or transaction broadcast.
-
-The `preflight` tool only checks a proposed action. The user remains responsible for any wallet confirmation in the PRONOUS application.
-
-The server follows the MCP model of exposing tools and resources to an MCP-compatible client. The current TypeScript SDK provides separate server/client packages and supports stdio and HTTP transports. See the official SDK documentation for client and server integration.
+MCP's official TypeScript SDK documents stdio as the transport for local process-spawned integrations; stdout is reserved for protocol messages. citeturn0search0turn0search10
