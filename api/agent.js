@@ -66,7 +66,22 @@ function demoAsset(ticker) {
 }
 
 
-function evaluateLoop(asset, opts={}) {
+
+function buildPreflight(asset, params={}) {
+  const amount=Number(params.amount||0);
+  const maxSpend=Number(params.maxSpend||100);
+  const spread=Number(asset.spreadPct||0);
+  const checks=[
+    {id:"network",label:"BSC mainnet",pass:true},
+    {id:"asset",label:"Tokenized-stock asset resolved",pass:Boolean(asset.tokenContractAddress||asset.ticker)},
+    {id:"spot",label:"Spot only",pass:true},
+    {id:"price",label:"Token/reference prices available",pass:Number(asset.tokenPrice)>0&&Number(asset.referencePrice)>0},
+    {id:"spend_cap",label:"Spend cap",pass:amount>0&&amount<=maxSpend},
+    {id:"simulation",label:"Simulation required",pass:false}
+  ];
+  return {status:checks.every(x=>x.pass)?"READY_FOR_SIMULATION":"BLOCKED",amount,maxSpend,spreadPct:spread,checks,next:checks.find(x=>!x.pass)?.id||"simulation"};
+}
+\nfunction evaluateLoop(asset, opts={}) {
   const spread=Number(asset.spreadPct||0);
   const minSpread=Number(opts.minSpread||1);
   const fresh=opts.fresh!==false;
@@ -167,7 +182,7 @@ module.exports = async function handler(req,res) {
     }
 
     const asset=process.env.BINANCE_WEB3_API_KEY?await findLiveAsset(ticker):demoAsset(ticker);
-    if(action==="loop") {\n      const simulated=url.searchParams.get("simulated")==="true";\n      const confirmed=url.searchParams.get("confirmed")==="true";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});\n    }\n    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
+    if(action==="preflight") {\n      const amount=url.searchParams.get("amount")||"0";\n      const maxSpend=url.searchParams.get("maxSpend")||"100";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend}),broadcast:false});\n    }\n    if(action==="loop") {\n      const simulated=url.searchParams.get("simulated")==="true";\n      const confirmed=url.searchParams.get("confirmed")==="true";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});\n    }\n    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
     return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined});
