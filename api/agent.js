@@ -97,7 +97,8 @@ function buildPreflight(asset, params={}) {
   ];
   return {status:checks.every(x=>x.pass)?"READY_FOR_SIMULATION":"BLOCKED",amount,maxSpend,spreadPct:spread,checks,next:checks.find(x=>!x.pass)?.id||"simulation"};
 }
-\nfunction evaluateLoop(asset, opts={}) {
+
+function evaluateLoop(asset, opts={}) {
   const spread=Number(asset.spreadPct||0);
   const minSpread=Number(opts.minSpread||1);
   const fresh=opts.fresh!==false;
@@ -113,7 +114,8 @@ function buildPreflight(asset, params={}) {
   const blocked=checks.filter(x=>!x.pass);
   return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:Math.abs(spread)>=minSpread?(spread>0?"PREMIUM":"DISCOUNT"):"OBSERVE",next:blocked.length?blocked[0].name:"EXECUTE"};
 }
-\nfunction makePlan(asset) {
+
+function makePlan(asset) {
   const spread = Number(asset.spreadPct || 0);
   let action = "HOLD / OBSERVE";
   if (spread > 1) action = "WATCH PREMIUM";
@@ -240,7 +242,17 @@ module.exports = async function handler(req,res) {
       return res.status(200).json({mode:"live-simulation",network:"BSC",ticker,simulation,broadcast:false});
     }
 
-    if(action==="preflight") {\n      const amount=url.searchParams.get("amount")||"0";\n      const maxSpend=url.searchParams.get("maxSpend")||"100";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend}),broadcast:false});\n    }\n    if(action==="loop") {\n      const simulated=url.searchParams.get("simulated")==="true";\n      const confirmed=url.searchParams.get("confirmed")==="true";\n      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});\n    }\n    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
+    if(action==="preflight") {
+      const amount=url.searchParams.get("amount")||"0";
+      const maxSpend=url.searchParams.get("maxSpend")||"100";
+      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend}),broadcast:false});
+    }
+    if(action==="loop") {
+      const simulated=url.searchParams.get("simulated")==="true";
+      const confirmed=url.searchParams.get("confirmed")==="true";
+      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});
+    }
+    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
     return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined});
