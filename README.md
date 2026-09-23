@@ -45,7 +45,7 @@ Set these server-side environment variables for live Binance Web3 API access:
 
 The API signing pre-hash follows the current Binance Web3 API guidance: `timestamp + METHOD + requestPath + body`.
 
-For Agent Studio, follow `agent/AGENT_STUDIO_PROMPT.md` and deploy the agent with BNB Agent Studio. The public web UI remains useful even before the managed agent runtime is deployed.
+For Agent Studio, follow `agent/AGENT_STUDIO_DEPLOY.md` and deploy the agent with BNB Agent Studio. The public web UI remains useful even before the managed agent runtime is deployed.
 
 ## Demo
 
@@ -66,3 +66,7 @@ Open the deployed site and:
 - Developer-experience report template: `docs/DEVEX_REPORT.md`.
 
 AI-assisted code is used in this repository, but the Developer Experience Report must be based on the builder's actual experience and observations.
+
+## Deployment verification
+
+Production verification checkpoint: 2026-09-23. The production deployment must be tested separately from branch preview deployments because Vercel scopes environment variables by deployment environment.
