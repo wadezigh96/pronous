@@ -7,23 +7,21 @@ const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
 
 function signHmac(secret, payload) {
-  return crypto.createHmac("sha256", secret).update(payload).digest("base64");
-}
-
-function signEd25519(privateKey, payload) {
-  return crypto.sign(null, Buffer.from(payload), privateKey).toString("base64");
+  return crypto.createHmac("sha256", secret).update(payload, "utf8").digest("base64");
 }
 
 function signedHeaders(method, requestPath, body = "") {
-  const apiKey = process.env.BINANCE_WEB3_API_KEY;
-  const secret = process.env.BINANCE_WEB3_API_SECRET;
+  const apiKey = (process.env.BINANCE_WEB3_API_KEY || "").trim();
+  const secret = process.env.BINANCE_WEB3_API_SECRET || "";
   if (!apiKey || !secret) return null;
+
+  // PRONOUS is configured for a Binance Web3 HMAC-SHA256 credential.
+  // Binance requires: timestamp + METHOD + requestPath + body.
   const timestamp = new Date().toISOString();
-  const prehash = timestamp + method.toUpperCase() + requestPath + body;
-  const algo = (process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").toUpperCase();
-  const signature = algo === "ED25519"
-    ? signEd25519(secret, prehash)
-    : signHmac(secret, prehash);
+  const normalizedMethod = method.toUpperCase();
+  const prehash = timestamp + normalizedMethod + requestPath + body;
+  const signature = signHmac(secret, prehash);
+
   return {
     "X-OC-APIKEY": apiKey,
     "X-OC-TIMESTAMP": timestamp,
@@ -84,8 +82,6 @@ function demoAsset(ticker) {
   };
 }
 
-
-
 function buildPreflight(asset, params={}) {
   const amount=Number(params.amount||0);
   const maxSpend=Number(params.maxSpend||100);
@@ -127,9 +123,6 @@ function makePlan(asset) {
 }
 
 async function liveAssets() {
-  // Ask Binance for the complete BSC RWA universe, then keep the equity-like
-  // rows used by the tokenized-stock desk. The current public RWA endpoint
-  // documents Ondo and bStocks as supported issuance platforms.
   const data = await binanceGet("/api/v1/dex/market/rwa/tokens",{binanceChainId:"56"});
   return (data.data || [])
     .filter(x => x.underlyingTicker && x.tokenContractAddress)
