@@ -29,6 +29,33 @@ function localAsset(ticker) {
   };
 }
 
+function localScan(ticker) {
+  const asset = localAsset(ticker);
+  const spreadPct = asset.spreadPct;
+  const direction = spreadPct > 0 ? "PREMIUM" : spreadPct < 0 ? "DISCOUNT" : "PAR";
+  return {
+    agent:"PRONOUS",
+    mode:"mcp-local-demo",
+    network:"BSC",
+    scan:{
+      ticker:asset.ticker,
+      companyName:asset.companyName,
+      tokenPrice:asset.tokenPrice,
+      referencePrice:asset.referencePrice,
+      spreadPct,
+      direction,
+      marketStatus:asset.marketStatus,
+      assessment: direction === "PREMIUM"
+        ? "Tokenized stock is trading above the reference price."
+        : direction === "DISCOUNT"
+          ? "Tokenized stock is trading below the reference price."
+          : "Tokenized stock is aligned with the reference price."
+    },
+    execution:{broadcast:false},
+    fallbackReason:"PRONOUS live API was unavailable; deterministic market-gap scan was evaluated locally. No transaction was executed."
+  };
+}
+
 function localPreflight(ticker, amount, maxSpend) {
   const asset = localAsset(ticker);
   const checks = [
@@ -85,9 +112,14 @@ function createServer() {
   server.registerTool("scan_asset", {
     description:"Scan one tokenized stock and return its PRONOUS market-gap assessment.",
     inputSchema:z.object({ticker:z.string().min(1)})
-  }, async ({ticker}) => ({
-    content:[{type:"text",text:JSON.stringify(await getJSON("/api/agent?action=scan&ticker="+encodeURIComponent(ticker.toUpperCase())),null,2)}]
-  }));
+  }, async ({ticker}) => {
+    const path="/api/agent?action=scan&ticker="+encodeURIComponent(ticker.toUpperCase());
+    try {
+      return {content:[{type:"text",text:JSON.stringify(await getJSON(path),null,2)}]};
+    } catch (error) {
+      return {content:[{type:"text",text:JSON.stringify(localScan(ticker),null,2)}]};
+    }
+  });
 
   server.registerTool("preflight", {
     description:"Run deterministic PRONOUS checks for a proposed spot-only spend. Does not execute a transaction.",
