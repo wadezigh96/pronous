@@ -53,6 +53,13 @@
 <div id="skills" class="feature" style="margin-top:14px">Loading skills…</div>
 <div id="loop" class="result" style="margin-top:14px">Observe → Detect → Verify → Guard → Plan → Simulate → Confirm → Execute → Record</div>
 </section>
+\n
+<section class="card">
+<h2>Safe execution cockpit</h2>
+<div class="muted">No transaction is broadcast from this panel. It prepares and validates an intent before any wallet confirmation.</div>
+<div class="row" style="margin-top:12px"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount"><input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend"><button onclick="preflight()">Preflight</button></div>
+<div id="preflight" class="result">Enter an amount and run preflight.</div>
+</section>
 \n<section class="card chat">
 <h2>Ask PRONOUS <span class="muted small">24/7</span></h2>
 <div class="muted">Ask about tokenized stocks, market hours, price gaps, bStocks, Ondo, BSC or the current ticker.</div>
@@ -100,6 +107,10 @@ function addMessage(type,text){
  p.className='msg '+type;
  p.innerHTML='<b>'+(type==='you'?'You':'PRONOUS')+':</b> '+text.replace(/\n/g,'<br>');
  log.appendChild(p); log.scrollTop=log.scrollHeight;
+}
+async function preflight(){
+ const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
+ try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json();box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
 }
 async function scan(){
  const t=document.getElementById('ticker').value.trim().toUpperCase();
