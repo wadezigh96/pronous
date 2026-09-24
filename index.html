@@ -66,77 +66,25 @@ button{width:100%;border-radius:10px;padding:11px 13px;border:1px solid var(--go
 <section id="market" class="card market-card terminal-card section-anchor"><div class="terminal-head"><h2>Tokenized market</h2><small>03 / LIVE UNIVERSE</small></div><div class="market-head"><div><span id="marketMode" class="tag">LOADING</span> <span id="marketUpdated" class="muted small">—</span></div><button class="secondary" style="max-width:130px" onclick="loadMarket()">Refresh</button></div><div class="row" style="margin-top:10px"><input id="marketSearch" placeholder="Search ticker or company" oninput="renderMarket()"><button class="secondary" onclick="setFilter('all')">ALL</button><button class="secondary" onclick="setFilter('ondo')">ONDO</button><button class="secondary" onclick="setFilter('bstock')">bSTOCKS</button><button class="secondary" onclick="setFilter('xstocks')">xSTOCKS</button></div><div id="marketTable" class="result">Loading live RWA data…</div></section>
 <div id="radar-section" class="grid section-anchor"><section class="card terminal-card"><div class="terminal-head"><h2>Divergence radar</h2><small>04 / DETECT</small></div><div class="muted">Token/reference gaps across the watched asset universe.</div><div id="radar" class="result">Waiting for market data…</div></section><section class="card terminal-card"><div class="terminal-head"><h2>Market clock</h2><small>05 / VERIFY</small></div><div class="muted">Reference-market state contextualizes on-chain trading.</div><div id="clock" class="result">Select an asset to inspect its market state.</div></section></div>
 <section id="skills-section" class="card section-anchor"><div class="terminal-head"><h2>Agent skills</h2><small>06 / GUARD</small></div><div class="muted">Specialized skills route observations before consequential actions.</div><div id="skills" class="feature" style="margin-top:14px">Loading skills…</div><div id="loop" class="result" style="margin-top:14px">Observe → Detect → Verify → Guard → Plan → Simulate → Confirm → Execute → Record</div></section>
-<section id="execution" class="card terminal-card section-anchor"><div class="terminal-head"><h2>Execution cockpit</h2><small>07 / CONFIRM</small></div><div class="muted">Controlled execution pipeline. Each stage must pass before the next becomes available.</div><div id="executionPipeline" class="exec-pipeline"><div data-step="preflight" class="exec-step active"><b>01</b><span>Preflight</span><em>CHECK</em></div><div data-step="quote" class="exec-step"><b>02</b><span>Quote</span><em>WAIT</em></div><div data-step="simulation" class="exec-step"><b>03</b><span>Simulation</span><em>LOCKED</em></div><div data-step="confirmation" class="exec-step"><b>04</b><span>Confirmation</span><em>LOCKED</em></div><div data-step="execution" class="exec-step"><b>05</b><span>Execution</span><em>LOCKED</em></div></div><div class="row" style="margin-top:12px"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount"><input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend"><button onclick="preflight()">Run preflight</button></div><div id="preflight" class="result">Enter an amount and run preflight.</div></section><div class="terminal-head"><h2>Safe execution cockpit</h2><small>07 / CONFIRM</small></div><div class="muted">No transaction is broadcast here. Intent is prepared and validated before wallet confirmation.</div><div class="row" style="margin-top:12px"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount"><input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend"><button onclick="preflight()">Preflight</button></div><div id="preflight" class="result">Enter an amount and run preflight.</div></section>
+<section id="execution" class="card terminal-card section-anchor"><div class="terminal-head"><h2>Execution cockpit</h2><small>07 / CONFIRM</small></div><div class="muted">Controlled execution pipeline. Each stage must pass before the next becomes available.</div><div id="executionPipeline" class="exec-pipeline"><div data-step="preflight" class="exec-step active"><b>01</b><span>Preflight</span><em>CHECK</em></div><div data-step="quote" class="exec-step"><b>02</b><span>Quote</span><em>WAIT</em></div><div data-step="simulation" class="exec-step"><b>03</b><span>Simulation</span><em>LOCKED</em></div><div data-step="confirmation" class="exec-step"><b>04</b><span>Confirmation</span><em>LOCKED</em></div><div data-step="execution" class="exec-step"><b>05</b><span>Execution</span><em>LOCKED</em></div></div><div class="row" style="margin-top:12px"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount"><input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend"><button onclick="preflight()">Run preflight</button></div><div id="preflight" class="result">Enter an amount and run preflight.</div></section>
 <section id="ask" class="card chat section-anchor"><div class="terminal-head"><h2>Ask PRONOUS <span class="muted small">24/7</span></h2><small>08 / ASK</small></div><div class="muted">Ask about tokenized stocks, market hours, price gaps, bStocks, Ondo, BSC or the current ticker.</div><div id="chatlog" class="chatlog"><p class="msg agent"><b>PRONOUS:</b> I’m ready. Ask a question about tokenized stocks or scan a ticker first.</p></div><div class="row" style="margin-top:10px"><input id="question" placeholder="Example: Why can a tokenized stock trade when NYSE is closed?"><button onclick="ask()">Ask</button></div></section>
 <section class="feature"><div><b>24/7 market watch</b><span class="muted small">Detects when on-chain trading continues while reference markets are closed.</span></div><div><b>Gap explanation</b><span class="muted small">Shows token price, reference price and spread instead of hiding the reason behind an action.</span></div><div><b>Safety first</b><span class="muted small">Simulation, spend limits and allowlists stay between the agent and live execution.</span></div></section>
-</div></main></div><script>
+</div></main></div><div id="assetDrawer" class="asset-drawer" aria-hidden="true"><div class="drawer-backdrop" onclick="closeAsset()"></div><aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button><div id="drawerContent" style="padding-top:24px"></div></aside></div><script>
 let last=null, marketAssets=[], marketFilter='all';
 function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 function setFilter(f){marketFilter=f;renderMarket()}
-function openAsset(ticker,platform){const x=marketAssets.find(a=>String(a.ticker).toUpperCase()===String(ticker).toUpperCase()&&(!platform||String(a.platformId)===String(platform)))||marketAssets.find(a=>String(a.ticker).toUpperCase()===String(ticker).toUpperCase());if(!x)return;const gap=Number(x.spreadPct);document.getElementById('drawerContent').innerHTML='<div class="drawer-kicker">TOKENIZED EQUITY / ASSET DETAIL</div><div class="drawer-title">'+esc(x.ticker)+'</div><div class="drawer-sub">'+esc(x.companyName||x.underlyingName||'')+' · '+esc(x.platformId||'—')+'</div><div class="drawer-price"><div class="drawer-stat"><label>Token price</label><strong>
- const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
- const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
- const box=document.getElementById('marketTable');
- if(!rows.length){box.textContent='No matching assets.';return}
- box.innerHTML='<div class="market-wrap"><table class="market"><thead><tr><th>Ticker</th><th>Platform</th><th>Token</th><th>Reference</th><th>Gap</th><th>Market</th></tr></thead><tbody>'+rows.slice(0,100).map(x=>{const gap=Number(x.spreadPct);return '<tr onclick="openAsset('+JSON.stringify(x.ticker)+','+JSON.stringify(x.platformId)+')"><td><b>'+esc(x.ticker)+'</b><br><span class="muted small">'+esc(x.companyName)+'</span></td><td>'+esc(x.platformId)+'</td><td>'+esc(x.tokenPrice??'—')+'</td><td>'+esc(x.referencePrice??'—')+'</td><td class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</td><td>'+esc(x.marketStatus||x.openState||'—')+'</td></tr>'}).join('')+'</tbody></table></div>';
+function openAsset(ticker,platform){
+ const x=marketAssets.find(a=>String(a.ticker).toUpperCase()===String(ticker).toUpperCase()&&(!platform||String(a.platformId)===String(platform)))||marketAssets.find(a=>String(a.ticker).toUpperCase()===String(ticker).toUpperCase());
+ if(!x)return;
+ const gap=Number(x.spreadPct);
+ const drawer=document.getElementById('assetDrawer');
+ const content=document.getElementById('drawerContent');
+ if(!drawer||!content)return;
+ content.innerHTML='<div class="drawer-kicker">TOKENIZED EQUITY / ASSET DETAIL</div><div class="drawer-title">'+esc(x.ticker)+'</div><div class="drawer-sub">'+esc(x.companyName||x.underlyingName||'')+' · '+esc(x.platformId||'—')+'</div><div class="drawer-price"><div class="drawer-stat"><label>Token price</label><strong>'+esc(x.tokenPrice??'—')+'</strong></div><div class="drawer-stat"><label>Reference</label><strong>'+esc(x.referencePrice??'—')+'</strong></div></div><div class="drawer-gap"><div class="muted small">TOKEN / REFERENCE GAP</div><strong class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</strong><div class="muted small" style="margin-top:5px">'+esc(x.marketStatus||x.openState||'Market state unavailable')+'</div></div><div class="drawer-grid"><div class="drawer-row"><span>Token</span>'+esc(x.tokenSymbol||'—')+'</div><div class="drawer-row"><span>Platform</span>'+esc(x.platformId||'—')+'</div><div class="drawer-row"><span>24h volume</span>'+esc(x.volume24H||'—')+'</div><div class="drawer-row"><span>Market cap</span>'+esc(x.marketCap||'—')+'</div><div class="drawer-row"><span>Next open</span>'+esc(x.nextOpenTime||'—')+'</div><div class="drawer-row"><span>Next close</span>'+esc(x.nextCloseTime||'—')+'</div></div><div class="drawer-actions"><button class="secondary" onclick="document.getElementById('ticker').value='+JSON.stringify(x.ticker)+';closeAsset();scan()">Scan asset</button><button onclick="document.getElementById('execution').scrollIntoView({behavior:'smooth'});closeAsset()">Open preflight</button></div>';
+ drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); renderClock(x);
 }
-function renderRadar(){
- const rows=[...marketAssets].filter(x=>Number.isFinite(Number(x.spreadPct))).sort((a,b)=>Math.abs(Number(b.spreadPct))-Math.abs(Number(a.spreadPct))).slice(0,5);
- document.getElementById('radar').innerHTML=rows.length?rows.map(x=>'<div style="margin:0 0 10px"><b>'+esc(x.ticker)+'</b> · '+esc(x.platformId)+' · <span class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%</span><br><span class="muted small">Token '+esc(x.tokenPrice)+' vs reference '+esc(x.referencePrice)+' · '+esc(x.marketStatus||x.openState||'state unavailable')+'</span></div>').join(''):'No spread data available.';
-}
-function renderClock(x){document.getElementById('clock').innerHTML=x?'<div class="metric">'+esc(x.marketStatus||x.openState||'—')+'</div><div class="muted small">'+esc(x.ticker)+' · '+esc(x.platformId)+'</div><p class="small">Next open: '+esc(x.nextOpenTime||'—')+'<br>Next close: '+esc(x.nextCloseTime||'—')+'</p>':'Select an asset to inspect its market state.'}
-async function loadSkills(){try{const r=await fetch('/api/skills?action=list');const j=await r.json();document.getElementById('skills').innerHTML=(j.skills||[]).map(s=>'<div><b>'+esc(s.icon)+' '+esc(s.name)+'</b><span class="muted small">'+esc(s.purpose)+'</span><br><span class="tag">'+esc(s.risk)+'</span><span class="tag">'+esc(s.output)+'</span></div>').join('')}catch(e){document.getElementById('skills').textContent='Skills unavailable.'}}
-async function loadMarket(){
- const box=document.getElementById('marketTable'); box.textContent='Loading…';
- try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];document.getElementById('kpiAssets').textContent=marketAssets.length;const gaps=marketAssets.map(x=>Number(x.spreadPct)).filter(Number.isFinite);document.getElementById('kpiGap').textContent=gaps.length?Math.max(...gaps.map(Math.abs)).toFixed(3)+'%':'—';document.getElementById('kpiMode').textContent=(j.mode||'unknown').replace('live-data','LIVE').replace('demo','DEMO').toUpperCase();document.getElementById('kpiExec').textContent='LOCKED';document.getElementById('marketMode').textContent=(j.mode||'unknown').toUpperCase();document.getElementById('marketMode').className='tag '+(j.mode==='live-data'?'live':'demo');document.getElementById('marketUpdated').textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';renderMarket();renderRadar();renderClock(marketAssets[0]);}
- catch(e){box.textContent='Market data error: '+e.message}
-}
-function addMessage(type,text){
- const log=document.getElementById('chatlog');
- const p=document.createElement('p');
- p.className='msg '+type;
- p.innerHTML='<b>'+(type==='you'?'You':'PRONOUS')+':</b> '+text.replace(/\n/g,'<br>');
- log.appendChild(p); log.scrollTop=log.scrollHeight;
-}
-async function setExecutionState(state){const order=["preflight","quote","simulation","confirmation","execution"];const active=state==="READY_TO_EXECUTE"?"execution":state==="READY_FOR_SIMULATION"?"simulation":state==="WAITING_CONFIRMATION"?"confirmation":state==="READY_FOR_QUOTE"?"quote":"preflight";document.querySelectorAll(".exec-step").forEach(el=>{const step=el.dataset.step;const i=order.indexOf(step),a=order.indexOf(active);el.classList.remove("active","done","blocked");if(i<a)el.classList.add("done");if(i===a)el.classList.add("active");const em=el.querySelector("em");if(em)em.textContent=i<a?"DONE":i===a?"NEXT":"LOCKED"});}
-function preflight(){
- const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
- try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json();box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
-}
-async function scan(){
- const t=document.getElementById('ticker').value.trim().toUpperCase();
- if(!t)return;
- document.getElementById('scan').textContent='Scanning…';
- try{
-  const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));
-  const j=await r.json(); last=j;
-  document.getElementById('scan').textContent=JSON.stringify(j,null,2);
-  document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);
- }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
-}
-async function simulate(){
- const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
- document.getElementById('plan').textContent='Simulating…';
- try{
-  const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
-  const j=await r.json();
-  document.getElementById('plan').textContent=JSON.stringify(j,null,2);
- }catch(e){document.getElementById('plan').textContent='Error: '+e.message}
-}
-async function ask(){
- const input=document.getElementById('question');
- const q=input.value.trim();
- if(!q)return;
- addMessage('you',q); input.value='';
- try{
-  const r=await fetch('/api/ask?q='+encodeURIComponent(q)+'&ticker='+encodeURIComponent((document.getElementById('ticker').value||'NVDA').trim().toUpperCase()));
-  const j=await r.json();
-  addMessage('agent',j.answer||'I could not answer that yet.');
- }catch(e){addMessage('agent','The 24/7 desk is temporarily unavailable. You can still use Market Intelligence.');}
-}
-document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
-loadMarket();\nloadSkills();
-</script></body></html>+esc(x.tokenPrice??'—')+'</strong></div><div class="drawer-stat"><label>Reference</label><strong>
+function closeAsset(){const d=document.getElementById('assetDrawer');if(d){d.classList.remove('open');d.setAttribute('aria-hidden','true')}}
+function renderMarket(){
  const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
  const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
  const box=document.getElementById('marketTable');
@@ -161,69 +109,7 @@ function addMessage(type,text){
  p.innerHTML='<b>'+(type==='you'?'You':'PRONOUS')+':</b> '+text.replace(/\n/g,'<br>');
  log.appendChild(p); log.scrollTop=log.scrollHeight;
 }
-async function preflight(){
- const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
- try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json();box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
-}
-async function scan(){
- const t=document.getElementById('ticker').value.trim().toUpperCase();
- if(!t)return;
- document.getElementById('scan').textContent='Scanning…';
- try{
-  const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));
-  const j=await r.json(); last=j;
-  document.getElementById('scan').textContent=JSON.stringify(j,null,2);
-  document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);
- }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
-}
-async function simulate(){
- const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
- document.getElementById('plan').textContent='Simulating…';
- try{
-  const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
-  const j=await r.json();
-  document.getElementById('plan').textContent=JSON.stringify(j,null,2);
- }catch(e){document.getElementById('plan').textContent='Error: '+e.message}
-}
-async function ask(){
- const input=document.getElementById('question');
- const q=input.value.trim();
- if(!q)return;
- addMessage('you',q); input.value='';
- try{
-  const r=await fetch('/api/ask?q='+encodeURIComponent(q)+'&ticker='+encodeURIComponent((document.getElementById('ticker').value||'NVDA').trim().toUpperCase()));
-  const j=await r.json();
-  addMessage('agent',j.answer||'I could not answer that yet.');
- }catch(e){addMessage('agent','The 24/7 desk is temporarily unavailable. You can still use Market Intelligence.');}
-}
-document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
-loadMarket();\nloadSkills();
-</script></body></html>+esc(x.referencePrice??'—')+'</strong></div></div><div class="drawer-gap"><div class="muted small">TOKEN / REFERENCE GAP</div><strong class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</strong><div class="muted small" style="margin-top:5px">'+esc(x.marketStatus||x.openState||'Market state unavailable')+'</div></div><div class="drawer-grid"><div class="drawer-row"><span>Token</span>'+esc(x.tokenSymbol||'—')+'</div><div class="drawer-row"><span>Platform</span>'+esc(x.platformId||'—')+'</div><div class="drawer-row"><span>24h volume</span>'+esc(x.volume24H||'—')+'</div><div class="drawer-row"><span>Market cap</span>'+esc(x.marketCap||'—')+'</div><div class="drawer-row"><span>Next open</span>'+esc(x.nextOpenTime||'—')+'</div><div class="drawer-row"><span>Next close</span>'+esc(x.nextCloseTime||'—')+'</div><div class="drawer-row"><span>Contract</span>'+esc(x.tokenContractAddress||'—')+'</div><div class="drawer-row"><span>Share ratio</span>'+esc(x.tokenToShareRatio||'—')+'</div></div><div class="drawer-actions"><button class="secondary" onclick="document.getElementById('ticker').value='+JSON.stringify(x.ticker)+';closeAsset();scan()">Scan asset</button><button onclick="document.getElementById('execution').scrollIntoView({behavior:'smooth'});closeAsset()">Open preflight</button></div>';const d=document.getElementById('assetDrawer');d.classList.add('open');d.setAttribute('aria-hidden','false');renderClock(x)}function closeAsset(){const d=document.getElementById('assetDrawer');d.classList.remove('open');d.setAttribute('aria-hidden','true')}function renderMarket(){
- const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
- const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
- const box=document.getElementById('marketTable');
- if(!rows.length){box.textContent='No matching assets.';return}
- box.innerHTML='<div class="market-wrap"><table class="market"><thead><tr><th>Ticker</th><th>Platform</th><th>Token</th><th>Reference</th><th>Gap</th><th>Market</th></tr></thead><tbody>'+rows.slice(0,100).map(x=>{const gap=Number(x.spreadPct);return '<tr><td><b>'+esc(x.ticker)+'</b><br><span class="muted small">'+esc(x.companyName)+'</span></td><td>'+esc(x.platformId)+'</td><td>'+esc(x.tokenPrice??'—')+'</td><td>'+esc(x.referencePrice??'—')+'</td><td class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</td><td>'+esc(x.marketStatus||x.openState||'—')+'</td></tr>'}).join('')+'</tbody></table></div>';
-}
-function renderRadar(){
- const rows=[...marketAssets].filter(x=>Number.isFinite(Number(x.spreadPct))).sort((a,b)=>Math.abs(Number(b.spreadPct))-Math.abs(Number(a.spreadPct))).slice(0,5);
- document.getElementById('radar').innerHTML=rows.length?rows.map(x=>'<div style="margin:0 0 10px"><b>'+esc(x.ticker)+'</b> · '+esc(x.platformId)+' · <span class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%</span><br><span class="muted small">Token '+esc(x.tokenPrice)+' vs reference '+esc(x.referencePrice)+' · '+esc(x.marketStatus||x.openState||'state unavailable')+'</span></div>').join(''):'No spread data available.';
-}
-function renderClock(x){document.getElementById('clock').innerHTML=x?'<div class="metric">'+esc(x.marketStatus||x.openState||'—')+'</div><div class="muted small">'+esc(x.ticker)+' · '+esc(x.platformId)+'</div><p class="small">Next open: '+esc(x.nextOpenTime||'—')+'<br>Next close: '+esc(x.nextCloseTime||'—')+'</p>':'Select an asset to inspect its market state.'}
-async function loadSkills(){try{const r=await fetch('/api/skills?action=list');const j=await r.json();document.getElementById('skills').innerHTML=(j.skills||[]).map(s=>'<div><b>'+esc(s.icon)+' '+esc(s.name)+'</b><span class="muted small">'+esc(s.purpose)+'</span><br><span class="tag">'+esc(s.risk)+'</span><span class="tag">'+esc(s.output)+'</span></div>').join('')}catch(e){document.getElementById('skills').textContent='Skills unavailable.'}}
-async function loadMarket(){
- const box=document.getElementById('marketTable'); box.textContent='Loading…';
- try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];document.getElementById('marketMode').textContent=(j.mode||'unknown').toUpperCase();document.getElementById('marketMode').className='tag '+(j.mode==='live-data'?'live':'demo');document.getElementById('marketUpdated').textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';renderMarket();renderRadar();renderClock(marketAssets[0]);}
- catch(e){box.textContent='Market data error: '+e.message}
-}
-function addMessage(type,text){
- const log=document.getElementById('chatlog');
- const p=document.createElement('p');
- p.className='msg '+type;
- p.innerHTML='<b>'+(type==='you'?'You':'PRONOUS')+':</b> '+text.replace(/\n/g,'<br>');
- log.appendChild(p); log.scrollTop=log.scrollHeight;
-}
-async function preflight(){
+async async function preflight(){
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
  try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json();box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
 }
