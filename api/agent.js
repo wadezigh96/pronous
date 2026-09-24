@@ -323,6 +323,9 @@ module.exports = async function handler(req,res) {
     if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
-    const out={error:e.message||"Agent error",details:e.data||undefined};\n    if(process.env.DEBUG_AUTH==="1" && e.authDebug) out.authDebug=e.authDebug;\n    if(process.env.DEBUG_AUTH==="1" && e.message==="INVALID_ED25519_PRIVATE_KEY_FORMAT") out.credentialDebug=credentialShape(process.env.BINANCE_WEB3_API_SECRET);\n    return res.status(e.status||500).json(out);
+    const out={error:e.message||"Agent error",details:e.data||undefined};
+    if(process.env.DEBUG_AUTH==="1" && e.authDebug) out.authDebug=e.authDebug;
+    if(process.env.DEBUG_AUTH==="1" && e.message==="INVALID_ED25519_PRIVATE_KEY_FORMAT") out.credentialDebug=credentialShape(process.env.BINANCE_WEB3_API_SECRET);
+    return res.status(e.status||500).json(out);
   }
 };
