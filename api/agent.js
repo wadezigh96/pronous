@@ -50,7 +50,7 @@ function credentialShape(secret) {
   const raw = String(secret || "").trim().replace(/^["']|["']$/g, "");
   if (!raw) return {kind:"EMPTY",length:0};
   const normalized = raw.replace(/\\r\\n/g,"\n").replace(/\\n/g,"\n").replace(/\\r/g,"\r").trim();
-  if (normalized.includes("BEGIN PRIVATE KEY")) return {kind:"PEM_PRIVATE",length:normalized.length};
+  if (/-----BEGIN [^-]+ PRIVATE KEY-----/.test(normalized)) return {kind:"PEM_PRIVATE_VARIANT",header:normalized.match(/-----BEGIN [^-]+ PRIVATE KEY-----/)?.[0]||"UNKNOWN",length:normalized.length};
   if (normalized.includes("BEGIN PUBLIC KEY")) return {kind:"PEM_PUBLIC",length:normalized.length};
   const compact = normalized.replace(/\s+/g,"");
   if (/^[A-Za-z0-9+/=_-]+$/.test(compact)) {
