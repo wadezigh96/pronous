@@ -5,7 +5,7 @@ const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 
 const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
-const LIVE_ENABLED = String(process.env.BINANCE_WEB3_API_ENABLED || "0").trim() === "1";
+const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
 
 function signHmac(secret, payload) {
   return crypto.createHmac("sha256", secret).update(payload, "utf8").digest("base64");
@@ -276,7 +276,7 @@ module.exports = async function handler(req,res) {
           const assets=await liveAssets();
           if(assets.length) return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),assets});
         } catch (e) {
-          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:e.data||undefined,authDebug:e.authDebug||undefined});
+          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:process.env.DEBUG_AUTH==="1"?e.data:undefined,authDebug:e.authDebug||undefined});
         }
       }
       return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});
