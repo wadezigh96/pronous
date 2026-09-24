@@ -63,7 +63,12 @@ function credentialShape(secret) {
 
 function signEd25519(privateKey, payload) {
   const keyObject = parseEd25519PrivateKey(privateKey);
-  return crypto.sign(null, Buffer.from(payload, "utf8"), keyObject).toString("base64");
+  const message = Buffer.from(payload, "utf8");
+  const signature = crypto.sign(null, message, keyObject);
+  const publicKey = crypto.createPublicKey(keyObject);
+  const selfVerified = crypto.verify(null, message, publicKey, signature);
+  if (!selfVerified) throw new Error("ED25519_SELF_VERIFY_FAILED");
+  return { signature: signature.toString("base64"), selfVerified };
 }
 
 function privateKeyFingerprint(privateKey) {
@@ -85,9 +90,12 @@ function signedHeaders(method, requestPath, body = "") {
   const prehash = timestamp + normalizedMethod + requestPath + body;
   let signature;
   let publicKeySha256;
+  let signatureSelfVerified;
   if (algorithm === "ED25519") {
-    signature = signEd25519(secret, prehash);
+    const signed = signEd25519(secret, prehash);
+    signature = signed.signature;
     publicKeySha256 = privateKeyFingerprint(secret);
+    signatureSelfVerified = signed.selfVerified;
   } else if (algorithm === "HMAC_SHA256" || algorithm === "HMAC-SHA256") {
     signature = signHmac(secret, prehash);
   } else {
@@ -99,7 +107,7 @@ function signedHeaders(method, requestPath, body = "") {
     "X-OC-TIMESTAMP": timestamp,
     "X-OC-SIGN": signature,
     "X-OC-RECV-WINDOW": RECV_WINDOW,
-    _debug:{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
+    _debug:{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified,apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
   };
 }
 
