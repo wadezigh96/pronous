@@ -107,7 +107,7 @@ function signedHeaders(method, requestPath, body = "") {
     "X-OC-TIMESTAMP": timestamp,
     "X-OC-SIGN": signature,
     "X-OC-RECV-WINDOW": RECV_WINDOW,
-    _debug:{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified,apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
+    _debug:process.env.DEBUG_AUTH==="1"?{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified}:undefined
   };
 }
 
@@ -122,7 +122,7 @@ async function binanceGet(path, params = {}) {
   if (!r.ok || (data.code !== undefined && data.code !== 0)) {
     const e = new Error(data.msg || "Binance Web3 API error");
     e.status = r.status || 502;
-    e.data = data; e.authDebug = debug;
+    e.data = data; if (process.env.DEBUG_AUTH === "1") e.authDebug = debug;
     throw e;
   }
   return data;
@@ -322,6 +322,6 @@ module.exports = async function handler(req,res) {
     if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
-    return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined,authDebug:e.authDebug||undefined,credentialDebug:e.message==="INVALID_ED25519_PRIVATE_KEY_FORMAT"?credentialShape(process.env.BINANCE_WEB3_API_SECRET):undefined});
+    const out={error:e.message||"Agent error",details:e.data||undefined};\n    if(process.env.DEBUG_AUTH==="1" && e.authDebug) out.authDebug=e.authDebug;\n    if(process.env.DEBUG_AUTH==="1" && e.message==="INVALID_ED25519_PRIVATE_KEY_FORMAT") out.credentialDebug=credentialShape(process.env.BINANCE_WEB3_API_SECRET);\n    return res.status(e.status||500).json(out);
   }
 };
