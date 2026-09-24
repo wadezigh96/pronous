@@ -66,6 +66,12 @@ function signEd25519(privateKey, payload) {
   return crypto.sign(null, Buffer.from(payload, "utf8"), keyObject).toString("base64");
 }
 
+function privateKeyFingerprint(privateKey) {
+  const keyObject = parseEd25519PrivateKey(privateKey);
+  const publicDer = crypto.createPublicKey(keyObject).export({format:"der",type:"spki"});
+  return crypto.createHash("sha256").update(publicDer).digest("hex");
+}
+
 function signedHeaders(method, requestPath, body = "") {
   const apiKey = (process.env.BINANCE_WEB3_API_KEY || "").trim();
   const secret = process.env.BINANCE_WEB3_API_SECRET || "";
@@ -78,8 +84,10 @@ function signedHeaders(method, requestPath, body = "") {
   const normalizedMethod = method.toUpperCase();
   const prehash = timestamp + normalizedMethod + requestPath + body;
   let signature;
+  let publicKeySha256;
   if (algorithm === "ED25519") {
     signature = signEd25519(secret, prehash);
+    publicKeySha256 = privateKeyFingerprint(secret);
   } else if (algorithm === "HMAC_SHA256" || algorithm === "HMAC-SHA256") {
     signature = signHmac(secret, prehash);
   } else {
@@ -91,7 +99,7 @@ function signedHeaders(method, requestPath, body = "") {
     "X-OC-TIMESTAMP": timestamp,
     "X-OC-SIGN": signature,
     "X-OC-RECV-WINDOW": RECV_WINDOW,
-    _debug:{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
+    _debug:{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
   };
 }
 
