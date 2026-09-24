@@ -46,6 +46,21 @@ function parseEd25519PrivateKey(secret) {
 
   throw new Error("INVALID_ED25519_PRIVATE_KEY_FORMAT");
 }
+function credentialShape(secret) {
+  const raw = String(secret || "").trim().replace(/^["']|["']$/g, "");
+  if (!raw) return {kind:"EMPTY",length:0};
+  const normalized = raw.replace(/\\r\\n/g,"\n").replace(/\\n/g,"\n").replace(/\\r/g,"\r").trim();
+  if (normalized.includes("BEGIN PRIVATE KEY")) return {kind:"PEM_PRIVATE",length:normalized.length};
+  if (normalized.includes("BEGIN PUBLIC KEY")) return {kind:"PEM_PUBLIC",length:normalized.length};
+  const compact = normalized.replace(/\s+/g,"");
+  if (/^[A-Za-z0-9+/=_-]+$/.test(compact)) {
+    const b64 = compact.replace(/-/g,"+").replace(/_/g,"/");
+    const der = Buffer.from(b64 + "=".repeat((4-(b64.length%4))%4),"base64");
+    return {kind:"BASE64",length:compact.length,decodedLength:der.length};
+  }
+  return {kind:"OTHER",length:normalized.length};
+}
+
 function signEd25519(privateKey, payload) {
   const keyObject = parseEd25519PrivateKey(privateKey);
   return crypto.sign(null, Buffer.from(payload, "utf8"), keyObject).toString("base64");
@@ -291,6 +306,6 @@ module.exports = async function handler(req,res) {
     if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
-    return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined,authDebug:e.authDebug||undefined});
+    return res.status(e.status||500).json({error:e.message||"Agent error",details:e.data||undefined,authDebug:e.authDebug||undefined,credentialDebug:e.message==="INVALID_ED25519_PRIVATE_KEY_FORMAT"?credentialShape(process.env.BINANCE_WEB3_API_SECRET):undefined});
   }
 };
