@@ -276,8 +276,19 @@ module.exports = async function handler(req,res) {
     if(!/^[A-Z0-9.-]{1,20}$/.test(ticker)) return res.status(400).json({error:"Invalid ticker"});
 
     if(action==="authcheck") {
+      const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
+      const fingerprint = algorithm === "ED25519" && process.env.BINANCE_WEB3_API_SECRET
+        ? privateKeyFingerprint(normalizeCredential(process.env.BINANCE_WEB3_API_SECRET))
+        : null;
       const data = await binanceGet("/api/v1/dex/balance/supported/chain",{binanceChainId:"56"});
-      return res.status(200).json({mode:"live-auth-ok",network:"BSC",supported:data.data||[],timestamp:data.timestamp});
+      return res.status(200).json({
+        mode:"live-auth-ok",
+        network:"BSC",
+        algorithm,
+        publicKeyFingerprint:fingerprint,
+        supported:data.data||[],
+        timestamp:data.timestamp
+      });
     }
 
     if(action==="assets") {
