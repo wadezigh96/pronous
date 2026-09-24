@@ -7,8 +7,18 @@ const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
 const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
 
+function normalizeCredential(value) {
+  return String(value || "")
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .trim();
+}
+
 function signHmac(secret, payload) {
-  return crypto.createHmac("sha256", secret).update(payload, "utf8").digest("base64");
+  const normalizedSecret = normalizeCredential(secret);
+  return crypto.createHmac("sha256", normalizedSecret).update(payload, "utf8").digest("base64");
 }
 
 function parseEd25519PrivateKey(secret) {
@@ -80,7 +90,7 @@ function privateKeyFingerprint(privateKey) {
 
 function signedHeaders(method, requestPath, body = "") {
   const apiKey = (process.env.BINANCE_WEB3_API_KEY || "").trim();
-  const secret = process.env.BINANCE_WEB3_API_SECRET || "";
+  const secret = normalizeCredential(process.env.BINANCE_WEB3_API_SECRET);
   const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
   if (!apiKey || !secret) return null;
 
