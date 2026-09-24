@@ -89,13 +89,13 @@ function privateKeyFingerprint(privateKey) {
 }
 
 function signedHeaders(method, requestPath, body = "") {
-  const apiKey = (process.env.BINANCE_WEB3_API_KEY || "").trim();
+  const apiKey = normalizeCredential(process.env.BINANCE_WEB3_API_KEY);
   const secret = normalizeCredential(process.env.BINANCE_WEB3_API_SECRET);
   const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
   if (!apiKey || !secret) return null;
 
-  // Binance Web3 API requires: timestamp + METHOD + requestPath + body.
-  // The exact requestPath, including the raw query string, must be signed.
+  // IMPORTANT: requestPath is the exact path+raw-query sent to Binance.
+  // Binance signs: timestamp + METHOD + requestPath + body.
   const timestamp = new Date().toISOString();
   const normalizedMethod = method.toUpperCase();
   const prehash = timestamp + normalizedMethod + requestPath + body;
@@ -118,13 +118,23 @@ function signedHeaders(method, requestPath, body = "") {
     "X-OC-TIMESTAMP": timestamp,
     "X-OC-SIGN": signature,
     "X-OC-RECV-WINDOW": RECV_WINDOW,
+    "X-OC-NONCE": crypto.randomBytes(16).toString("hex"),
     _debug:process.env.DEBUG_AUTH==="1"?{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified}:undefined
   };
 }
 
+function buildRequestPath(path, params = {}) {
+  const entries = Object.entries(params || {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "");
+  if (!entries.length) return path;
+  const query = entries.map(([key, value]) =>
+    encodeURIComponent(key) + "=" + encodeURIComponent(String(value))
+  ).join("&");
+  return path + "?" + query;
+}
+
 async function binanceGet(path, params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  const requestPath = path + (qs ? "?" + qs : "");
+  const requestPath = buildRequestPath(path, params);
   const headers = signedHeaders("GET", requestPath, "");
   if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
   const debug = headers._debug; delete headers._debug;
