@@ -4,7 +4,7 @@ const { buildGuardChecks, preflightStatus } = require("../lib/policy");
 const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 
 const BASE = "https://web3.binance.com/build";
-const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
+const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "60000";
 const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
 
 function normalizeCredential(value) {
@@ -14,6 +14,15 @@ function normalizeCredential(value) {
     .replace(/\\n/g, "\n")
     .replace(/\\r/g, "\r")
     .trim();
+}
+
+function isoTimestamp() {
+  return new Date().toISOString();
+}
+
+function wirePath(requestPath) {
+  if (!requestPath) return "/build";
+  return requestPath.startsWith("/build") ? requestPath : "/build" + requestPath;
 }
 
 function signHmac(secret, payload) {
@@ -94,11 +103,12 @@ function signedHeaders(method, requestPath, body = "") {
   const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
   if (!apiKey || !secret) return null;
 
-  // IMPORTANT: requestPath is the exact path+raw-query sent to Binance.
-  // Binance signs: timestamp + METHOD + requestPath + body.
-  const timestamp = new Date().toISOString();
+  // Binance verifies: timestamp + METHOD + requestPath + body
+  // requestPath MUST include the /build prefix that appears on the wire.
+  const timestamp = isoTimestamp();
   const normalizedMethod = method.toUpperCase();
-  const prehash = timestamp + normalizedMethod + requestPath + body;
+  const signedPath = wirePath(requestPath);
+  const prehash = timestamp + normalizedMethod + signedPath + body;
   let signature;
   let publicKeySha256;
   let signatureSelfVerified;
@@ -119,7 +129,7 @@ function signedHeaders(method, requestPath, body = "") {
     "X-OC-SIGN": signature,
     "X-OC-RECV-WINDOW": RECV_WINDOW,
     "X-OC-NONCE": crypto.randomBytes(16).toString("hex"),
-    _debug:process.env.DEBUG_AUTH==="1"?{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified}:undefined
+    _debug:process.env.DEBUG_AUTH==="1"?{algorithm,method:normalizedMethod,requestPath:signedPath,requestPathLength:signedPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified}:undefined
   };
 }
 
