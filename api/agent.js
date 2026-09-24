@@ -10,24 +10,36 @@ function signHmac(secret, payload) {
   return crypto.createHmac("sha256", secret).update(payload, "utf8").digest("base64");
 }
 
+function signEd25519(privateKey, payload) {
+  return crypto.sign(null, Buffer.from(payload, "utf8"), privateKey).toString("base64");
+}
+
 function signedHeaders(method, requestPath, body = "") {
   const apiKey = (process.env.BINANCE_WEB3_API_KEY || "").trim();
   const secret = (process.env.BINANCE_WEB3_API_SECRET || "").trim();
+  const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
   if (!apiKey || !secret) return null;
 
-  // PRONOUS is configured for a Binance Web3 HMAC-SHA256 credential.
-  // Binance requires: timestamp + METHOD + requestPath + body.
+  // Binance Web3 API requires: timestamp + METHOD + requestPath + body.
+  // The exact requestPath, including the raw query string, must be signed.
   const timestamp = new Date().toISOString();
   const normalizedMethod = method.toUpperCase();
   const prehash = timestamp + normalizedMethod + requestPath + body;
-  const signature = signHmac(secret, prehash);
+  let signature;
+  if (algorithm === "ED25519") {
+    signature = signEd25519(secret, prehash);
+  } else if (algorithm === "HMAC_SHA256" || algorithm === "HMAC-SHA256") {
+    signature = signHmac(secret, prehash);
+  } else {
+    throw new Error("UNSUPPORTED_SIGN_ALGO");
+  }
 
   return {
     "X-OC-APIKEY": apiKey,
     "X-OC-TIMESTAMP": timestamp,
     "X-OC-SIGN": signature,
     "X-OC-RECV-WINDOW": RECV_WINDOW,
-    _debug:{algorithm:"HMAC_SHA256",method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
+    _debug:{algorithm,method:normalizedMethod,requestPath,requestPathLength:requestPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),apiKeyPresent:Boolean(apiKey),secretPresent:Boolean(secret)}
   };
 }
 
