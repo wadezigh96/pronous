@@ -5,6 +5,7 @@ const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 
 const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "5000";
+const LIVE_ENABLED = String(process.env.BINANCE_WEB3_API_ENABLED || "0").trim() === "1";
 
 function signHmac(secret, payload) {
   return crypto.createHmac("sha256", secret).update(payload, "utf8").digest("base64");
@@ -270,7 +271,7 @@ module.exports = async function handler(req,res) {
     }
 
     if(action==="assets") {
-      if(process.env.BINANCE_WEB3_API_KEY) {
+      if(LIVE_ENABLED) {
         try {
           const assets=await liveAssets();
           if(assets.length) return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),assets});
@@ -281,12 +282,12 @@ module.exports = async function handler(req,res) {
       return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});
     }
 
-    const asset=process.env.BINANCE_WEB3_API_KEY?await findLiveAsset(ticker):demoAsset(ticker);
+    const asset=LIVE_ENABLED?await findLiveAsset(ticker):demoAsset(ticker);
     if(action==="quote") {
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress")||asset.tokenContractAddress,amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress")};
       const built=buildQuoteParams(input);
       if(!built.ok) return res.status(400).json({error:"Invalid quote intent",missing:built.missing});
-      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"QUOTE_REQUIRES_LIVE_API",ticker,asset,intent:built.params});
+      if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"QUOTE_REQUIRES_LIVE_API",ticker,asset,intent:built.params});
       const quote=await binanceGet("/api/v1/dex/aggregator/quote",built.params);
       return res.status(200).json({mode:"live-quote",network:"BSC",ticker,asset,quote,broadcast:false});
     }
@@ -295,13 +296,13 @@ module.exports = async function handler(req,res) {
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress"),amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress"),quoteId:url.searchParams.get("quoteId"),slippagePercent:url.searchParams.get("slippagePercent"),approveTransaction:url.searchParams.get("approveTransaction")};
       const built=buildSwapParams(input);
       if(!built.ok) return res.status(400).json({error:"Invalid swap intent",missing:built.missing});
-      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"BUILD_REQUIRES_LIVE_API",ticker,asset,intent:built.params,broadcast:false});
+      if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"BUILD_REQUIRES_LIVE_API",ticker,asset,intent:built.params,broadcast:false});
       const swap=await binanceGet("/api/v1/dex/aggregator/swap",built.params);
       return res.status(200).json({mode:"live-build",network:"BSC",ticker,asset,built:swap,broadcast:false,next:"Client wallet signature required before broadcast."});
     }
 
     if(action==="simulateTx") {
-      if(!process.env.BINANCE_WEB3_API_KEY) return res.status(200).json({mode:"demo",status:"SIMULATION_REQUIRES_LIVE_API",broadcast:false});
+      if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"SIMULATION_REQUIRES_LIVE_API",broadcast:false});
       const raw=url.searchParams.get("evmTx");
       if(!raw) return res.status(400).json({error:"evmTx JSON query parameter is required"});
       let evmTx;
