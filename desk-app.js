@@ -1,3 +1,27 @@
+let walletAddress=null, walletProvider=null;
+function shortAddress(a){a=String(a||'');return a&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):a||'Not connected'}
+function setWalletUI(address){
+ walletAddress=address||null;
+ const label=document.getElementById('walletStatus'),addr=document.getElementById('walletAddress'),btn=document.getElementById('connectWalletBtn');
+ if(label)label.textContent=address?'WALLET CONNECTED':'WALLET NOT CONNECTED';
+ if(addr)addr.textContent=address?shortAddress(address):'Not connected';
+ if(btn)btn.textContent=address?'Disconnect':'Connect Wallet';
+}
+async function connectWallet(){
+ if(walletAddress){walletAddress=null;walletProvider=null;setWalletUI(null);return;}
+ if(!window.ethereum){alert('No EVM wallet detected. Open PRONOUS in a wallet browser.');return;}
+ try{
+  const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
+  const chain=await window.ethereum.request({method:'eth_chainId'});
+  if(String(chain).toLowerCase()!=='0x38'){
+   try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x38'}]});}
+   catch(e){alert('Please switch your wallet to BSC Mainnet (chain 56).');return;}
+  }
+  walletProvider=window.ethereum;setWalletUI(accounts?.[0]||null);
+ }catch(e){alert('Wallet connection failed: '+(e?.message||e));}
+}
+if(window.ethereum){window.ethereum.on?.('accountsChanged',a=>setWalletUI(a?.[0]||null));window.ethereum.on?.('chainChanged',()=>window.location.reload());}
+
 let last=null, marketAssets=[], marketFilter='all';
 let currentPOA=null;
 function setExecutionStep(step,status){
