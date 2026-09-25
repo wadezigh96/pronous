@@ -50,24 +50,28 @@ function drawGapChart(){
   ctx.strokeStyle='#352c1e'; ctx.beginPath(); ctx.moveTo(8,mid); ctx.lineTo(w-8,mid); ctx.stroke();
 }
 async function loadAssetChart(asset){
-  const label=document.getElementById('assetChartLabel');
   const src=document.getElementById('assetChartSrc');
   const canvas=document.getElementById('assetChart');
   if(!canvas) return;
   try{
-    const q=asset.tokenContractAddress
-      ? '/api/agent?action=candles&token='+encodeURIComponent(asset.tokenContractAddress)+'&bar=1h&limit=72'
-      : '/api/agent?action=candles&ticker='+encodeURIComponent(asset.ticker)+'&bar=1h&limit=72';
-    const r=await fetch(q); const j=await r.json();
-    const candles=(j.candles||[]).filter(c=>Number.isFinite(Number(c.close)));
-    if(src) src.textContent=candles.length?(j.source||'LIVE'):'SNAPSHOT';
-    if(label) label.textContent=(asset.ticker||'TOKEN')+' · 1H';
+    const token=asset.tokenContractAddress||'';
+    const urls=[
+      token?'/api/candles?token='+encodeURIComponent(token)+'&bar=1h&limit=72':null,
+      '/api/agent?action=candles&ticker='+encodeURIComponent(asset.ticker||'')+'&bar=1h&limit=72'
+    ].filter(Boolean);
+    let candles=[]; let source='SNAPSHOT';
+    for (const url of urls){
+      const r=await fetch(url); const j=await r.json();
+      candles=(j.candles||[]).filter(c=>Number.isFinite(Number(c.close)));
+      if(candles.length){ source=j.source||'LIVE'; break; }
+    }
+    if(src) src.textContent=source;
     if(candles.length){
       const up=Number(candles[candles.length-1].close)>=Number(candles[0].close);
       drawLineChart(canvas, candles.map(c=>({y:Number(c.close)})), up?'#2fbf8f':'#e8604c');
     } else {
-      const token=Number(asset.tokenPrice), ref=Number(asset.referencePrice);
-      drawLineChart(canvas, Number.isFinite(token)&&Number.isFinite(ref)?[{y:ref},{y:token}]:[{y:0},{y:1}], '#f0b90b');
+      const tokenPx=Number(asset.tokenPrice), ref=Number(asset.referencePrice);
+      drawLineChart(canvas, Number.isFinite(tokenPx)&&Number.isFinite(ref)?[{y:ref},{y:tokenPx}]:[{y:0},{y:1}], '#f0b90b');
     }
   }catch(e){
     if(src) src.textContent='UNAVAILABLE';
