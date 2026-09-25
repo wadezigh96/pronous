@@ -27,27 +27,27 @@ function drawLineChart(canvas, points, color){
 function drawGapChart(){
   const canvas=document.getElementById('gapChart');
   const label=document.getElementById('tapeLabel');
-  const rows=chartRows().slice(0,12);
-  if(label) label.textContent=rows.length?rows.length+' actionable gaps':'No actionable gaps';
-  if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const w=canvas.width, h=canvas.height;
+  const rows=chartRows().slice(0,10);
+  if(label) label.textContent=rows.length?rows.length+' live divergence signals':'No live signals';
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height;
   ctx.clearRect(0,0,w,h);
-  ctx.fillStyle='#101419'; ctx.fillRect(0,0,w,h);
-  if(!rows.length) return;
-  const mid=h/2, barW=Math.max(10,(w-24)/rows.length-8);
+  ctx.fillStyle='#070a10';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(35,52,78,.55)';ctx.lineWidth=1;
+  for(let y=22;y<h-28;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  if(!rows.length)return;
   const maxAbs=Math.max(...rows.map(x=>Math.abs(Number(x.spreadPct))),0.01);
+  const mid=h/2, slot=w/rows.length;
   rows.forEach((x,i)=>{
-    const v=Number(x.spreadPct);
-    const bh=Math.max(4,(Math.abs(v)/maxAbs)*(mid-28));
-    const x0=16+i*((w-24)/rows.length);
-    ctx.fillStyle=v>=0?'#2fbf8f':'#e8604c';
-    ctx.fillRect(x0, v>=0?mid-bh:mid, barW, bh);
-    ctx.fillStyle='#a79c88';
-    ctx.font='10px IBM Plex Mono, monospace';
-    ctx.save(); ctx.translate(x0+barW/2,h-8); ctx.rotate(-Math.PI/2); ctx.fillText(String(x.ticker).slice(0,5),0,0); ctx.restore();
+    const v=Number(x.spreadPct), ratio=Math.min(1,Math.abs(v)/maxAbs);
+    const bar=Math.max(6,ratio*(mid-30)), x0=i*slot+slot*.16, bw=slot*.68;
+    const grad=ctx.createLinearGradient(0,mid-bar,0,mid+bar);
+    grad.addColorStop(0,'#ffe27a');grad.addColorStop(.45,'#f5c542');grad.addColorStop(1,'#9b6b0c');
+    ctx.fillStyle=grad;ctx.globalAlpha=.9;ctx.fillRect(x0,v>=0?mid-bar:mid,bw,bar);ctx.globalAlpha=1;
+    ctx.fillStyle='#f5c542';ctx.font='600 10px IBM Plex Mono,monospace';ctx.textAlign='center';ctx.fillText(String(x.ticker).slice(0,6),x0+bw/2,h-12);
+    ctx.fillStyle='#d8d1c0';ctx.font='9px IBM Plex Mono,monospace';ctx.fillText((v>0?'+':'')+v.toFixed(2)+'%',x0+bw/2,v>=0?mid-bar-7:mid+bar+12);
   });
-  ctx.strokeStyle='#352c1e'; ctx.beginPath(); ctx.moveTo(8,mid); ctx.lineTo(w-8,mid); ctx.stroke();
+  ctx.strokeStyle='rgba(245,197,66,.55)';ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();
 }
 async function loadAssetChart(asset){
   const src=document.getElementById('assetChartSrc');
@@ -77,3 +77,8 @@ async function loadAssetChart(asset){
     if(src) src.textContent='UNAVAILABLE';
   }
 }
+
+let signalTimer=null;
+function startLiveSignal(){if(signalTimer)return;signalTimer=setInterval(()=>{if(document.hidden)return;loadMarket();},20000)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadMarket()});
+startLiveSignal();
