@@ -1,4 +1,40 @@
 let last=null, marketAssets=[], marketFilter='all';
+let currentPOA=null;
+
+function poaLedgerRead(){
+ try{return JSON.parse(localStorage.getItem('pronous-poa-ledger')||'[]')}catch(e){return[]}
+}
+function poaLedgerWrite(rows){try{localStorage.setItem('pronous-poa-ledger',JSON.stringify(rows.slice(0,25)))}catch(e){}}
+function shortHash(v){v=String(v||'');return v.length>18?v.slice(0,10)+'…'+v.slice(-8):v}
+function renderPOALedger(){
+ const box=document.getElementById('poaLedger'); if(!box)return;
+ const rows=poaLedgerRead();
+ box.innerHTML=rows.length?rows.map(p=>'<div class="poa-row"><div><b>'+esc(p.poaId)+'</b><span class="tag">'+esc(p.status)+'</span></div><span class="muted small">'+esc(p.action)+' · '+esc(p.timestamp)+'</span><code>'+esc(shortHash(p.poaHash))+'</code></div>').join(''):'No evidence yet.';
+}
+function savePOA(proof){
+ currentPOA=proof;
+ const rows=poaLedgerRead().filter(x=>x.poaId!==proof.poaId);
+ rows.unshift(proof); poaLedgerWrite(rows); renderPOALedger();
+ const box=document.getElementById('poaCurrent');
+ if(box)box.innerHTML='<div class="poa-proof"><div><b>'+esc(proof.poaId)+'</b> <span class="tag">'+esc(proof.status)+'</span></div><div class="muted small">Intent '+esc(shortHash(proof.intentHash))+'</div><div class="muted small">POA hash <code>'+esc(shortHash(proof.poaHash))+'</code></div><button class="secondary" type="button" onclick="verifyCurrentPOA()">Verify proof</button></div>';
+}
+async function createPOAForAction(action,status,extra={}){
+ const intent={agentId:'PRONOUS',action,network:'BSC',ticker:(document.getElementById('ticker')?.value||'NVDA').trim().toUpperCase(),amount:document.getElementById('amount')?.value||null,...extra};
+ try{
+  const proofInput={agentId:'PRONOUS',action,status,network:'BSC',intent,asset:extra.asset||null,simulation:extra.simulation||null,userConfirmation:Boolean(extra.userConfirmation),txHash:extra.txHash||null,previousPoaHash:currentPOA?.poaHash||null};
+  const r=await fetch('/api/poa?action=create&proof='+encodeURIComponent(JSON.stringify(proofInput)));
+  const j=await r.json(); if(j.proof)savePOA(j.proof); else throw new Error(j.error||'POA creation failed');
+ }catch(e){const box=document.getElementById('poaCurrent');if(box)box.textContent='POA error: '+e.message}
+}
+async function createCurrentPOA(){await createPOAForAction(last?.action||'OBSERVE','PLANNED',{asset:last?.asset||null})}
+async function verifyCurrentPOA(){
+ if(!currentPOA)return;
+ const r=await fetch('/api/poa?action=verify&proof='+encodeURIComponent(JSON.stringify(currentPOA)));
+ const j=await r.json(); const box=document.getElementById('poaCurrent');
+ if(box)box.innerHTML+='<div class="poa-verify '+(j.verification?.valid?'valid':'invalid')+'">'+(j.verification?.valid?'✓ HASH MATCH':'✕ HASH MISMATCH')+' · '+esc(j.verification?.reason||'UNKNOWN')+'</div>';
+}
+function clearPOALedger(){try{localStorage.removeItem('pronous-poa-ledger')}catch(e){}currentPOA=null;renderPOALedger();document.getElementById('poaCurrent').textContent='No POA generated for this session.'}
+
 function toggleMarketWatch(force){const body=document.getElementById('marketWatchBody'),btn=document.getElementById('marketToggle');if(!body||!btn)return;const open=force!==undefined?force:!body.classList.contains('open');body.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));btn.textContent=open?'− Collapse':'＋ Expand';try{localStorage.setItem('pronous-market-watch-open',open?'1':'0')}catch(e){}}
 function initMarketWatch(){let open=false;try{open=localStorage.getItem('pronous-market-watch-open')==='1'}catch(e){}toggleMarketWatch(open)}
 function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&','<':'<','>':'>','"':'"'}[m]))}
@@ -42,7 +78,7 @@ function addMessage(type,text){
 }
 async function preflight(){
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
- try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json();box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
+ try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json(); await createPOAForAction('PREFLIGHT',j.preflight?.status==='READY_FOR_SIMULATION'?'SIMULATED':'BLOCKED',{asset:j.asset||null,simulation:{status:j.preflight?.status||'UNKNOWN'}});box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
 }
 async function scan(){
  const t=document.getElementById('ticker').value.trim().toUpperCase();
@@ -52,6 +88,7 @@ async function scan(){
   const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));
   const j=await r.json(); last=j;
   document.getElementById('scan').textContent=JSON.stringify(j,null,2);
+  await createPOAForAction('SCAN','PLANNED',{asset:j.asset||null});
   document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);
  }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
 }
@@ -61,6 +98,7 @@ async function simulate(){
  try{
   const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
   const j=await r.json();
+  await createPOAForAction('SIMULATION','SIMULATED',{asset:j.asset||null,simulation:{simulated:Boolean(j.simulated),plan:j.plan||null}});
   document.getElementById('plan').textContent=JSON.stringify(j,null,2);
  }catch(e){document.getElementById('plan').textContent='Error: '+e.message}
 }
@@ -101,3 +139,4 @@ document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='E
 loadMarket();
 loadSkills();
 initMarketWatch();
+renderPOALedger();
