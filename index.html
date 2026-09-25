@@ -1,131 +1,55 @@
 <!doctype html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PRONOUS — Tokenized Stock Desk</title>
+<meta name="description" content="PRONOUS — tokenized stock market intelligence and guarded execution on BNB Chain.">
+<title>PRONOUS — Tokenized Stock Agent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#0c0a07;--card:#14100a;--line:#2a2418;--text:#f3eee3;--dim:#a79c88;--gold:#f0b90b;--teal:#2fbf8f;--coral:#e8604c}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
-.wrap{max-width:1180px;margin:auto;padding:22px 18px 60px}
-.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px}
-.brand{font-weight:800;letter-spacing:.14em}.brand span{color:var(--gold)}
-.health{color:var(--teal);font:10px "IBM Plex Mono",monospace}
-h1{font-size:34px;letter-spacing:-.04em;margin:18px 0 8px}
-.sub{color:var(--dim);max-width:720px;line-height:1.5}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}
-.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-.lbl{color:var(--dim);font:9px "IBM Plex Mono",monospace;text-transform:uppercase}
-.val{font-size:22px;font-weight:800;margin-top:6px}
-.chart{margin-top:10px;background:#101419;border:1px solid var(--line);border-radius:12px;padding:10px}
-canvas{width:100%;display:block}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-input,button{font:13px "IBM Plex Mono",monospace;border-radius:10px;padding:10px 12px}
-input{flex:1;min-width:160px;background:#0f1318;color:var(--text);border:1px solid var(--line)}
-button{border:1px solid var(--gold);background:var(--gold);color:#1a1607;font-weight:800;cursor:pointer}
-.ghost{background:transparent;color:var(--dim);border-color:var(--line)}
-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
-th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
-.pos{color:var(--teal)}.neg{color:var(--coral)}
-.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
-a{color:var(--gold)}pre{white-space:pre-wrap;color:#c9c0b0;font:12px "IBM Plex Mono",monospace}
-@media(max-width:800px){.kpis,.grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="top"><div class="brand"><span>PR</span>ONOUS</div><div class="health">BSC · ON-CHAIN · SPOT</div></div>
-  <h1>Tokenized stock desk</h1>
-  <p class="sub">Live Ondo / bStocks / xStocks on BSC, plus on-chain holders, trades, liquidity pools and BscScan.</p>
-  <div class="kpis">
-    <div class="kpi"><div class="lbl">Mode</div><div class="val" id="kpiMode">—</div></div>
-    <div class="kpi"><div class="lbl">Assets</div><div class="val" id="kpiAssets">—</div></div>
-    <div class="kpi"><div class="lbl">Actionable</div><div class="val" id="kpiAct">—</div></div>
-    <div class="kpi"><div class="lbl">Largest gap</div><div class="val" id="kpiGap">—</div></div>
-  </div>
-  <section class="card">
-    <div class="lbl">Market tape · actionable gaps</div>
-    <div class="chart"><canvas id="gapChart" width="980" height="220"></canvas></div>
-  </section>
-  <div class="grid" style="margin-top:12px">
-    <section class="card">
-      <div class="lbl">Universe</div>
-      <div class="row" style="margin-top:10px">
-        <input id="q" placeholder="Search NVDA, AAPL..." oninput="renderTable()">
-        <button class="ghost" onclick="load()">Refresh</button>
-      </div>
-      <div id="table">Loading live RWA…</div>
-    </section>
-    <section class="card">
-      <div class="lbl">Asset chart · 1h candles</div>
-      <div id="pick" class="sub" style="margin:8px 0">Select a row.</div>
-      <div class="chart"><canvas id="assetChart" width="420" height="180"></canvas></div>
-    </section>
-  </div>
-  <section class="card" style="margin-top:12px">
-    <div class="lbl">On-chain · BSC</div>
-    <div id="chain" class="sub" style="margin-top:8px">Select an asset to load holders, trades and pools.</div>
-  </section>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/desk.css">
+</head><body>
+<div class="app">
+<aside class="side">
+<div class="side-brand"><span>PR</span>ONOUS</div>
+<div class="navgroup"><div class="navlabel">WORKSPACE</div>
+<a class="navitem active" href="#overview">Overview</a><a class="navitem" href="#market">Market</a><a class="navitem" href="#radar-section">Divergence Radar</a><a class="navitem" href="#agent">Agent</a><a class="navitem" href="#execution">Execution</a>
 </div>
+<div class="navgroup"><div class="navlabel">INTELLIGENCE</div><a class="navitem" href="#skills-section">Agent Skills</a><a class="navitem" href="#ask">Ask PRONOUS</a></div>
+<div class="side-foot"><div class="tag">BSC MAINNET</div><div class="muted small" style="margin-top:8px">Spot only · guarded execution</div></div>
+</aside>
+<main class="main">
+<div class="wrap">
+<div class="topbar"><div><span class="topbar-title">PRONOUS DESK</span><span class="topbar-sub">TOKENIZED EQUITY INTELLIGENCE</span></div><div class="health">SYSTEM ONLINE</div></div>
+<div class="ticker-wrap" style="margin:0 -0px"><div class="ticker"><span><b>NVDA</b> tokenized equity</span><span><b>AAPL</b> reference monitor</span><span><b>TSLA</b> gap radar</span><span><b>MSFT</b> market state</span><span class="up">SPOT ONLY</span><span class="down">NO PERPS</span><span>AGENTIC WALLET</span></div></div>
+<section id="overview" class="hero" style="padding-bottom:16px">
+<div class="dashboard-head"><div><div class="eyebrow">ALWAYS-ON TOKENIZED STOCK DESK</div><h1>Market intelligence,<br>with execution guardrails.</h1><p>PRONOUS watches tokenized equities against reference prices, explains the gap, and prepares a controlled execution plan.</p></div><div class="head-actions"><button class="secondary" onclick="loadMarket()">Refresh</button></div></div>
+</section>
+<div class="kpis">
+<div class="kpi"><div class="kpi-label">Market mode</div><div class="kpi-value" id="kpiMode">LOADING</div><div class="kpi-note">RWA data feed</div></div>
+<div class="kpi"><div class="kpi-label">Assets watched</div><div class="kpi-value" id="kpiAssets">—</div><div class="kpi-note">Supported tokenized equities</div></div>
+<div class="kpi"><div class="kpi-label">Largest gap</div><div class="kpi-value" id="kpiGap">—</div><div class="kpi-note">Absolute token/reference spread</div></div>
+<div class="kpi"><div class="kpi-label">Execution</div><div class="kpi-value" id="kpiExec">LOCKED</div><div class="kpi-note">Wallet confirmation required</div></div>
+</div>
+<section class="card terminal-card section-anchor" id="tape">
+<div class="terminal-head"><h2>Market tape</h2><small>00 / LIVE CHART</small></div>
+<div class="muted">Actionable token/reference gaps on BSC.</div>
+<div class="chart-box gap-chart"><div class="chart-meta"><span id="tapeLabel">Waiting for live RWA</span><span>SPOT · BSC</span></div><canvas id="gapChart" width="980" height="210"></canvas></div>
+</section>
+<div id="agent" class="grid section-anchor">
+<section class="card terminal-card"><div class="terminal-head"><h2>Market intelligence</h2><small>01 / OBSERVE</small></div><div class="row"><input id="ticker" value="NVDA" placeholder="Ticker, e.g. NVDA"><button onclick="scan()">Scan</button></div><div id="scan" class="result">Ready. Scan a tokenized stock to inspect its current data.</div></section>
+<section class="card terminal-card"><div class="terminal-head"><h2>Agent plan</h2><small>02 / PLAN</small></div><div class="muted">Deterministic guardrails keep execution controlled.</div><div class="result" id="plan">No plan yet.</div><button class="secondary" onclick="simulate()">Simulate execution</button></section>
+</div>
+<section id="market" class="card market-card terminal-card section-anchor"><div class="terminal-head"><h2>Tokenized market</h2><small>03 / LIVE UNIVERSE</small></div><div class="market-head"><div><span id="marketMode" class="tag">LOADING</span> <span id="marketUpdated" class="muted small">—</span></div><button class="secondary" style="max-width:130px" onclick="loadMarket()">Refresh</button></div><div class="row" style="margin-top:10px"><input id="marketSearch" placeholder="Search ticker or company" oninput="renderMarket()"><button class="secondary" onclick="setFilter('all')">ALL</button><button class="secondary" onclick="setFilter('ondo')">ONDO</button><button class="secondary" onclick="setFilter('bstock')">bSTOCKS</button><button class="secondary" onclick="setFilter('xstocks')">xSTOCKS</button></div><div id="marketTable" class="result">Loading live RWA data…</div></section>
+<div id="radar-section" class="grid section-anchor"><section class="card terminal-card"><div class="terminal-head"><h2>Divergence radar</h2><small>04 / DETECT</small></div><div class="muted">Token/reference gaps across the watched asset universe.</div><div id="radar" class="result">Waiting for market data…</div></section><section class="card terminal-card"><div class="terminal-head"><h2>Market clock</h2><small>05 / VERIFY</small></div><div class="muted">Reference-market state contextualizes on-chain trading.</div><div id="clock" class="result">Select an asset to inspect its market state.</div></section></div>
+<section class="card terminal-card section-anchor" id="onchain-section">
+<div class="terminal-head"><h2>On-chain</h2><small>BSC · HOLDERS / TRADES / POOLS</small></div>
+<div id="chain" class="result">Select an asset to load contract, holders, trades and pools.</div>
+</section>
+<section id="skills-section" class="card section-anchor"><div class="terminal-head"><h2>Agent skills</h2><small>06 / GUARD</small></div><div class="muted">Specialized skills route observations before consequential actions.</div><div id="skills" class="feature" style="margin-top:14px">Loading skills…</div><div id="loop" class="result" style="margin-top:14px">Observe → Detect → Verify → Guard → Plan → Simulate → Confirm → Execute → Record</div></section>
+<section id="execution" class="card terminal-card section-anchor"><div class="terminal-head"><h2>Execution cockpit</h2><small>07 / CONFIRM</small></div><div class="muted">Controlled execution pipeline. Each stage must pass before the next becomes available.</div><div id="executionPipeline" class="exec-pipeline"><div data-step="preflight" class="exec-step active"><b>01</b><span>Preflight</span><em>CHECK</em></div><div data-step="quote" class="exec-step"><b>02</b><span>Quote</span><em>WAIT</em></div><div data-step="simulation" class="exec-step"><b>03</b><span>Simulation</span><em>LOCKED</em></div><div data-step="confirmation" class="exec-step"><b>04</b><span>Confirmation</span><em>LOCKED</em></div><div data-step="execution" class="exec-step"><b>05</b><span>Execution</span><em>LOCKED</em></div></div><div class="row" style="margin-top:12px"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount"><input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend"><button onclick="preflight()">Run preflight</button></div><div id="preflight" class="result">Enter an amount and run preflight.</div></section>
+<section id="ask" class="card chat section-anchor"><div class="terminal-head"><h2>Ask PRONOUS <span class="muted small">24/7</span></h2><small>08 / ASK</small></div><div class="muted">Ask about tokenized stocks, market hours, price gaps, bStocks, Ondo, BSC or the current ticker.</div><div id="chatlog" class="chatlog"><p class="msg agent"><b>PRONOUS:</b> I’m ready. Ask a question about tokenized stocks or scan a ticker first.</p></div><div class="row" style="margin-top:10px"><input id="question" placeholder="Example: Why can a tokenized stock trade when NYSE is closed?"><button onclick="ask()">Ask</button></div></section>
+<section class="feature"><div><b>24/7 market watch</b><span class="muted small">Detects when on-chain trading continues while reference markets are closed.</span></div><div><b>Gap explanation</b><span class="muted small">Shows token price, reference price and spread instead of hiding the reason behind an action.</span></div><div><b>Safety first</b><span class="muted small">Simulation, spend limits and allowlists stay between the agent and live execution.</span></div></section>
+</div><nav class="mobile-nav" aria-label="Mobile navigation"><a href="#overview">Home</a><a href="#market">Market</a><a href="#radar-section">Radar</a><a href="#agent">Agent</a><a href="#execution">Execute</a></nav></main></div><div id="assetDrawer" class="asset-drawer" aria-hidden="true"><div class="drawer-backdrop" onclick="closeAsset()"></div><aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button><div id="drawerContent" style="padding-top:24px"></div></aside></div>
 <script src="/desk-charts.js"></script>
-<script>
-let marketAssets=[];
-function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&','<':'<','>':'>','"':'"'}[m]))}
-function shortAddr(a){a=String(a||'');return a.length>12?a.slice(0,8)+'…'+a.slice(-6):a}
-async function load(){
-  const box=document.getElementById('table');
-  box.textContent='Loading…';
-  const r=await fetch('/api/agent?action=assets');
-  const j=await r.json();
-  marketAssets=j.assets||[];
-  window.marketAssets=marketAssets;
-  document.getElementById('kpiMode').textContent=(j.mode||'—').replace('live-data','LIVE');
-  document.getElementById('kpiAssets').textContent=String(j.summary?.total||marketAssets.length);
-  const rows=(typeof chartRows==='function'?chartRows():marketAssets).filter(x=>Number.isFinite(Number(x.spreadPct)));
-  document.getElementById('kpiAct').textContent=String(j.summary?.actionable||rows.length);
-  const top=rows[0];
-  document.getElementById('kpiGap').textContent=top?((Number(top.spreadPct)>0?'+':'')+Number(top.spreadPct).toFixed(2)+'%'):'—';
-  renderTable();
-  if(typeof drawGapChart==='function') drawGapChart();
-  if(top) selectAsset(top);
-}
-function renderTable(){
-  const q=(document.getElementById('q').value||'').toUpperCase();
-  const rows=marketAssets.filter(x=>String(x.ticker).toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)).slice(0,80);
-  document.getElementById('table').innerHTML='<table><thead><tr><th>Ticker</th><th>Platform</th><th>Gap</th></tr></thead><tbody>'+
-    rows.map(x=>'<tr onclick=\'selectAsset('+JSON.stringify({ticker:x.ticker,companyName:x.companyName,tokenPrice:x.tokenPrice,referencePrice:x.referencePrice,tokenContractAddress:x.tokenContractAddress,platformId:x.platformId,spreadPct:x.spreadPct}).replace(/'/g,"&#39;")+')\'><td><b>'+esc(x.ticker)+'</b></td><td>'+esc(x.platformId)+'</td><td class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number.isFinite(Number(x.spreadPct))?(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%':'—')+'</td></tr>').join('')+'</tbody></table>';
-}
-function selectAsset(x){
-  document.getElementById('pick').textContent=x.ticker+' · '+(x.companyName||'')+' · token '+x.tokenPrice+' vs ref '+x.referencePrice;
-  if(typeof loadAssetChart==='function') loadAssetChart(x);
-  loadOnchain(x);
-}
-async function loadOnchain(x){
-  const box=document.getElementById('chain');
-  const token=x.tokenContractAddress;
-  if(!token){box.textContent='No contract address for this asset.';return;}
-  box.textContent='Loading on-chain data…';
-  try{
-    const r=await fetch('/api/onchain?token='+encodeURIComponent(token));
-    const j=await r.json();
-    const info=j.info&&!j.info.error?j.info:{};
-    const holders=Array.isArray(j.holders)?j.holders:(j.holders?.list||j.holders?.data||[]);
-    const trades=Array.isArray(j.trades)?j.trades:(j.trades?.list||j.trades?.data||[]);
-    const pools=Array.isArray(j.pools)?j.pools:(j.pools?.list||j.pools?.data||[]);
-    const holdN=Array.isArray(holders)?holders.length:0;
-    const tradeN=Array.isArray(trades)?trades.length:0;
-    const poolN=Array.isArray(pools)?pools.length:0;
-    box.innerHTML='Contract <a href="'+esc(j.explorer)+'" target="_blank" rel="noreferrer">'+esc(shortAddr(token))+'</a> · BSC<br>'+
-      'Creator '+(info.creatorAddress?esc(shortAddr(info.creatorAddress)):'—')+
-      ' · Top10 '+(info.top10HoldingPercent||'—')+'%<br>'+
-      holdN+' holders shown · '+tradeN+' recent trades · '+poolN+' pools'+
-      (j.info&&j.info.error?'<br>Advanced info: '+esc(j.info.error):'')+
-      (j.trades&&j.trades.error?'<br>Trades: '+esc(j.trades.error):'');
-  }catch(e){box.textContent='On-chain error: '+e.message;}
-}
-load().catch(e=>{document.getElementById('table').textContent=e.message});
-</script>
-</body>
-</html>
+<script src="/desk-app.js"></script>
+</body></html>
