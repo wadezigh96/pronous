@@ -429,7 +429,7 @@ module.exports = async function handler(req,res) {
       const confirmed=url.searchParams.get("confirmed")==="true";
       return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});
     }
-    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-simulation",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false});
+    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-dry-run",simulationMode:"DRY_RUN",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false,next:"No blockchain transaction was sent. Build a transaction and run a chain-level simulation before live execution."});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
     const out={error:e.message||"Agent error",details:e.data||undefined};
