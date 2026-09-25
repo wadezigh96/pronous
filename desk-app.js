@@ -147,6 +147,36 @@ async function scan(){
   document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);
  }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
 }
+async function buildTransaction(){
+ const box=document.getElementById('quoteResult');
+ if(!latestQuote){if(box)box.textContent='Get a live quote first.';return;}
+ const quote=latestQuote.quote||latestQuote.data||latestQuote;
+ const quoteId=quote.quoteId||quote.id||quote.quoteID;
+ const fromToken=(document.getElementById('fromTokenAddress')?.value||'').trim();
+ const toToken=(latestQuote.asset?.tokenContractAddress||'').trim();
+ const amount=(document.getElementById('amount')?.value||'').trim();
+ if(!quoteId){if(box)box.textContent='Quote returned without a recognizable quoteId; build is locked.';return;}
+ if(!walletAddress||!/^0x[a-fA-F0-9]{40}$/.test(fromToken)||!/^0x[a-fA-F0-9]{40}$/.test(toToken)){if(box)box.textContent='Wallet and valid token addresses are required before build.';return;}
+ if(box)box.textContent='Building unsigned transaction…';
+ try{
+  const p=new URLSearchParams({action:'build',ticker:(document.getElementById('ticker').value||'NVDA').trim().toUpperCase(),fromTokenAddress:fromToken,toTokenAddress:toToken,amount,userWalletAddress:walletAddress,quoteId:String(quoteId),slippagePercent:'0.5',approveTransaction:'false'});
+  const r=await fetch('/api/agent?'+p.toString()); const j=await r.json();
+  if(!r.ok||j.error)throw new Error(j.error||'Build request failed');
+  const built=j.built||j.swap||j;
+  const evmTx=built.evmTx||built.transaction||built.tx||built.data?.evmTx||built.data?.transaction||null;
+  if(!evmTx){latestQuote={...latestQuote,build:j};if(box)box.textContent='Build response received, but no recognizable EVM transaction was returned. Signing remains locked.';return;}
+  latestQuote={...latestQuote,build:j,evmTx};
+  if(box)box.innerHTML='<b>UNSIGNED TX READY</b><br><span class="muted small">Transaction prepared. Run chain simulation before confirmation.</span>';
+  const sim=await fetch('/api/agent?'+new URLSearchParams({action:'simulateTx',ticker:(document.getElementById('ticker').value||'NVDA').trim().toUpperCase(),evmTx:JSON.stringify(evmTx)}).toString());
+  const sj=await sim.json();
+  if(!sim.ok||sj.status==='FAILED'||sj.simulation?.status!=='PASSED')throw new Error(sj.reason||sj.error||'Chain simulation failed');
+  latestQuote={...latestQuote,simulation:sj};
+  await createPOAForAction('SIMULATION','SIMULATED',{asset:latestQuote.asset||null,simulation:{mode:'BSC_RPC',status:'PASSED',gasEstimate:sj.simulation?.gasEstimate||null}});
+  setExecutionStep('simulation','PASSED');
+  const cb=document.getElementById('confirmActionBtn');if(cb)cb.disabled=false;
+  const gs=document.getElementById('poaGateStatus');if(gs)gs.textContent='BSC RPC simulation passed. Explicit confirmation is now available; signing is still locked.';
+ }catch(e){if(box)box.textContent='Build/simulation error: '+e.message;}
+}
 async function requestQuote(){
  const box=document.getElementById('quoteResult');
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
@@ -161,7 +191,7 @@ async function requestQuote(){
   const r=await fetch('/api/agent?'+p.toString()); const j=await r.json();
   if(!r.ok||j.error)throw new Error(j.error||'Quote request failed');
   latestQuote=j;
-  if(box)box.innerHTML='<b>QUOTE READY</b><br><span class="muted small">Quote received without broadcast. Continue to simulation.</span>';
+  if(box)box.innerHTML='<b>QUOTE READY</b><br><span class="muted small">Quote received without broadcast.</span><br><button class="secondary" type="button" onclick="buildTransaction()">Build unsigned transaction</button>';
   setExecutionStep('quote','READY');
  }catch(e){latestQuote=null;if(box)box.textContent='Quote error: '+e.message;}
 }
