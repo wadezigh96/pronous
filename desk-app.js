@@ -1,5 +1,17 @@
 let last=null, marketAssets=[], marketFilter='all';
 let currentPOA=null;
+function setExecutionStep(step,status){
+ const order=['preflight','quote','simulation','confirmation','execution'];
+ const idx=order.indexOf(step);
+ document.querySelectorAll('.exec-step').forEach((el,i)=>{
+  const active=i===idx, done=i<idx;
+  el.classList.toggle('active',active);
+  el.classList.toggle('done',done);
+  const em=el.querySelector('em');
+  if(em) em.textContent=active?status:(done?'PASS':(i>idx?'LOCKED':em.textContent));
+ });
+}
+
 
 function poaLedgerRead(){
  try{return JSON.parse(localStorage.getItem('pronous-poa-ledger')||'[]')}catch(e){return[]}
@@ -27,6 +39,14 @@ async function createPOAForAction(action,status,extra={}){
  }catch(e){const box=document.getElementById('poaCurrent');if(box)box.textContent='POA error: '+e.message}
 }
 async function createCurrentPOA(){await createPOAForAction(last?.action||'OBSERVE','PLANNED',{asset:last?.asset||null})}
+async function confirmAction(){
+ if(!currentPOA){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Create and simulate a POA first.';return}
+ if(currentPOA.status!=='SIMULATED'){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Simulation must pass before confirmation.';return}
+ await createPOAForAction(currentPOA.action,'CONFIRMED',{asset:currentPOA.asset,simulation:currentPOA.simulation,userConfirmation:true});
+ setExecutionStep('confirmation','CONFIRMED');
+ const s=document.getElementById('poaGateStatus');if(s)s.textContent='User confirmation recorded. Live execution remains gated.';
+ const b=document.getElementById('confirmActionBtn');if(b)b.disabled=true;
+}
 async function verifyCurrentPOA(){
  if(!currentPOA)return;
  const r=await fetch('/api/poa?action=verify&proof='+encodeURIComponent(JSON.stringify(currentPOA)));
@@ -78,7 +98,7 @@ function addMessage(type,text){
 }
 async function preflight(){
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
- try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json(); await createPOAForAction('PREFLIGHT',j.preflight?.status==='READY_FOR_SIMULATION'?'SIMULATED':'BLOCKED',{asset:j.asset||null,simulation:{status:j.preflight?.status||'UNKNOWN'}});box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
+ try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json(); await createPOAForAction('PREFLIGHT',j.preflight?.status==='READY_FOR_SIMULATION'?'SIMULATED':'BLOCKED',{asset:j.asset||null,simulation:{status:j.preflight?.status||'UNKNOWN'}}); setExecutionStep('preflight',j.preflight?.status||'BLOCKED');box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
 }
 async function scan(){
  const t=document.getElementById('ticker').value.trim().toUpperCase();
@@ -98,7 +118,7 @@ async function simulate(){
  try{
   const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
   const j=await r.json();
-  await createPOAForAction('SIMULATION','SIMULATED',{asset:j.asset||null,simulation:{simulated:Boolean(j.simulated),plan:j.plan||null}});
+  await createPOAForAction('SIMULATION','SIMULATED',{asset:j.asset||null,simulation:{simulated:Boolean(j.simulated),plan:j.plan||null}}); setExecutionStep('simulation','SIMULATED'); const cb=document.getElementById('confirmActionBtn');if(cb)cb.disabled=false; const gs=document.getElementById('poaGateStatus');if(gs)gs.textContent='Simulation recorded. Explicit user confirmation is now available.';
   document.getElementById('plan').textContent=JSON.stringify(j,null,2);
  }catch(e){document.getElementById('plan').textContent='Error: '+e.message}
 }
