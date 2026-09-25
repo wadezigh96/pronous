@@ -90,12 +90,23 @@ async function confirmAction(){
   if(tx.gas!==undefined)request.gas=String(tx.gas);
   if(tx.gasPrice!==undefined)request.gasPrice=String(tx.gasPrice);
   const txHash=await walletProvider.request({method:'eth_sendTransaction',params:[request]});
+  setExecutionStep('execution','PENDING');
+  if(s)s.textContent='Transaction sent. Waiting for BSC receipt… '+txHash;
+  let receipt=null;
+  for(let attempt=0;attempt<30;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,2000));
+   receipt=await walletProvider.request({method:'eth_getTransactionReceipt',params:[txHash]});
+   if(receipt)break;
+  }
+  if(!receipt)throw new Error('TRANSACTION_RECEIPT_TIMEOUT');
+  if(String(receipt.status).toLowerCase()!=='0x1')throw new Error('TRANSACTION_REVERTED');
   await createPOAForAction('EXECUTION','EXECUTED',{asset:currentPOA.asset,simulation:currentPOA.simulation,userConfirmation:true,txHash});
-  setExecutionStep('execution','TX SENT');
-  if(s)s.textContent='Transaction sent. TX hash: '+txHash;
+  setExecutionStep('execution','EXECUTED');
+  if(s)s.textContent='Transaction confirmed on BSC. TX hash: '+txHash;
  }catch(e){
   if(s)s.textContent='Wallet rejected or transaction failed: '+(e?.message||e);
   setExecutionStep('confirmation','REJECTED');
+  await createPOAForAction('EXECUTION','REJECTED',{asset:currentPOA?.asset||null,simulation:currentPOA?.simulation||null,userConfirmation:false});
  }
 }
 async function verifyCurrentPOA(){
