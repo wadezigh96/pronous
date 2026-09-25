@@ -1,1 +1,101 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>PRONOUS</title></head><body>PLACEHOLDER</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRONOUS — Tokenized Stock Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0a07;--card:#14100a;--line:#2a2418;--text:#f3eee3;--dim:#a79c88;--gold:#f0b90b;--teal:#2fbf8f;--coral:#e8604c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+.wrap{max-width:1180px;margin:auto;padding:22px 18px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px}
+.brand{font-weight:800;letter-spacing:.14em}.brand span{color:var(--gold)}
+.health{color:var(--teal);font:10px "IBM Plex Mono",monospace}
+h1{font-size:34px;letter-spacing:-.04em;margin:18px 0 8px}
+.sub{color:var(--dim);max-width:640px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}
+.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.lbl{color:var(--dim);font:9px "IBM Plex Mono",monospace;text-transform:uppercase}
+.val{font-size:22px;font-weight:800;margin-top:6px}
+.chart{margin-top:10px;background:#101419;border:1px solid var(--line);border-radius:12px;padding:10px}
+canvas{width:100%;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input,button{font:13px "IBM Plex Mono",monospace;border-radius:10px;padding:10px 12px}
+input{flex:1;min-width:160px;background:#0f1318;color:var(--text);border:1px solid var(--line)}
+button{border:1px solid var(--gold);background:var(--gold);color:#1a1607;font-weight:800;cursor:pointer}
+.ghost{background:transparent;color:var(--dim);border-color:var(--line)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.pos{color:var(--teal)}.neg{color:var(--coral)}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
+@media(max-width:800px){.kpis,.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand"><span>PR</span>ONOUS</div><div class="health">BSC · SPOT ONLY</div></div>
+  <h1>Tokenized stock desk</h1>
+  <p class="sub">Live Ondo / bStocks / xStocks prices on BSC, with charts for actionable gaps and token candles.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Mode</div><div class="val" id="kpiMode">—</div></div>
+    <div class="kpi"><div class="lbl">Assets</div><div class="val" id="kpiAssets">—</div></div>
+    <div class="kpi"><div class="lbl">Actionable</div><div class="val" id="kpiAct">—</div></div>
+    <div class="kpi"><div class="lbl">Largest gap</div><div class="val" id="kpiGap">—</div></div>
+  </div>
+  <section class="card">
+    <div class="lbl">Market tape · actionable gaps</div>
+    <div class="chart"><canvas id="gapChart" width="980" height="220"></canvas></div>
+  </section>
+  <div class="grid" style="margin-top:12px">
+    <section class="card">
+      <div class="lbl">Universe</div>
+      <div class="row" style="margin-top:10px">
+        <input id="q" placeholder="Search NVDA, AAPL..." oninput="renderTable()">
+        <button class="ghost" onclick="load()">Refresh</button>
+      </div>
+      <div id="table">Loading live RWA…</div>
+    </section>
+    <section class="card">
+      <div class="lbl">Asset chart · 1h candles</div>
+      <div id="pick" class="sub" style="margin:8px 0">Select a row.</div>
+      <div class="chart"><canvas id="assetChart" width="420" height="180"></canvas></div>
+    </section>
+  </div>
+</div>
+<script src="/desk-charts.js"></script>
+<script>
+let marketAssets=[];
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&','<':'<','>':'>','"':'"'}[m]))}
+async function load(){
+  const box=document.getElementById('table');
+  box.textContent='Loading…';
+  const r=await fetch('/api/agent?action=assets');
+  const j=await r.json();
+  marketAssets=j.assets||[];
+  window.marketAssets=marketAssets;
+  document.getElementById('kpiMode').textContent=(j.mode||'—').replace('live-data','LIVE');
+  document.getElementById('kpiAssets').textContent=String(j.summary?.total||marketAssets.length);
+  const rows=(typeof chartRows==='function'?chartRows():marketAssets).filter(x=>Number.isFinite(Number(x.spreadPct)));
+  document.getElementById('kpiAct').textContent=String(j.summary?.actionable||rows.length);
+  const top=rows[0];
+  document.getElementById('kpiGap').textContent=top?((Number(top.spreadPct)>0?'+':'')+Number(top.spreadPct).toFixed(2)+'%'):'—';
+  renderTable();
+  if(typeof drawGapChart==='function') drawGapChart();
+  if(top) selectAsset(top);
+}
+function renderTable(){
+  const q=(document.getElementById('q').value||'').toUpperCase();
+  const rows=marketAssets.filter(x=>String(x.ticker).toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)).slice(0,80);
+  document.getElementById('table').innerHTML='<table><thead><tr><th>Ticker</th><th>Platform</th><th>Gap</th></tr></thead><tbody>'+
+    rows.map(x=>'<tr onclick=\'selectAsset('+JSON.stringify(x).replace(/'/g,"&#39;")+')\'><td><b>'+esc(x.ticker)+'</b></td><td>'+esc(x.platformId)+'</td><td class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number.isFinite(Number(x.spreadPct))?(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%':'—')+'</td></tr>').join('')+'</tbody></table>';
+}
+function selectAsset(x){
+  document.getElementById('pick').textContent=x.ticker+' · '+ (x.companyName||'') +' · token '+x.tokenPrice+' vs ref '+x.referencePrice;
+  if(typeof loadAssetChart==='function') loadAssetChart(x);
+}
+load().catch(e=>{document.getElementById('table').textContent=e.message});
+</script>
+</body>
+</html>
