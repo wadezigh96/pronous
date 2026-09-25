@@ -7,27 +7,48 @@ function setWalletUI(address){
  if(addr)addr.textContent=address?shortAddress(address):'Not connected';
  if(btn)btn.textContent=address?'Disconnect':'Connect Wallet';
 }
+let discoveredProvider=null;
+function rememberProvider(provider){
+ if(!provider)return;
+ discoveredProvider=provider;
+ if(provider.isMetaMask || !walletProvider) walletProvider=provider;
+}
+window.addEventListener('eip6963:announceProvider',event=>rememberProvider(event.detail?.provider));
+try{window.dispatchEvent(new Event('eip6963:requestProvider'));}catch(e){}
+function openMetaMaskDapp(){
+ const url='https://metamask.app.link/dapp/pronous.vercel.app';
+ window.location.href=url;
+}
 async function connectWallet(){
  if(walletAddress){walletAddress=null;walletProvider=null;setWalletUI(null);return;}
- if(!window.ethereum){alert('No EVM wallet detected. Open PRONOUS in a wallet browser.');return;}
+ const provider=walletProvider||discoveredProvider||window.ethereum;
+ if(!provider){
+  const go=confirm('Wallet tidak terdeteksi di browser ini. Buka PRONOUS di MetaMask agar wallet bisa terhubung?');
+  if(go)openMetaMaskDapp();
+  return;
+ }
  try{
-  const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
-  const chain=await window.ethereum.request({method:'eth_chainId'});
+  const accounts=await provider.request({method:'eth_requestAccounts'});
+  let chain=await provider.request({method:'eth_chainId'});
   if(String(chain).toLowerCase()!=='0x38'){
-   try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x38'}]});}
-   catch(e){alert('Please switch your wallet to BSC Mainnet (chain 56).');return;}
+   try{
+    await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x38'}]});
+    chain=await provider.request({method:'eth_chainId'});
+   }catch(e){alert('Please switch your wallet to BSC Mainnet (chain 56).');return;}
   }
-  walletProvider=window.ethereum;setWalletUI(accounts?.[0]||null);
+  if(String(chain).toLowerCase()!=='0x38'){alert('Wallet is not on BSC Mainnet (chain 56).');return;}
+  walletProvider=provider;setWalletUI(accounts?.[0]||null);
  }catch(e){alert('Wallet connection failed: '+(e?.message||e));}
 }
 function initInjectedWallet(){
- const provider=window.ethereum;
+ const provider=window.ethereum||discoveredProvider;
  if(!provider)return;
- walletProvider=provider;
+ rememberProvider(provider);
  provider.on?.('accountsChanged',a=>setWalletUI(a?.[0]||null));
  provider.on?.('chainChanged',()=>window.location.reload());
  provider.request?.({method:'eth_accounts'}).then(a=>setWalletUI(a?.[0]||null)).catch(()=>{});
 }
+window.addEventListener('eip6963:announceProvider',event=>initInjectedWallet());
 if(window.ethereum) initInjectedWallet();
 window.addEventListener('ethereum#initialized',initInjectedWallet,{once:true});
 setTimeout(initInjectedWallet,3000);
