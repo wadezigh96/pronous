@@ -31,3 +31,5 @@ input{background:rgba(5,8,14,.82);border-color:var(--line2)}input:focus{border-c
 .poa-proof button{width:auto!important;padding:7px 10px!important}
 .poa-verify{margin-top:7px;font:10px "IBM Plex Mono",monospace}.poa-verify.valid{color:#f5c542}.poa-verify.invalid{color:#ff6b5f}
 @media(max-width:600px){.poa-banner{align-items:flex-start}.poa-banner button{min-width:92px}.poa-row{grid-template-columns:1fr}.poa-row code{font-size:9px}}
+
+.poa-gate-row{margin-top:10px;align-items:center}.poa-gate-row button:disabled{opacity:.45;cursor:not-allowed}.exec-step.done{border-color:rgba(245,190,55,.25);opacity:.82}.exec-step.done em{color:#f5c542}
