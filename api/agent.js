@@ -266,8 +266,8 @@ async function liveAssets() {
 async function findLiveAsset(ticker) {
   const data = await binanceGet("/api/v1/dex/market/rwa/search",{keyword:ticker});
   const candidates=(data.data||[]).flatMap(x=>(x.assets||[]).map(a=>({...x,...a})));
-  const asset=candidates.find(x=>["ondo","bstock","xstocks"].includes(x.platformId))||candidates[0];
-  if(!asset) throw Object.assign(new Error("TOKEN_NOT_FOUND"),{status:404});
+  const asset=candidates.find(x=>isSupportedPlatform(x.platformId));
+  if(!asset) throw Object.assign(new Error("SUPPORTED_TOKEN_NOT_FOUND"),{status:404});
   const price = await binanceGet("/api/v1/dex/market/rwa/price",{
     binanceChainId:"56",
     tokenContractAddresses:asset.tokenContractAddress
