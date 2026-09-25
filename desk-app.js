@@ -1,4 +1,6 @@
 let last=null, marketAssets=[], marketFilter='all';
+function toggleMarketWatch(force){const body=document.getElementById('marketWatchBody'),btn=document.getElementById('marketToggle');if(!body||!btn)return;const open=force!==undefined?force:!body.classList.contains('open');body.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));btn.textContent=open?'− Collapse':'＋ Expand';try{localStorage.setItem('pronous-market-watch-open',open?'1':'0')}catch(e){}}
+function initMarketWatch(){let open=false;try{open=localStorage.getItem('pronous-market-watch-open')==='1'}catch(e){}toggleMarketWatch(open)}
 function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&','<':'<','>':'>','"':'"'}[m]))}
 function setFilter(f){marketFilter=f;renderMarket()}
 function openAsset(ticker,platform){
@@ -16,6 +18,7 @@ function renderMarket(){
  const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
  const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
  const box=document.getElementById('marketTable');
+ const count=document.getElementById('marketCount'); if(count)count.textContent=rows.length?String(rows.length):'0';
  if(!rows.length){box.textContent='No matching assets.';return}
  box.innerHTML='<div class="market-wrap"><table class="market compact-market"><thead><tr><th>Asset</th><th>Price</th><th>Gap</th><th>State</th></tr></thead><tbody>'+rows.map(x=>{const gap=Number(x.spreadPct);return '<tr onclick="openAsset('+JSON.stringify(x.ticker)+','+JSON.stringify(x.platformId||'')+')"><td><b>'+esc(x.ticker)+'</b> <span class="muted small">'+esc(x.platformId||'')+'</span></td><td><b>'+esc(x.tokenPrice??'—')+'</b> <span class="muted small">ref '+esc(x.referencePrice??'—')+'</span></td><td class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</td><td><span class="tag">'+esc(x.marketStatus||x.openState||'—')+'</span></td></tr>'}).join('')+'</tbody></table></div>';
 }
@@ -97,3 +100,4 @@ async function loadOnchain(x){
 document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
 loadMarket();
 loadSkills();
+initMarketWatch();
