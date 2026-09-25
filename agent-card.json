@@ -1,0 +1,29 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "PRONOUS",
+  "description": "BSC spot-only tokenized-stock market desk for bStocks, Ondo and xStocks. Reads Binance Web3 RWA prices, flags unreliable gaps, and keeps execution behind quote, simulation and confirmation.",
+  "image": "https://pronous.vercel.app/",
+  "services": [
+    {
+      "name": "WEB",
+      "endpoint": "https://pronous.vercel.app/",
+      "version": "1"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "https://github.com/wadezigh96/pronous",
+      "version": "2025-06-18"
+    },
+    {
+      "name": "API",
+      "endpoint": "https://pronous.vercel.app/api/agent?action=authcheck",
+      "version": "1"
+    }
+  ],
+  "x402Support": false,
+  "chainId": 56,
+  "spotOnly": true,
+  "assets": ["bstock", "ondo", "xstocks"],
+  "registrationStatus": "card-published-not-minted",
+  "note": "ERC-8004 mint and x402 runtime require bag deploy plus the builder wallet. This file is the public registration document only."
+}
