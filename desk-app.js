@@ -1,0 +1,99 @@
+let last=null, marketAssets=[], marketFilter='all';
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&','<':'<','>':'>','"':'"'}[m]))}
+function setFilter(f){marketFilter=f;renderMarket()}
+function openAsset(ticker,platform){
+ const x=marketAssets.find(a=>String(a.ticker).toUpperCase()===String(ticker).toUpperCase()&&(!platform||String(a.platformId)===String(platform)))||marketAssets.find(a=>String(a.ticker).toUpperCase()===String(ticker).toUpperCase());
+ if(!x)return;
+ const gap=Number(x.spreadPct);
+ const drawer=document.getElementById('assetDrawer');
+ const content=document.getElementById('drawerContent');
+ if(!drawer||!content)return;
+ content.innerHTML='<div class="drawer-kicker">TOKENIZED EQUITY / ASSET DETAIL</div><div class="drawer-title">'+esc(x.ticker)+'</div><div class="drawer-sub">'+esc(x.companyName||x.underlyingName||'')+' · '+esc(x.platformId||'—')+'</div><div class="drawer-price"><div class="drawer-stat"><label>Token price</label><strong>'+esc(x.tokenPrice??'—')+'</strong></div><div class="drawer-stat"><label>Reference</label><strong>'+esc(x.referencePrice??'—')+'</strong></div></div><div class="drawer-gap"><div class="muted small">TOKEN / REFERENCE GAP</div><strong class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</strong><div class="muted small" style="margin-top:5px">'+esc(x.marketStatus||x.openState||'Market state unavailable')+'</div></div><div class="chart-box"><div class="chart-meta"><span id="assetChartLabel">TOKEN CANDLES · 1H</span><span id="assetChartSrc">LOADING</span></div><canvas id="assetChart" width="420" height="168"></canvas></div><div class="drawer-grid"><div class="drawer-row"><span>Token</span>'+esc(x.tokenSymbol||'—')+'</div><div class="drawer-row"><span>Platform</span>'+esc(x.platformId||'—')+'</div><div class="drawer-row"><span>24h volume</span>'+esc(x.volume24H||'—')+'</div><div class="drawer-row"><span>Market cap</span>'+esc(x.marketCap||'—')+'</div><div class="drawer-row"><span>Next open</span>'+esc(x.nextOpenTime||'—')+'</div><div class="drawer-row"><span>Next close</span>'+esc(x.nextCloseTime||'—')+'</div></div><div class="drawer-actions"><button class="secondary" onclick="document.getElementById(\'ticker\').value='+JSON.stringify(x.ticker)+';closeAsset();scan()">Scan asset</button><button onclick="document.getElementById(\'execution\').scrollIntoView({behavior:\'smooth\'});closeAsset()">Open preflight</button></div>';
+ drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); renderClock(x); if(window.loadAssetChart)loadAssetChart(x); if(window.loadOnchain)loadOnchain(x);
+}
+function closeAsset(){const d=document.getElementById('assetDrawer');if(d){d.classList.remove('open');d.setAttribute('aria-hidden','true')}}
+function renderMarket(){
+ const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
+ const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
+ const box=document.getElementById('marketTable');
+ if(!rows.length){box.textContent='No matching assets.';return}
+ box.innerHTML='<div class="market-wrap"><table class="market"><thead><tr><th>Ticker</th><th>Platform</th><th>Token</th><th>Reference</th><th>Gap</th><th>Market</th></tr></thead><tbody>'+rows.slice(0,100).map(x=>{const gap=Number(x.spreadPct);return '<tr onclick="openAsset('+JSON.stringify(x.ticker)+','+JSON.stringify(x.platformId||'')+')"><td><b>'+esc(x.ticker)+'</b><br><span class="muted small">'+esc(x.companyName)+'</span></td><td>'+esc(x.platformId)+'</td><td>'+esc(x.tokenPrice??'—')+'</td><td>'+esc(x.referencePrice??'—')+'</td><td class="'+(gap>=0?'pos':'neg')+'">'+(Number.isFinite(gap)?(gap>0?'+':'')+gap.toFixed(3)+'%':'—')+'</td><td>'+esc(x.marketStatus||x.openState||'—')+'</td></tr>'}).join('')+'</tbody></table></div>';
+}
+function renderRadar(){
+ const rows=[...marketAssets].filter(x=>Number.isFinite(Number(x.spreadPct))).sort((a,b)=>Math.abs(Number(b.spreadPct))-Math.abs(Number(a.spreadPct))).slice(0,5);
+ document.getElementById('radar').innerHTML=rows.length?rows.map(x=>'<div style="margin:0 0 10px"><b>'+esc(x.ticker)+'</b> · '+esc(x.platformId)+' · <span class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%</span><br><span class="muted small">Token '+esc(x.tokenPrice)+' vs reference '+esc(x.referencePrice)+' · '+esc(x.marketStatus||x.openState||'state unavailable')+'</span></div>').join(''):'No spread data available.';
+}
+function renderClock(x){document.getElementById('clock').innerHTML=x?'<div class="metric">'+esc(x.marketStatus||x.openState||'—')+'</div><div class="muted small">'+esc(x.ticker)+' · '+esc(x.platformId)+'</div><p class="small">Next open: '+esc(x.nextOpenTime||'—')+'<br>Next close: '+esc(x.nextCloseTime||'—')+'</p>':'Select an asset to inspect its market state.'}
+async function loadSkills(){try{const r=await fetch('/api/skills?action=list');const j=await r.json();document.getElementById('skills').innerHTML=(j.skills||[]).map(s=>'<div><b>'+esc(s.icon)+' '+esc(s.name)+'</b><span class="muted small">'+esc(s.purpose)+'</span><br><span class="tag">'+esc(s.risk)+'</span><span class="tag">'+esc(s.output)+'</span></div>').join('')}catch(e){document.getElementById('skills').textContent='Skills unavailable.'}}
+async function loadMarket(){
+ const box=document.getElementById('marketTable'); box.textContent='Loading…';
+ try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];window.marketAssets=marketAssets;const mode=document.getElementById('marketMode');if(mode){mode.textContent=(j.mode||'unknown').toUpperCase();mode.className='tag '+(j.mode==='live-data'?'live':'demo');}const upd=document.getElementById('marketUpdated');if(upd)upd.textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';const kpiMode=document.getElementById('kpiMode');if(kpiMode)kpiMode.textContent=(j.mode||'—').replace('live-data','LIVE');const kpiAssets=document.getElementById('kpiAssets');if(kpiAssets)kpiAssets.textContent=String((j.summary&&j.summary.total)||marketAssets.length);renderMarket();renderRadar();renderClock(marketAssets[0]); if(window.drawGapChart)drawGapChart();}
+ catch(e){box.textContent='Market data error: '+e.message}
+}
+function addMessage(type,text){
+ const log=document.getElementById('chatlog');
+ const p=document.createElement('p');
+ p.className='msg '+type;
+ p.innerHTML='<b>'+(type==='you'?'You':'PRONOUS')+':</b> '+text.replace(/\n/g,'<br>');
+ log.appendChild(p); log.scrollTop=log.scrollHeight;
+}
+async function preflight(){
+ const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
+ try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json();box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
+}
+async function scan(){
+ const t=document.getElementById('ticker').value.trim().toUpperCase();
+ if(!t)return;
+ document.getElementById('scan').textContent='Scanning…';
+ try{
+  const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));
+  const j=await r.json(); last=j;
+  document.getElementById('scan').textContent=JSON.stringify(j,null,2);
+  document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);
+ }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
+}
+async function simulate(){
+ const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
+ document.getElementById('plan').textContent='Simulating…';
+ try{
+  const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
+  const j=await r.json();
+  document.getElementById('plan').textContent=JSON.stringify(j,null,2);
+ }catch(e){document.getElementById('plan').textContent='Error: '+e.message}
+}
+async function ask(){
+ const input=document.getElementById('question');
+ const q=input.value.trim();
+ if(!q)return;
+ addMessage('you',q); input.value='';
+ try{
+  const r=await fetch('/api/ask?q='+encodeURIComponent(q)+'&ticker='+encodeURIComponent((document.getElementById('ticker').value||'NVDA').trim().toUpperCase()));
+  const j=await r.json();
+  addMessage('agent',j.answer||'I could not answer that yet.');
+ }catch(e){addMessage('agent','The 24/7 desk is temporarily unavailable. You can still use Market Intelligence.');}
+}
+async function loadOnchain(x){
+  const box=document.getElementById('chain');
+  if(!box) return;
+  const token=x&&x.tokenContractAddress;
+  if(!token){box.textContent='No contract address for this asset.';return;}
+  box.textContent='Loading on-chain data…';
+  try{
+    const r=await fetch('/api/onchain?token='+encodeURIComponent(token));
+    const j=await r.json();
+    const info=j.info&&!j.info.error?j.info:{};
+    const holders=Array.isArray(j.holders)?j.holders:(j.holders&&j.holders.list)||[];
+    const trades=Array.isArray(j.trades)?j.trades:(j.trades&&j.trades.list)||[];
+    const pools=Array.isArray(j.pools)?j.pools:(j.pools&&j.pools.list)||[];
+    const short=a=>{a=String(a||'');return a.length>12?a.slice(0,8)+'…'+a.slice(-6):a};
+    box.innerHTML='Contract <a href="'+esc(j.explorer||'#')+'" target="_blank" rel="noreferrer">'+esc(short(token))+'</a> · BSC<br>'
+      +'Creator '+(info.creatorAddress?esc(short(info.creatorAddress)):'—')
+      +' · Top10 '+(info.top10HoldingPercent||'—')+'%<br>'
+      +(Array.isArray(holders)?holders.length:0)+' holders · '
+      +(Array.isArray(trades)?trades.length:0)+' trades · '
+      +(Array.isArray(pools)?pools.length:0)+' pools';
+  }catch(e){box.textContent='On-chain error: '+e.message;}
+}
+document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
+loadMarket();
+loadSkills();
