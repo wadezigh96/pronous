@@ -14,7 +14,7 @@
 .brand{font-weight:800;letter-spacing:.14em}.brand span{color:var(--gold)}
 .health{color:var(--teal);font:10px "IBM Plex Mono",monospace}
 h1{font-size:34px;letter-spacing:-.04em;margin:18px 0 8px}
-.sub{color:var(--dim);max-width:640px}
+.sub{color:var(--dim);max-width:720px;line-height:1.5}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}
 .kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
 .lbl{color:var(--dim);font:9px "IBM Plex Mono",monospace;text-transform:uppercase}
@@ -30,14 +30,15 @@ table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 .pos{color:var(--teal)}.neg{color:var(--coral)}
 .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
+a{color:var(--gold)}pre{white-space:pre-wrap;color:#c9c0b0;font:12px "IBM Plex Mono",monospace}
 @media(max-width:800px){.kpis,.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div class="brand"><span>PR</span>ONOUS</div><div class="health">BSC · SPOT ONLY</div></div>
+  <div class="top"><div class="brand"><span>PR</span>ONOUS</div><div class="health">BSC · ON-CHAIN · SPOT</div></div>
   <h1>Tokenized stock desk</h1>
-  <p class="sub">Live Ondo / bStocks / xStocks prices on BSC, with charts for actionable gaps and token candles.</p>
+  <p class="sub">Live Ondo / bStocks / xStocks on BSC, plus on-chain holders, trades, liquidity pools and BscScan.</p>
   <div class="kpis">
     <div class="kpi"><div class="lbl">Mode</div><div class="val" id="kpiMode">—</div></div>
     <div class="kpi"><div class="lbl">Assets</div><div class="val" id="kpiAssets">—</div></div>
@@ -63,11 +64,16 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
       <div class="chart"><canvas id="assetChart" width="420" height="180"></canvas></div>
     </section>
   </div>
+  <section class="card" style="margin-top:12px">
+    <div class="lbl">On-chain · BSC</div>
+    <div id="chain" class="sub" style="margin-top:8px">Select an asset to load holders, trades and pools.</div>
+  </section>
 </div>
 <script src="/desk-charts.js"></script>
 <script>
 let marketAssets=[];
 function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&','<':'<','>':'>','"':'"'}[m]))}
+function shortAddr(a){a=String(a||'');return a.length>12?a.slice(0,8)+'…'+a.slice(-6):a}
 async function load(){
   const box=document.getElementById('table');
   box.textContent='Loading…';
@@ -89,11 +95,35 @@ function renderTable(){
   const q=(document.getElementById('q').value||'').toUpperCase();
   const rows=marketAssets.filter(x=>String(x.ticker).toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)).slice(0,80);
   document.getElementById('table').innerHTML='<table><thead><tr><th>Ticker</th><th>Platform</th><th>Gap</th></tr></thead><tbody>'+
-    rows.map(x=>'<tr onclick=\'selectAsset('+JSON.stringify(x).replace(/'/g,"&#39;")+')\'><td><b>'+esc(x.ticker)+'</b></td><td>'+esc(x.platformId)+'</td><td class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number.isFinite(Number(x.spreadPct))?(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%':'—')+'</td></tr>').join('')+'</tbody></table>';
+    rows.map(x=>'<tr onclick=\'selectAsset('+JSON.stringify({ticker:x.ticker,companyName:x.companyName,tokenPrice:x.tokenPrice,referencePrice:x.referencePrice,tokenContractAddress:x.tokenContractAddress,platformId:x.platformId,spreadPct:x.spreadPct}).replace(/'/g,"&#39;")+')\'><td><b>'+esc(x.ticker)+'</b></td><td>'+esc(x.platformId)+'</td><td class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number.isFinite(Number(x.spreadPct))?(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%':'—')+'</td></tr>').join('')+'</tbody></table>';
 }
 function selectAsset(x){
-  document.getElementById('pick').textContent=x.ticker+' · '+ (x.companyName||'') +' · token '+x.tokenPrice+' vs ref '+x.referencePrice;
+  document.getElementById('pick').textContent=x.ticker+' · '+(x.companyName||'')+' · token '+x.tokenPrice+' vs ref '+x.referencePrice;
   if(typeof loadAssetChart==='function') loadAssetChart(x);
+  loadOnchain(x);
+}
+async function loadOnchain(x){
+  const box=document.getElementById('chain');
+  const token=x.tokenContractAddress;
+  if(!token){box.textContent='No contract address for this asset.';return;}
+  box.textContent='Loading on-chain data…';
+  try{
+    const r=await fetch('/api/onchain?token='+encodeURIComponent(token));
+    const j=await r.json();
+    const info=j.info&&!j.info.error?j.info:{};
+    const holders=Array.isArray(j.holders)?j.holders:(j.holders?.list||j.holders?.data||[]);
+    const trades=Array.isArray(j.trades)?j.trades:(j.trades?.list||j.trades?.data||[]);
+    const pools=Array.isArray(j.pools)?j.pools:(j.pools?.list||j.pools?.data||[]);
+    const holdN=Array.isArray(holders)?holders.length:0;
+    const tradeN=Array.isArray(trades)?trades.length:0;
+    const poolN=Array.isArray(pools)?pools.length:0;
+    box.innerHTML='Contract <a href="'+esc(j.explorer)+'" target="_blank" rel="noreferrer">'+esc(shortAddr(token))+'</a> · BSC<br>'+
+      'Creator '+(info.creatorAddress?esc(shortAddr(info.creatorAddress)):'—')+
+      ' · Top10 '+(info.top10HoldingPercent||'—')+'%<br>'+
+      holdN+' holders shown · '+tradeN+' recent trades · '+poolN+' pools'+
+      (j.info&&j.info.error?'<br>Advanced info: '+esc(j.info.error):'')+
+      (j.trades&&j.trades.error?'<br>Trades: '+esc(j.trades.error):'');
+  }catch(e){box.textContent='On-chain error: '+e.message;}
 }
 load().catch(e=>{document.getElementById('table').textContent=e.message});
 </script>
