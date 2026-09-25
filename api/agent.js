@@ -366,6 +366,59 @@ module.exports = async function handler(req,res) {
       return res.status(200).json({mode:"simulation-adapter",network:"BSC",ticker,evmTx,broadcast:false,status:"SCHEMA_GATED",next:"Verify official Binance simulation schema before calling live simulation."});
     }
 
+    if(action==="scan") {
+      const spread=Number(asset.spreadPct||0);
+      const signal = asset.dataQuality==="unreliable"
+        ? "UNRELIABLE"
+        : Math.abs(spread)>=1
+          ? (spread>0 ? "PREMIUM" : "DISCOUNT")
+          : "OBSERVE";
+      const risk = asset.dataQuality==="unreliable"
+        ? "HIGH_DATA_QUALITY_RISK"
+        : Math.abs(spread)>=1
+          ? "SPREAD_REQUIRES_REVIEW"
+          : "NORMAL_OBSERVATION";
+      const execution = {
+        broadcast:false,
+        simulationRequired:true,
+        confirmationRequired:true,
+        spotOnly:true,
+        network:"BSC"
+      };
+      return res.status(200).json({
+        agent:"PRONOUS",
+        action:"scan",
+        mode:asset.demo?"demo":"live-data",
+        network:"BSC",
+        ticker,
+        scannedAt:new Date().toISOString(),
+        asset,
+        market:{
+          tokenPrice:asset.tokenPrice,
+          referencePrice:asset.referencePrice,
+          spreadPct:spread,
+          dataQuality:asset.dataQuality||"demo",
+          actionable:asset.actionable??false,
+          marketStatus:asset.marketStatus??null,
+          openState:asset.openState??null,
+          nextOpenTime:asset.nextOpenTime??null,
+          nextCloseTime:asset.nextCloseTime??null
+        },
+        signal:{
+          type:signal,
+          spreadPct:spread,
+          actionable:signal==="PREMIUM"||signal==="DISCOUNT"
+        },
+        risk:{
+          status:risk,
+          dataQuality:asset.dataQuality||"demo"
+        },
+        plan:makePlan(asset),
+        execution,
+        next:"Run simulation before any wallet execution."
+      });
+    }
+
     if(action==="preflight") {
       const amount=url.searchParams.get("amount")||"0";
       const maxSpend=url.searchParams.get("maxSpend")||"100";
