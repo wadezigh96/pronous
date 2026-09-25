@@ -59,9 +59,19 @@ Tools: `market_assets` · `scan_asset` · `preflight` · `ask_pronous`
 
 ## What is PRONOUS?
 
-PRONOUS is a market desk for **tokenized stocks on BNB Smart Chain**.
+PRONOUS is an **agent utility layer for tokenized-stock intelligence and guarded action on BNB Smart Chain**.
 
-It shows token price vs reference price, flags unreliable feeds, and keeps execution behind policy. A gap is not permission to spend.
+Its utilities let agents and users:
+
+- **Monitor** tokenized-stock markets and reference prices.
+- **Compare** token price vs reference price and explain the observed gap.
+- **Guard** actions with asset, network, market-state, spend-cap, and execution-policy checks.
+- **Prepare** constrained spot-only intents without broadcasting transactions.
+- **Simulate** an action before any live execution path.
+- **Confirm** with explicit user approval as the final execution gate.
+- **Prove** agent actions with **Proof of Action (POA)** — tamper-evident, hash-based evidence linking intent, simulation, confirmation, and execution status.
+
+PRONOUS separates **observation, decision, execution, and proof**. Market data can inform an action, but a market gap alone never authorizes spending.
 
 Live checks:
 
