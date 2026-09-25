@@ -358,12 +358,16 @@ module.exports = async function handler(req,res) {
     }
 
     if(action==="simulateTx") {
-      if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"SIMULATION_REQUIRES_LIVE_API",broadcast:false});
       const raw=url.searchParams.get("evmTx");
       if(!raw) return res.status(400).json({error:"evmTx JSON query parameter is required"});
       let evmTx;
       try { evmTx=JSON.parse(raw); } catch (_) { return res.status(400).json({error:"Invalid evmTx JSON"}); }
-      return res.status(200).json({mode:"simulation-adapter",network:"BSC",ticker,evmTx,broadcast:false,status:"SCHEMA_GATED",next:"Verify official Binance simulation schema before calling live simulation."});
+      try {
+        const simulation=await simulateEvmTransaction(evmTx);
+        return res.status(200).json({network:"BSC",chainId:56,ticker,evmTx,simulation});
+      } catch(e) {
+        return res.status(422).json({network:"BSC",chainId:56,ticker,broadcast:false,status:"FAILED",reason:e.message,code:e.rpcCode||null});
+      }
     }
 
     if(action==="scan") {
