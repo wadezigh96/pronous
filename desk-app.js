@@ -33,6 +33,7 @@ window.addEventListener('ethereum#initialized',initInjectedWallet,{once:true});
 setTimeout(initInjectedWallet,3000);
 
 let last=null, marketAssets=[], marketFilter='all';
+let preflightReady=false, latestQuote=null;
 let currentPOA=null;
 function setExecutionStep(step,status){
  const order=['preflight','quote','simulation','confirmation','execution'];
@@ -132,7 +133,7 @@ function addMessage(type,text){
 }
 async function preflight(){
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const amount=document.getElementById('amount').value;const maxSpend=document.getElementById('maxSpend').value;const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';
- try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json(); await createPOAForAction('PREFLIGHT',j.preflight?.status==='READY_FOR_SIMULATION'?'PLANNED':'BLOCKED',{asset:j.asset||null,simulation:{status:j.preflight?.status||'UNKNOWN'}}); setExecutionStep('preflight',j.preflight?.status||'BLOCKED');box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
+ try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(amount)+'&maxSpend='+encodeURIComponent(maxSpend));const j=await r.json(); preflightReady=j.preflight?.status==='READY_FOR_SIMULATION'; latestQuote=null; const qr=document.getElementById('quoteResult'); if(qr)qr.textContent=preflightReady?'Preflight passed. Enter source token and request quote.':'Quote is locked until preflight passes.'; await createPOAForAction('PREFLIGHT',preflightReady?'PLANNED':'BLOCKED',{asset:j.asset||null,simulation:{status:j.preflight?.status||'UNKNOWN'}}); setExecutionStep('preflight',j.preflight?.status||'BLOCKED');box.innerHTML='<b>'+esc(j.preflight?.status||'UNKNOWN')+'</b>\n'+(j.preflight?.checks||[]).map(x=>(x.pass?'✓ ':'✕ ')+esc(x.label)+(x.reason?' — '+esc(x.reason):'')).join('<br>')+'<br><span class="muted small">Next: '+esc(j.preflight?.next||'—')+'</span>';}catch(e){box.textContent='Preflight error: '+e.message}
 }
 async function scan(){
  const t=document.getElementById('ticker').value.trim().toUpperCase();
@@ -146,15 +147,38 @@ async function scan(){
   document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);
  }catch(e){document.getElementById('scan').textContent='Error: '+e.message}
 }
+async function requestQuote(){
+ const box=document.getElementById('quoteResult');
+ const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
+ const fromToken=(document.getElementById('fromTokenAddress')?.value||'').trim();
+ const amount=(document.getElementById('amount')?.value||'').trim();
+ if(!preflightReady){if(box)box.textContent='Run a successful preflight first.';return;}
+ if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken)){if(box)box.textContent='Enter a valid source token contract address.';return;}
+ if(!walletAddress){if(box)box.textContent='Connect the execution wallet before requesting a live quote.';return;}
+ if(box)box.textContent='Requesting quote…';
+ try{
+  const p=new URLSearchParams({action:'quote',ticker:t,fromTokenAddress:fromToken,amount,userWalletAddress:walletAddress});
+  const r=await fetch('/api/agent?'+p.toString()); const j=await r.json();
+  if(!r.ok||j.error)throw new Error(j.error||'Quote request failed');
+  latestQuote=j;
+  if(box)box.innerHTML='<b>QUOTE READY</b><br><span class="muted small">Quote received without broadcast. Continue to simulation.</span>';
+  setExecutionStep('quote','READY');
+ }catch(e){latestQuote=null;if(box)box.textContent='Quote error: '+e.message;}
+}
 async function simulate(){
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
- document.getElementById('plan').textContent='Simulating…';
+ if(!preflightReady){document.getElementById('plan').textContent='Run a successful preflight first.';return;}
+ document.getElementById('plan').textContent='Running deterministic dry-run…';
  try{
   const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
   const j=await r.json();
-  await createPOAForAction('SIMULATION','SIMULATED',{asset:j.asset||null,simulation:{simulated:Boolean(j.simulated),plan:j.plan||null}}); setExecutionStep('simulation','SIMULATED'); const cb=document.getElementById('confirmActionBtn');if(cb)cb.disabled=false; const gs=document.getElementById('poaGateStatus');if(gs)gs.textContent='Simulation recorded. Explicit user confirmation is now available.';
+  if(!r.ok||j.error)throw new Error(j.error||'Simulation failed');
+  await createPOAForAction('SIMULATION','SIMULATED',{asset:j.asset||null,simulation:{simulated:Boolean(j.simulated),mode:j.simulationMode||'DRY_RUN',plan:j.plan||null}});
+  setExecutionStep('simulation','DRY-RUN');
+  const cb=document.getElementById('confirmActionBtn');if(cb)cb.disabled=false;
+  const gs=document.getElementById('poaGateStatus');if(gs)gs.textContent='Dry-run recorded. No blockchain transaction was sent. Explicit user confirmation is now available.';
   document.getElementById('plan').textContent=JSON.stringify(j,null,2);
- }catch(e){document.getElementById('plan').textContent='Error: '+e.message}
+ }catch(e){document.getElementById('plan').textContent='Simulation error: '+e.message}
 }
 async function ask(){
  const input=document.getElementById('question');
