@@ -20,7 +20,17 @@ async function connectWallet(){
   walletProvider=window.ethereum;setWalletUI(accounts?.[0]||null);
  }catch(e){alert('Wallet connection failed: '+(e?.message||e));}
 }
-if(window.ethereum){window.ethereum.on?.('accountsChanged',a=>setWalletUI(a?.[0]||null));window.ethereum.on?.('chainChanged',()=>window.location.reload());}
+function initInjectedWallet(){
+ const provider=window.ethereum;
+ if(!provider)return;
+ walletProvider=provider;
+ provider.on?.('accountsChanged',a=>setWalletUI(a?.[0]||null));
+ provider.on?.('chainChanged',()=>window.location.reload());
+ provider.request?.({method:'eth_accounts'}).then(a=>setWalletUI(a?.[0]||null)).catch(()=>{});
+}
+if(window.ethereum) initInjectedWallet();
+window.addEventListener('ethereum#initialized',initInjectedWallet,{once:true});
+setTimeout(initInjectedWallet,3000);
 
 let last=null, marketAssets=[], marketFilter='all';
 let currentPOA=null;
