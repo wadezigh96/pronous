@@ -77,10 +77,26 @@ async function createCurrentPOA(){await createPOAForAction(last?.action||'OBSERV
 async function confirmAction(){
  if(!currentPOA){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Create and simulate a POA first.';return}
  if(currentPOA.status!=='SIMULATED'){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Simulation must pass before confirmation.';return}
- await createPOAForAction(currentPOA.action,'CONFIRMED',{asset:currentPOA.asset,simulation:currentPOA.simulation,userConfirmation:true});
+ if(!walletProvider||!walletAddress){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Connect the execution wallet before confirmation.';return}
+ if(!latestQuote?.evmTx){const s=document.getElementById('poaGateStatus');if(s)s.textContent='No simulated transaction is available.';return}
+ await createPOAForAction('EXECUTION','CONFIRMED',{asset:currentPOA.asset,simulation:currentPOA.simulation,userConfirmation:true});
  setExecutionStep('confirmation','CONFIRMED');
- const s=document.getElementById('poaGateStatus');if(s)s.textContent='User confirmation recorded. Live execution remains gated.';
+ const s=document.getElementById('poaGateStatus');if(s)s.textContent='Confirmation recorded. Review the wallet prompt to approve or reject the transaction.';
  const b=document.getElementById('confirmActionBtn');if(b)b.disabled=true;
+ try{
+  const tx=latestQuote.evmTx;
+  const request={from:walletAddress,to:tx.to,data:tx.data||'0x'};
+  if(tx.value!==undefined)request.value=String(tx.value);
+  if(tx.gas!==undefined)request.gas=String(tx.gas);
+  if(tx.gasPrice!==undefined)request.gasPrice=String(tx.gasPrice);
+  const txHash=await walletProvider.request({method:'eth_sendTransaction',params:[request]});
+  await createPOAForAction('EXECUTION','EXECUTED',{asset:currentPOA.asset,simulation:currentPOA.simulation,userConfirmation:true,txHash});
+  setExecutionStep('execution','TX SENT');
+  if(s)s.textContent='Transaction sent. TX hash: '+txHash;
+ }catch(e){
+  if(s)s.textContent='Wallet rejected or transaction failed: '+(e?.message||e);
+  setExecutionStep('confirmation','REJECTED');
+ }
 }
 async function verifyCurrentPOA(){
  if(!currentPOA)return;
