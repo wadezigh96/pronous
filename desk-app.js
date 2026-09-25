@@ -97,3 +97,32 @@ async function loadOnchain(x){
 document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask()});
 loadMarket();
 loadSkills();
+
+function toggleMenu(trigger, menu) {
+  const open = menu.hidden;
+  document.querySelectorAll('.workspace-options,.user-options').forEach(item => { item.hidden = true; });
+  document.querySelectorAll('[aria-expanded="true"]').forEach(item => item.setAttribute('aria-expanded', 'false'));
+  menu.hidden = !open;
+  trigger.setAttribute('aria-expanded', String(open));
+}
+const workspaceTrigger = document.querySelector('.workspace-trigger');
+const workspaceOptions = document.getElementById('workspace-options');
+const userTrigger = document.querySelector('.user-trigger');
+const userOptions = document.getElementById('user-options');
+workspaceTrigger?.addEventListener('click', () => toggleMenu(workspaceTrigger, workspaceOptions));
+userTrigger?.addEventListener('click', () => toggleMenu(userTrigger, userOptions));
+document.addEventListener('click', event => {
+  if (!event.target.closest('.workspace-menu') && !event.target.closest('.user-menu')) {
+    [workspaceOptions, userOptions].forEach(menu => { if (menu) menu.hidden = true; });
+    [workspaceTrigger, userTrigger].forEach(trigger => trigger?.setAttribute('aria-expanded', 'false'));
+  }
+});
+const commandSearch = document.querySelector('.command-search');
+commandSearch?.addEventListener('click', () => document.getElementById('marketSearch')?.focus());
+document.addEventListener('keydown', event => {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    document.getElementById('marketSearch')?.focus();
+  }
+});
+if (window.lucide) window.lucide.createIcons();
