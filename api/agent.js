@@ -296,9 +296,10 @@ async function simulateEvmTransaction(evmTx = {}) {
   const tx = {
     from: evmTx.from,
     to: evmTx.to,
-    data: evmTx.data,
+    data: evmTx.data || evmTx.input,
     value: evmTx.value,
-    gas: evmTx.gas || evmTx.gasLimit
+    gas: evmTx.gas || evmTx.gasLimit,
+    gasPrice: evmTx.gasPrice || evmTx.maxFeePerGas
   };
   Object.keys(tx).forEach(k => {
     if (tx[k] === undefined || tx[k] === null || tx[k] === "") delete tx[k];
