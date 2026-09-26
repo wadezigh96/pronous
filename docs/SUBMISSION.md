@@ -1,73 +1,95 @@
-# PRONOUS — Submission pack
+# PRONOUS — Hackathon Submission
 
-Hackathon: [BNB Hack: Tokenized Stocks Edition](https://www.bnbchain.org/en/hackathons/tokenized-stocks)
-Deadline: **11 Oct 2026, 12:00 UTC**
+**BNB Hack: Tokenized Stocks Edition** (16 Sep – 11 Oct 2026)
 
-| Item | Status | Link |
-|---|---|---|
-| Public repo | Ready | https://github.com/wadezigh96/pronous |
-| Deployed app | Ready | https://pronous.vercel.app |
-| DevEx report (25%) | Ready | [DEVEX_REPORT.md](./DEVEX_REPORT.md) |
-| Judge walkthrough | Ready | this file |
-| Demo script (≤ 4 min) | Ready | [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) |
-| Demo video | Still required | record from DEMO_SCRIPT.md |
-| Registration form | Builder action | https://forms.gle/NEmy3FxYc4f5Dua47 |
-| Agent Studio hosted id | Builder action | [AGENT_STUDIO_DEPLOY.md](../agent/AGENT_STUDIO_DEPLOY.md) |
+| Item | Link |
+|------|------|
+| **Live app** | https://pronous.vercel.app |
+| **Public repo** | https://github.com/wadezigh96/pronous |
+| **PoaAnchor (BSC)** | [`0xD729eFf0E050195D464cC9597d7A5Cc7194911B5`](https://bscscan.com/address/0xD729eFf0E050195D464cC9597d7A5Cc7194911B5) |
 
-This pack is the judge-facing map. It is not a second product story.
+---
 
-## One-line claim
+## One-liner
 
-PRONOUS is a guarded tokenized-stock desk on BSC: watch the RWA universe, explain token vs reference gaps, refuse garbage spreads, and keep spend behind preflight → quote → simulation → human confirmation.
+PRONOUS is a BSC mainnet desk for tokenized equities: live RWA feeds, guarded preflight → simulate → confirm, and **Proof of Action (POA)** that can stay off-chain or be **anchored on-chain** with the user paying **BNB gas only** (no swap broadcast).
 
-## Official constraints hit
+---
 
-- Universe: **Ondo / bStocks / xStocks** via Binance Web3 RWA on **BSC mainnet only**
-- Venue: **spot only** — no perps
-- Auth: live `HMAC_SHA256` against Binance Web3 (`/api/agent?action=authcheck`)
-- Execution: server never broadcasts; wallet confirmation is the last gate
-- Proof: POA hash chain links intent → simulation → confirmation → tx status
+## On-chain evidence (live mainnet)
 
-## 90-second judge walkthrough
+Contract **PoaAnchor** records `poaHash` + lifecycle status. Value of every anchor tx is **0** — only network gas.
 
-1. Open https://pronous.vercel.app
-2. Confirm `SYSTEM ONLINE` and wait for Market mode = `LIVE` (auth + assets).
-3. Scan `NVDA`. Tight token/reference gap is the honest case.
-4. Open Market watch / Radar. Large multi-hundred-percent gaps are marked as feed quality, not a trade.
-5. Run Preflight with a spend inside the cap. Status should be `READY_FOR_SIMULATION` or a named block.
-6. Connect wallet (Privy embedded, BSC `0x38`). Quote → build unsigned tx → BSC RPC simulation.
-7. Confirm only after simulation `PASSED`. Create POA and show the hash.
-8. Optional MCP: `npx -y github:wadezigh96/pronous` then `scan_asset` NVDA.
+| # | poaId | Status | Tx |
+|---|--------|--------|-----|
+| 1 | `POA-MUIRMLF` | PLANNED (0) | [0xaac0d01f…d1e7](https://bscscan.com/tx/0xaac0d01ff85b77dde8f3c7240479820eadbfb5cc76306f867aa3798a085bd1e7) |
+| 2 | `POA-MUIRRIEL` | PLANNED (0) | [0x5665fd14…64de](https://bscscan.com/tx/0x5665fd14d1d23e5a4e215470f19ab533df346fd0e47722f8bf010cb1dde264de) |
 
-Live probes:
+**Actor (both txs):** `0xfceafec082f9e8b17cdb51f33c3d5c9759a25e03`
 
-- https://pronous.vercel.app/api/agent?action=authcheck
-- https://pronous.vercel.app/api/agent?action=assets
-- https://pronous.vercel.app/api/agent?action=radar
-- https://pronous.vercel.app/api/agent?action=scan&ticker=NVDA
+**Event:** `PoaAnchored(poaHash, actor, status, timestamp, poaId)`
 
-## Scoring map
+**Verify on-chain read:** BscScan → Contract → Read → `getRecord(bytes32 poaHash)`
 
-| Criterion | Weight | Where |
-|---|---|---|
-| Technical implementation | 30% | `api/agent.js`, `lib/*`, HMAC auth, quote/build/simulate adapters, MCP |
-| Creativity | 25% | gap desk + quality flags + guarded loop + POA |
-| Developer Experience Report | 25% | `docs/DEVEX_REPORT.md` |
-| Product quality / UX | 20% | https://pronous.vercel.app |
+Example hashes:
 
-Special prizes:
+- Tx1: `0xe2fce44f8f9e2a6e45aa2e596c9059bba401522d2c80e2be1396e2b30687b33f`
+- Tx2: `0x68372ee4c7a67863a7e961afdac351bb357d7dccc86b28f5872bc17de0786000`
 
-- Agentic Wallet / Wallet Skills — `agent/AGENTIC_WALLET.md`
-- BNB Agent Studio — `agent/AGENT_STUDIO_DEPLOY.md` (hosted identity still has to be linked in Studio UI)
+---
 
-## What is intentionally unfinished
+## Architecture (judge path)
 
-- Demo video file (must be recorded by the builder before 11 Oct).
-- Hosted BNB Agent Studio ERC-8004 id / x402 runtime (cannot be minted from this repo).
-- Server-side broadcast (policy: off).
+```
+Market (bStocks / Ondo / xStocks)
+  → Scan / gap radar
+  → Preflight (policy, spend caps)
+  → Quote (from ≠ to token)
+  → Simulation (dry-run)
+  → Explicit user Confirm
+  → POA create (off-chain SHA-256, free)
+  → Optional POA Anchor (on-chain, user pays BNB gas)
+  → Execution only after gates (spot only)
+```
 
-## Honesty notes for judges
+- **Off-chain POA:** canonical JSON → SHA-256 → verify hash match.
+- **On-chain anchor:** `anchor(poaHash, status, poaId)` — does **not** execute swaps.
+- **Network:** BSC mainnet (chainId 56) only.
 
-- First live auth took ~16 hours because `40102` hides path, algo, and key-type failures. Details are in the DevEx report.
-- RWA rows can print both token and reference prices and still be garbage. PRONOUS treats `|spread| ≥ 25%` as unreliable.
-- xStocks is allowlisted; recent snapshots were Ondo-heavy with a smaller bStocks set.
+See also: [POA_ONCHAIN.md](./POA_ONCHAIN.md) · [PRODUCT.md](./PRODUCT.md) · [HACKATHON.md](./HACKATHON.md) · [DEVEX_REPORT.md](./DEVEX_REPORT.md)
+
+---
+
+## Demo flow (suggested video)
+
+1. Open https://pronous.vercel.app — market live.
+2. Scan NVDA (or any listed ticker).
+3. Preflight → Simulate.
+4. Create POA → Verify (VALID · hash match).
+5. Connect wallet → **Anchor POA on-chain** → approve (gas only).
+6. Show BscScan tx + `PoaAnchored` event + optional `getRecord`.
+
+---
+
+## Compliance with track rules
+
+| Rule | PRONOUS |
+|------|---------|
+| Tokenized stocks universe | bStocks / Ondo / xStocks feeds |
+| BSC mainnet | Yes |
+| Spot only / no perps | Enforced in product + copy |
+| Guarded / confirmed execution | Preflight → sim → confirm gates |
+| Public repo + deployed app | This repo + Vercel |
+| On-chain attestation | PoaAnchor + live txs above |
+
+---
+
+## Contract note
+
+- Source: `contracts/PoaAnchor.sol`
+- Deploy settings that match bytecode: **solc 0.8.34**, **optimizer off**, **EVM cancun**
+- Verification guide: `contracts/VERIFY_BSCSCAN.md`
+
+---
+
+*PRONOUS — Watch → Compare → Guard → Prove (optional on-chain) → Confirm.*
