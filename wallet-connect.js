@@ -26,3 +26,33 @@ window.pronousDisconnectMobileWallet=async function(){
   if(pronousMMClient)await pronousMMClient.disconnect();
   pronousMMProvider=null;
 };
+
+function installPronousWalletBridge(){
+  if(typeof window.connectWallet!=='function')return false;
+  if(window.connectWallet.__pronousBridge)return true;
+  const nativeConnect=window.connectWallet;
+  async function bridgedConnectWallet(){
+    if(window.walletAddress) return nativeConnect();
+    const injected=window.ethereum;
+    if(injected) return nativeConnect();
+    try{
+      const result=await window.pronousConnectMobileWallet();
+      window.walletProvider=result.provider;
+      window.walletAddress=result.accounts[0];
+      if(typeof window.setWalletUI==='function')window.setWalletUI(window.walletAddress);
+    }catch(e){
+      const msg=e?.message||String(e);
+      const status=document.getElementById('walletStatus');
+      if(status)status.textContent=msg.includes('4001')?'WALLET REQUEST REJECTED':'WALLET CONNECTION FAILED';
+      const fallback=confirm('MetaMask Connect gagal. Buka PRONOUS langsung di MetaMask?');
+      if(fallback)window.location.href='https://metamask.app.link/dapp/pronous.vercel.app';
+    }
+  }
+  bridgedConnectWallet.__pronousBridge=true;
+  window.connectWallet=bridgedConnectWallet;
+  return true;
+}
+
+window.addEventListener('load',()=>{installPronousWalletBridge();setTimeout(installPronousWalletBridge,250);});
+setTimeout(installPronousWalletBridge,0);
+setTimeout(installPronousWalletBridge,1000);
