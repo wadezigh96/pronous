@@ -2,10 +2,11 @@ let walletAddress=null, walletProvider=null;
 function shortAddress(a){a=String(a||'');return a&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):a||'Not connected'}
 function setWalletUI(address){
  walletAddress=address||null;
- const label=document.getElementById('walletStatus'),addr=document.getElementById('walletAddress'),btn=document.getElementById('connectWalletBtn');
+ const label=document.getElementById('walletStatus'),addr=document.getElementById('walletAddress'),btn=document.getElementById('connectWalletBtn'),kpi=document.getElementById('kpiExec');
  if(label)label.textContent=address?'WALLET CONNECTED':'WALLET NOT CONNECTED';
  if(addr)addr.textContent=address?shortAddress(address):'Not connected';
  if(btn)btn.textContent=address?'Disconnect':'Connect Wallet';
+ if(kpi)kpi.textContent=address?'ARMED':'LOCKED';
 }
 let discoveredProvider=null;
 function rememberProvider(provider){
@@ -19,8 +20,11 @@ function openMetaMaskDapp(){
  const url='https://metamask.app.link/dapp/pronous.vercel.app';
  window.location.href=url;
 }
-async function connectWallet(){
- if(walletAddress){walletAddress=null;walletProvider=null;setWalletUI(null);return;}
+async function connectInjectedWallet(){
+ if(walletAddress){
+  if(window.__pronousPrivyConnected){window.dispatchEvent(new CustomEvent('pronous:privy-disconnect-request'));}
+  walletAddress=null;walletProvider=null;setWalletUI(null);return;
+ }
  const provider=walletProvider||discoveredProvider||window.ethereum;
  if(!provider){
   const go=confirm('Wallet tidak terdeteksi di browser ini. Buka PRONOUS di MetaMask agar wallet bisa terhubung?');
@@ -46,12 +50,22 @@ function initInjectedWallet(){
  rememberProvider(provider);
  provider.on?.('accountsChanged',a=>setWalletUI(a?.[0]||null));
  provider.on?.('chainChanged',()=>window.location.reload());
- provider.request?.({method:'eth_accounts'}).then(a=>setWalletUI(a?.[0]||null)).catch(()=>{});
+ provider.request?.({method:'eth_accounts'}).then(a=>{if(a?.[0])setWalletUI(a[0])}).catch(()=>{});
 }
 window.addEventListener('eip6963:announceProvider',event=>initInjectedWallet());
 if(window.ethereum) initInjectedWallet();
 window.addEventListener('ethereum#initialized',initInjectedWallet,{once:true});
 setTimeout(initInjectedWallet,3000);
+window.addEventListener('pronous:privy-wallet-connected',event=>{
+ const detail=event.detail||{};
+ if(detail.provider) walletProvider=detail.provider;
+ setWalletUI(detail.address||window.__pronousPrivyAddress||null);
+});
+window.addEventListener('pronous:privy-wallet-disconnected',()=>{
+ walletProvider=null;
+ setWalletUI(null);
+});
+if(typeof window.connectWallet!=='function') window.connectWallet=connectInjectedWallet;
 
 let last=null, marketAssets=[], marketFilter='all';
 let preflightReady=false, latestQuote=null;
@@ -155,7 +169,7 @@ function openAsset(ticker,platform){
 function closeAsset(){const d=document.getElementById('assetDrawer');if(d){d.classList.remove('open');d.setAttribute('aria-hidden','true')}}
 function renderMarket(){
  const q=(document.getElementById('marketSearch')?.value||'').trim().toUpperCase();
- const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase()===marketFilter)&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
+ const rows=marketAssets.filter(x=>(marketFilter==='all'||String(x.platformId).toLowerCase().includes(marketFilter))&&(String(x.ticker||'').toUpperCase().includes(q)||String(x.companyName||'').toUpperCase().includes(q)));
  const box=document.getElementById('marketTable');
  const count=document.getElementById('marketCount'); if(count)count.textContent=rows.length?String(rows.length):'0';
  if(!rows.length){box.textContent='No matching assets.';return}
@@ -166,10 +180,23 @@ function renderRadar(){
  document.getElementById('radar').innerHTML=rows.length?rows.map(x=>'<div style="margin:0 0 10px"><b>'+esc(x.ticker)+'</b> · '+esc(x.platformId)+' · <span class="'+(Number(x.spreadPct)>=0?'pos':'neg')+'">'+(Number(x.spreadPct)>0?'+':'')+Number(x.spreadPct).toFixed(3)+'%</span><br><span class="muted small">Token '+esc(x.tokenPrice)+' vs reference '+esc(x.referencePrice)+' · '+esc(x.marketStatus||x.openState||'state unavailable')+'</span></div>').join(''):'No spread data available.';
 }
 function renderClock(x){document.getElementById('clock').innerHTML=x?'<div class="metric">'+esc(x.marketStatus||x.openState||'—')+'</div><div class="muted small">'+esc(x.ticker)+' · '+esc(x.platformId)+'</div><p class="small">Next open: '+esc(x.nextOpenTime||'—')+'<br>Next close: '+esc(x.nextCloseTime||'—')+'</p>':'Select an asset to inspect its market state.'}
+function updateGapKpi(){
+ const el=document.getElementById('kpiGap');
+ const note=el&&el.parentElement?el.parentElement.querySelector('.kpi-note'):null;
+ if(!el)return;
+ const scored=marketAssets.filter(x=>Number.isFinite(Number(x.spreadPct)));
+ if(!scored.length){el.textContent='—';if(note)note.textContent='Token / reference spread';return;}
+ const actionable=scored.filter(x=>Math.abs(Number(x.spreadPct))<25);
+ const pool=actionable.length?actionable:scored;
+ const best=pool.slice().sort((a,b)=>Math.abs(Number(b.spreadPct))-Math.abs(Number(a.spreadPct)))[0];
+ const gap=Number(best.spreadPct);
+ el.textContent=(gap>0?'+':'')+gap.toFixed(2)+'%';
+ if(note)note.textContent=(actionable.length?best.ticker+' · actionable':best.ticker+' · unreliable feed');
+}
 async function loadSkills(){try{const r=await fetch('/api/skills?action=list');const j=await r.json();document.getElementById('skills').innerHTML=(j.skills||[]).map(s=>'<div><b>'+esc(s.icon)+' '+esc(s.name)+'</b><span class="muted small">'+esc(s.purpose)+'</span><br><span class="tag">'+esc(s.risk)+'</span><span class="tag">'+esc(s.output)+'</span></div>').join('')}catch(e){document.getElementById('skills').textContent='Skills unavailable.'}}
 async function loadMarket(){
  const box=document.getElementById('marketTable'); box.textContent='Loading…';
- try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];window.marketAssets=marketAssets;const mode=document.getElementById('marketMode');if(mode){mode.textContent=(j.mode||'unknown').toUpperCase();mode.className='tag '+(j.mode==='live-data'?'live':'demo');}const upd=document.getElementById('marketUpdated');if(upd)upd.textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';const kpiMode=document.getElementById('kpiMode');if(kpiMode)kpiMode.textContent=(j.mode||'—').replace('live-data','LIVE');const kpiAssets=document.getElementById('kpiAssets');if(kpiAssets)kpiAssets.textContent=String((j.summary&&j.summary.total)||marketAssets.length);renderMarket();renderRadar();renderClock(marketAssets[0]); if(window.drawGapChart)drawGapChart();}
+ try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];window.marketAssets=marketAssets;const mode=document.getElementById('marketMode');if(mode){mode.textContent=(j.mode||'unknown').toUpperCase();mode.className='tag '+(j.mode==='live-data'?'live':'demo');}const upd=document.getElementById('marketUpdated');if(upd)upd.textContent=j.updatedAt?'Updated '+new Date(j.updatedAt).toLocaleTimeString():'—';const kpiMode=document.getElementById('kpiMode');if(kpiMode)kpiMode.textContent=(j.mode||'—').replace('live-data','LIVE');const kpiAssets=document.getElementById('kpiAssets');if(kpiAssets)kpiAssets.textContent=String((j.summary&&j.summary.total)||marketAssets.length);updateGapKpi();renderMarket();renderRadar();renderClock(marketAssets[0]); if(window.drawGapChart)drawGapChart();}
  catch(e){box.textContent='Market data error: '+e.message}
 }
 function addMessage(type,text){
