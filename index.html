@@ -21,4 +21,9 @@
 <section id="poa-section" class="card terminal-card section-anchor"><div class="terminal-head"><h2>Proof of Action</h2><small>POA-1 · VERIFY</small></div><div class="poa-banner"><span class="poa-live-dot"></span><div><b>Action evidence layer</b><span class="muted small">Every PRONOUS action can produce tamper-evident proof.</span></div><button class="secondary" type="button" onclick="createCurrentPOA()">Create POA</button></div><div id="poaCurrent" class="result">No POA generated for this session.</div><div class="poa-ledger-head"><span class="muted small">LOCAL POA LEDGER</span><button class="secondary" type="button" onclick="clearPOALedger()">Clear</button></div><div id="poaLedger" class="poa-ledger">No evidence yet.</div></section>
 <input id="question" type="hidden"><div id="chatlog" hidden></div></div><nav class="mobile-nav" aria-label="Mobile navigation"><a href="#overview">Home</a><a href="#market">Market</a><a href="#radar-section">Radar</a><a href="#agent">Scan</a><a href="#execution">Execute</a></nav></main></div>
 <div id="assetDrawer" class="asset-drawer" aria-hidden="true"><div class="drawer-backdrop" onclick="closeAsset()"></div><aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button><div id="drawerContent" style="padding-top:24px"></div></aside></div>
-<script src="/desk-charts.js"></script><script type="module" src="/wallet-connect.js"></script><script src="/desk-app.js"></script></body></html>
+<script>
+window.connectWallet=async function(){const s=document.getElementById('walletStatus');if(s&&!window.__pronousPrivyConnected)s.textContent='WALLET LOADING';window.__pronousConnectQueued=true;};
+</script>
+<script src="/desk-charts.js"></script>
+<script type="module" src="/wallet-connect.js"></script>
+<script src="/desk-app.js"></script></body></html>
