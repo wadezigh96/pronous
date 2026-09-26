@@ -66,7 +66,7 @@ function PrivyBridge(){
         window.dispatchEvent(new CustomEvent('pronous:privy-wallet-disconnected'));
       }
     };
-    window.dispatchEvent(new CustomEvent('pronous:privy-ready',{detail:{ready,authenticated}});
+    window.dispatchEvent(new CustomEvent('pronous:privy-ready',{detail:{ready,authenticated}}));
   },[ready,authenticated,connectOrCreateWallet,logout]);
 
   useEffect(()=>{
