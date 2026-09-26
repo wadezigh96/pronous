@@ -97,7 +97,7 @@ async function createPOAForAction(action,status,extra={}){
 async function createCurrentPOA(){await createPOAForAction(last?.action||'OBSERVE','PLANNED',{asset:last?.asset||null})}
 async function confirmAction(){
  if(!currentPOA){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Create and simulate a POA first.';return}
- if(currentPOA.status!=='SIMULATED'){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Simulation must pass before confirmation.';return}
+ if(currentPOA.status!=='SIMULATED'||currentPOA.simulation?.mode!=='BSC_RPC'||currentPOA.simulation?.status!=='PASSED'){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Only a passed BSC RPC simulation can unlock confirmation.';return}
  if(!walletProvider||!walletAddress){const s=document.getElementById('poaGateStatus');if(s)s.textContent='Connect the execution wallet before confirmation.';return}
  if(!latestQuote?.evmTx){const s=document.getElementById('poaGateStatus');if(s)s.textContent='No simulated transaction is available.';return}
  await createPOAForAction('EXECUTION','CONFIRMED',{asset:currentPOA.asset,simulation:currentPOA.simulation,userConfirmation:true});
