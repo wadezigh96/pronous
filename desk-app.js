@@ -25,7 +25,7 @@ function openMetaMaskDapp(){
  const url='https://metamask.app.link/dapp/pronous.vercel.app';
  window.location.href=url;
 }
-async function connectWallet(){
+async function legacyConnectWallet(){
  if(walletAddress){walletAddress=null;walletProvider=null;setWalletUI(null);return;}
  const provider=walletProvider||discoveredProvider||window.ethereum;
  if(!provider){
