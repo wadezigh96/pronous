@@ -246,17 +246,20 @@ async function requestQuote(){
 async function simulate(){
  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
  if(!preflightReady){document.getElementById('plan').textContent='Run a successful preflight first.';return;}
- document.getElementById('plan').textContent='Running deterministic dry-run…';
+ if(!walletProvider||!walletAddress){document.getElementById('plan').textContent='Connect the execution wallet before chain simulation.';return;}
+ if(!latestQuote?.evmTx){document.getElementById('plan').textContent='Build an unsigned transaction from a live quote first.';return;}
+ document.getElementById('plan').textContent='Running BSC RPC simulation…';
  try{
-  const r=await fetch('/api/agent?action=simulate&ticker='+encodeURIComponent(t));
+  const r=await fetch('/api/agent?'+new URLSearchParams({action:'simulateTx',ticker:t,evmTx:JSON.stringify(latestQuote.evmTx)}).toString());
   const j=await r.json();
-  if(!r.ok||j.error)throw new Error(j.error||'Simulation failed');
-  await createPOAForAction('SIMULATION','SIMULATED',{asset:j.asset||null,simulation:{simulated:Boolean(j.simulated),mode:j.simulationMode||'DRY_RUN',plan:j.plan||null}});
-  setExecutionStep('simulation','DRY-RUN');
+  if(!r.ok||j.status==='FAILED'||j.simulation?.status!=='PASSED')throw new Error(j.reason||j.error||'BSC RPC simulation failed');
+  latestQuote={...latestQuote,simulation:j};
+  await createPOAForAction('SIMULATION','SIMULATED',{asset:latestQuote.asset||null,simulation:{mode:'BSC_RPC',status:'PASSED',gasEstimate:j.simulation?.gasEstimate||null}});
+  setExecutionStep('simulation','PASSED');
   const cb=document.getElementById('confirmActionBtn');if(cb)cb.disabled=false;
-  const gs=document.getElementById('poaGateStatus');if(gs)gs.textContent='Dry-run recorded. No blockchain transaction was sent. Explicit user confirmation is now available.';
+  const gs=document.getElementById('poaGateStatus');if(gs)gs.textContent='BSC RPC simulation passed. Explicit wallet confirmation is now available.';
   document.getElementById('plan').textContent=JSON.stringify(j,null,2);
- }catch(e){document.getElementById('plan').textContent='Simulation error: '+e.message}
+ }catch(e){document.getElementById('plan').textContent='BSC simulation error: '+e.message;}
 }
 async function ask(){
  const input=document.getElementById('question');
