@@ -1,10 +1,10 @@
 import React,{useEffect} from 'https://esm.sh/react@18.3.1?target=es2022';
 import {createRoot} from 'https://esm.sh/react-dom@18.3.1/client?target=es2022';
-import {PrivyProvider,usePrivy,useWallets,useConnectOrCreateWallet} from 'https://esm.sh/@privy-io/react-auth@3.43.0?bundle&target=es2022&deps=react@18.3.1,react-dom@18.3.1';
+import {PrivyProvider,usePrivy,useWallets} from 'https://esm.sh/@privy-io/react-auth@3.43.0?bundle&target=es2022&deps=react@18.3.1,react-dom@18.3.1';
 import {bsc} from 'https://esm.sh/viem@2.37.0/chains?target=es2022';
 
 const PRIVY_APP_ID='cmuhzdouv000i0cl2u6q438gf';
-let privyConnect=null,privyDisconnect=null,privyReady=false,privyAuthenticated=false,privyError=null;
+let privyConnect=null,privyDisconnect=null,privyReady=false,privyError=null;
 
 function ui(text,error=false){
   window.__pronousPrivyStatus=text;
@@ -27,13 +27,11 @@ function expose(provider,address,chainId){
   const btn=document.getElementById('connectWalletBtn');if(btn){btn.disabled=false;btn.textContent='Disconnect'}
 }
 function PrivyBridge(){
-  const {ready,authenticated,logout}=usePrivy();
+  const {ready,authenticated,logout,connectOrCreateWallet}=usePrivy();
   const {wallets,ready:walletsReady}=useWallets();
-  const {connectOrCreateWallet}=useConnectOrCreateWallet();
 
   useEffect(()=>{
     privyReady=!!ready;
-    privyAuthenticated=!!authenticated;
     if(!ready)ui('PRIVY LOADING');
     else if(!authenticated)ui('WALLET NOT CONNECTED');
     else ui(walletsReady?'PRIVY READY':'PRIVY WALLET LOADING');
