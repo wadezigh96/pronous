@@ -290,6 +290,43 @@ async function findLiveAsset(ticker) {
     nextOpenTime:market.statusInfo?.nextOpenTime??null,nextCloseTime:market.statusInfo?.nextCloseTime??null};
 }
 
+
+async function simulateEvmTransaction(evmTx = {}) {
+  const rpcUrl = String(process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org").trim();
+  const tx = {
+    from: evmTx.from,
+    to: evmTx.to,
+    data: evmTx.data,
+    value: evmTx.value,
+    gas: evmTx.gas || evmTx.gasLimit
+  };
+  Object.keys(tx).forEach(k => {
+    if (tx[k] === undefined || tx[k] === null || tx[k] === "") delete tx[k];
+  });
+  if (!tx.to && !tx.data) throw new Error("SIMULATION_TX_TARGET_REQUIRED");
+  if (tx.from && !/^0x[a-fA-F0-9]{40}$/.test(tx.from)) throw new Error("INVALID_SIMULATION_FROM");
+  if (tx.to && !/^0x[a-fA-F0-9]{40}$/.test(tx.to)) throw new Error("INVALID_SIMULATION_TO");
+  const rpc = await fetch(rpcUrl, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]})
+  });
+  const body = await rpc.json();
+  if (!rpc.ok || body.error) {
+    const e = new Error(body.error?.message || "BSC eth_call simulation failed");
+    e.rpcCode = body.error?.code ?? null;
+    throw e;
+  }
+  return {
+    status:"PASSED",
+    method:"eth_call",
+    chainId:56,
+    block:"latest",
+    result:body.result,
+    broadcast:false
+  };
+}
+
 module.exports = async function handler(req,res) {
   try {
     const url=new URL(req.url,"http://localhost");
