@@ -12,7 +12,7 @@
 
 **Watch → Compare → Explain → Guard → Prepare → Confirm**
 
-[Live App](https://pronous.vercel.app/) · [Hackathon map](docs/HACKATHON.md) · [DevEx report](docs/DEVEX_REPORT.md) · [Product](docs/PRODUCT.md)
+[Live App](https://pronous.vercel.app/) · [**Submission**](docs/SUBMISSION.md) · [Hackathon map](docs/HACKATHON.md) · [DevEx report](docs/DEVEX_REPORT.md) · [Product](docs/PRODUCT.md) · [On-chain POA](docs/POA_ONCHAIN.md)
 
 </div>
 
@@ -33,6 +33,8 @@ Official rules this repo implements:
 - Live broadcast stays off until simulation + user confirmation
 
 Judges: public repo, deployed app, [DevEx report](docs/DEVEX_REPORT.md) (25% of score), demo video still required before 11 Oct.
+
+**Live on-chain POA:** contract [`0xD729…11B5`](https://bscscan.com/address/0xD729eFf0E050195D464cC9597d7A5Cc7194911B5) · evidence txs in [docs/SUBMISSION.md](docs/SUBMISSION.md).
 
 ---
 
