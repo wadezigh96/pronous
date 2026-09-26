@@ -1,57 +1,60 @@
-const BSC_CHAIN_ID='0x38';
-let pronousMMClient=null;
-let pronousMMProvider=null;
+import React,{useEffect} from 'https://esm.sh/react@18.3.1';
+import {createRoot} from 'https://esm.sh/react-dom@18.3.1/client';
+import {PrivyProvider,usePrivy,useWallets} from 'https://esm.sh/@privy-io/react-auth@1.98.4?deps=react@18.3.1,react-dom@18.3.1';
+import {bsc} from 'https://esm.sh/viem@2.37.0/chains';
 
-async function getMetaMaskConnectClient(){
-  if(pronousMMClient)return pronousMMClient;
-  const mod=await import('https://cdn.jsdelivr.net/npm/@metamask/connect-evm@1.4.0/+esm');
-  const {createEVMClient}=mod;
-  pronousMMClient=await createEVMClient({
-    dapp:{name:'PRONOUS',url:window.location.origin},
-    api:{supportedNetworks:{[BSC_CHAIN_ID]:'https://bsc-dataseed.binance.org/'}},
-    analytics:{enabled:false}
-  });
-  pronousMMProvider=pronousMMClient.getProvider();
-  return pronousMMClient;
+const PRIVY_APP_ID='cmuhzdouv000i0cl2u6q438gf';
+let privyConnect=null;
+let privyDisconnect=null;
+
+function PrivyBridge(){
+  const {ready,authenticated,login,logout,createWallet}=usePrivy();
+  const {wallets}=useWallets();
+
+  useEffect(()=>{
+    const connect=async()=>{
+      if(!ready)return;
+      if(!authenticated){await login();return;}
+      let wallet=wallets?.find(w=>w.walletClientType==='privy')||wallets?.[0];
+      if(!wallet){try{await createWallet()}catch(e){console.warn('Privy createWallet:',e)}return;}
+      const provider=await wallet.getEthereumProvider();
+      let chain=await provider.request({method:'eth_chainId'});
+      if(String(chain).toLowerCase()!=='0x38'){
+        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x38'}]});
+        chain=await provider.request({method:'eth_chainId'});
+      }
+      window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected',{detail:{provider,address:wallet.address,chainId:chain}}));
+    };
+    privyConnect=connect;
+    privyDisconnect=async()=>{if(authenticated)await logout();window.dispatchEvent(new CustomEvent('pronous:privy-wallet-disconnected'))};
+    window.dispatchEvent(new CustomEvent('pronous:privy-ready',{detail:{ready,authenticated,address:wallets?.[0]?.address||null}}));
+  },[ready,authenticated,login,logout,createWallet,wallets]);
+
+  useEffect(()=>{
+    if(!ready||!authenticated)return;
+    (async()=>{
+      try{
+        const wallet=wallets?.find(w=>w.walletClientType==='privy')||wallets?.[0];
+        if(!wallet)return;
+        const provider=await wallet.getEthereumProvider();
+        const chain=await provider.request({method:'eth_chainId'});
+        window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected',{detail:{provider,address:wallet.address,chainId:chain}}));
+      }catch(e){console.warn('Privy wallet sync:',e)}
+    })();
+  },[ready,authenticated,wallets]);
+  return null;
 }
 
-window.pronousConnectMobileWallet=async function(){
-  const client=await getMetaMaskConnectClient();
-  const result=await client.connect({chainIds:[BSC_CHAIN_ID]});
-  if(!result?.accounts?.[0])throw new Error('NO_WALLET_ACCOUNT');
-  return {provider:pronousMMProvider,accounts:result.accounts,chainId:result.chainId};
-};
-window.pronousDisconnectMobileWallet=async function(){
-  if(pronousMMClient)await pronousMMClient.disconnect();
-  pronousMMProvider=null;
-};
-
-function installPronousWalletBridge(){
-  if(typeof window.connectWallet!=='function')return false;
-  if(window.connectWallet.__pronousBridge)return true;
-  const nativeConnect=window.connectWallet;
-  async function bridgedConnectWallet(){
-    if(typeof window.walletAddress!=='undefined'&&window.walletAddress)return nativeConnect();
-    if(window.ethereum)return nativeConnect();
-    try{
-      const result=await window.pronousConnectMobileWallet();
-      if(typeof window.rememberProvider==='function')window.rememberProvider(result.provider);
-      if(typeof window.setWalletUI==='function')window.setWalletUI(result.accounts[0]);
-      const status=document.getElementById('walletStatus');
-      if(status)status.textContent='WALLET CONNECTED';
-    }catch(e){
-      const msg=e?.message||String(e);
-      const status=document.getElementById('walletStatus');
-      if(status)status.textContent=msg.includes('4001')?'WALLET REQUEST REJECTED':'WALLET CONNECTION FAILED';
-      const fallback=confirm('MetaMask Connect gagal. Buka PRONOUS langsung di MetaMask?');
-      if(fallback)window.location.href='https://metamask.app.link/dapp/pronous.vercel.app';
-    }
-  }
-  bridgedConnectWallet.__pronousBridge=true;
-  window.connectWallet=bridgedConnectWallet;
-  return true;
+function mount(){
+  let el=document.getElementById('privy-root');
+  if(!el){el=document.createElement('div');el.id='privy-root';el.hidden=true;document.body.appendChild(el)}
+  createRoot(el).render(React.createElement(PrivyProvider,{appId:PRIVY_APP_ID,defaultChain:bsc,supportedChains:[bsc],config:{loginMethods:['email','google','wallet'],appearance:{theme:'dark',accentColor:'#F0B90B',showWalletLoginFirst:true},embeddedWallets:{createOnLogin:'all-users',requireUserOwnedRecoveryOnCreate:false}}},React.createElement(PrivyBridge)));
 }
 
-window.addEventListener('load',()=>{installPronousWalletBridge();setTimeout(installPronousWalletBridge,250);});
-setTimeout(installPronousWalletBridge,0);
-setTimeout(installPronousWalletBridge,1000);
+window.connectWallet=async function(){
+  if(window.__pronousPrivyConnected){window.dispatchEvent(new CustomEvent('pronous:privy-disconnect-request'));return}
+  if(privyConnect)await privyConnect();else window.__pronousPrivyPending=true;
+};
+window.addEventListener('pronous:privy-ready',()=>{if(window.__pronousPrivyPending){window.__pronousPrivyPending=false;privyConnect?.()}});
+window.addEventListener('pronous:privy-disconnect-request',()=>privyDisconnect?.());
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
