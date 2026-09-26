@@ -2,6 +2,12 @@
 
 PRONOUS Proof of Action can stay off-chain (hash only) or be **anchored on BSC**.
 
+## Live deployment (BSC mainnet)
+
+**PoaAnchor:** [`0xD729eFf0E050195D464cC9597d7A5Cc7194911B5`](https://bscscan.com/address/0xD729eFf0E050195D464cC9597d7A5Cc7194911B5)
+
+Hardcoded as default in the desk. Users can override via Save field / localStorage.
+
 ## Model
 
 1. Create POA off-chain → `poaId` + `poaHash` (free).
@@ -14,13 +20,13 @@ This does **not** broadcast swaps. Execution remains a separate, guarded flow.
 
 ## Deploy (once)
 
+Already deployed at the address above. To redeploy:
+
 1. Open [Remix](https://remix.ethereum.org).
 2. Paste `contracts/PoaAnchor.sol`.
 3. Compile (solc 0.8.20+).
 4. Deploy with Injected Provider → **BNB Smart Chain (56)**.
-5. Copy contract address.
-6. On https://pronous.vercel.app → POA section → paste address → **Save**.
-7. Create POA → **Anchor POA on-chain** → confirm in wallet.
+5. Copy contract address into the desk POA field → **Save**.
 
 Optional: set `localStorage.pronous_poa_anchor` or `window.PRONOUS_POA_ANCHOR`.
 
