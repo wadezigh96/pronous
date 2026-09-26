@@ -20,7 +20,6 @@ function expose(provider,address,chainId){
   window.walletProvider=provider;
   window.walletAddress=address;
   try{Object.defineProperty(window,'ethereum',{value:provider,writable:true,configurable:true})}catch(e){window.ethereum=provider}
-  if(typeof window.initInjectedWallet==='function')window.initInjectedWallet();
   window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected',{detail:{provider,address,chainId}}));
   const status=document.getElementById('walletStatus');if(status)status.textContent='WALLET CONNECTED';
   const addr=document.getElementById('walletAddress');if(addr)addr.textContent=address;
@@ -44,7 +43,7 @@ function PrivyBridge(){
       await connectOrCreateWallet();
     }catch(e){
       privyError=e?.message||String(e);
-      ui('PRIVY ERROR',true);
+      ui('PRIVY ERROR: '+privyError,true);
       console.error('PRONOUS Privy connect:',e);
       window.dispatchEvent(new CustomEvent('pronous:privy-error',{detail:{message:privyError}}));
     }
@@ -87,7 +86,7 @@ function PrivyBridge(){
         expose(provider,address,chain);
       }catch(e){
         privyError=e?.message||String(e);
-        ui('PRIVY ERROR',true);
+        ui('PRIVY ERROR: '+privyError,true);
         console.error('PRONOUS Privy wallet setup:',e);
       }
     })();
@@ -112,8 +111,9 @@ function mount(){
     ));
   }catch(e){
     privyError=e?.message||String(e);
-    ui('PRIVY ERROR',true);
+    ui('PRIVY ERROR: '+privyError,true);
     console.error('PRONOUS Privy mount:',e);
+    window.dispatchEvent(new CustomEvent('pronous:privy-error',{detail:{message:privyError,stage:'mount'}}));
   }
 }
 window.connectWallet=async function(){
@@ -129,7 +129,7 @@ window.connectWallet=async function(){
     if(privyConnect){window.__pronousPrivyPending=false;await privyConnect()}
     else{
       window.__pronousPrivyPending=false;
-      ui('PRIVY NOT READY',true);
+      ui('PRIVY NOT READY: '+(privyError||'bridge initialization timeout'),true);
       console.error('PRONOUS Privy bridge did not initialize',privyError);
     }
   }finally{
@@ -137,6 +137,11 @@ window.connectWallet=async function(){
   }
 };
 window.addEventListener('pronous:privy-disconnect-request',()=>privyDisconnect?.());
+window.addEventListener('pronous:privy-error',e=>{
+  const message=e?.detail?.message||'Unknown Privy error';
+  ui('PRIVY ERROR: '+message,true);
+  console.error('PRONOUS Privy bridge error:',message);
+});
 window.addEventListener('error',e=>{
   if(String(e?.message||'').toLowerCase().includes('privy'))console.error('PRONOUS Privy error:',e.error||e.message);
 });
