@@ -19,7 +19,6 @@ window.pronousConnectMobileWallet=async function(){
   const client=await getMetaMaskConnectClient();
   const result=await client.connect({chainIds:[BSC_CHAIN_ID]});
   if(!result?.accounts?.[0])throw new Error('NO_WALLET_ACCOUNT');
-  window.dispatchEvent(new CustomEvent('pronous:wallet-connected',{detail:{provider:pronousMMProvider,accounts:result.accounts,chainId:result.chainId}}));
   return {provider:pronousMMProvider,accounts:result.accounts,chainId:result.chainId};
 };
 window.pronousDisconnectMobileWallet=async function(){
@@ -32,14 +31,14 @@ function installPronousWalletBridge(){
   if(window.connectWallet.__pronousBridge)return true;
   const nativeConnect=window.connectWallet;
   async function bridgedConnectWallet(){
-    if(window.walletAddress) return nativeConnect();
-    const injected=window.ethereum;
-    if(injected) return nativeConnect();
+    if(typeof window.walletAddress!=='undefined'&&window.walletAddress)return nativeConnect();
+    if(window.ethereum)return nativeConnect();
     try{
       const result=await window.pronousConnectMobileWallet();
-      window.walletProvider=result.provider;
-      window.walletAddress=result.accounts[0];
-      if(typeof window.setWalletUI==='function')window.setWalletUI(window.walletAddress);
+      if(typeof window.rememberProvider==='function')window.rememberProvider(result.provider);
+      if(typeof window.setWalletUI==='function')window.setWalletUI(result.accounts[0]);
+      const status=document.getElementById('walletStatus');
+      if(status)status.textContent='WALLET CONNECTED';
     }catch(e){
       const msg=e?.message||String(e);
       const status=document.getElementById('walletStatus');
