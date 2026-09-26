@@ -1,0 +1,31 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "PoaAnchor.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\n/// @title PRONOUS Proof of Action Anchor\n/// @notice Minimal on-chain evidence layer. User pays BNB gas.\n/// @dev Does not execute swaps. Only anchors poaHash + status.\ncontract PoaAnchor {\n    // 0 PLANNED, 1 SIMULATED, 2 CONFIRMED, 3 EXECUTED, 4 BLOCKED, 5 REJECTED, 6 EXPIRED\n    event PoaAnchored(\n        bytes32 indexed poaHash,\n        address indexed actor,\n        uint8 status,\n        uint64 timestamp,\n        string poaId\n    );\n\n    struct Record {\n        address actor;\n        uint8 status;\n        uint64 timestamp;\n        string poaId;\n    }\n\n    mapping(bytes32 => Record) public records;\n    mapping(bytes32 => bool) public anchored;\n\n    error AlreadyAnchored();\n    error InvalidHash();\n    error InvalidStatus();\n\n    function anchor(bytes32 poaHash, uint8 status, string calldata poaId) external {\n        if (poaHash == bytes32(0)) revert InvalidHash();\n        if (status > 6) revert InvalidStatus();\n        if (anchored[poaHash]) revert AlreadyAnchored();\n\n        anchored[poaHash] = true;\n        records[poaHash] = Record({\n            actor: msg.sender,\n            status: status,\n            timestamp: uint64(block.timestamp),\n            poaId: poaId\n        });\n\n        emit PoaAnchored(poaHash, msg.sender, status, uint64(block.timestamp), poaId);\n    }\n\n    function getRecord(bytes32 poaHash)\n        external\n        view\n        returns (address actor, uint8 status, uint64 timestamp, string memory poaId, bool exists)\n    {\n        exists = anchored[poaHash];\n        if (!exists) return (address(0), 0, 0, \"\", false);\n        Record memory r = records[poaHash];\n        return (r.actor, r.status, r.timestamp, r.poaId, true);\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "evmVersion": "shanghai",
+    "metadata": {
+      "bytecodeHash": "ipfs"
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "metadata"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    }
+  }
+}
