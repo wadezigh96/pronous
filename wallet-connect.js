@@ -96,6 +96,30 @@ function mount(){
   }catch(e){privyError=e?.message||String(e);setConnectState('WALLET NOT CONNECTED',true);console.error('PRONOUS Privy mount:',e)}
 }
 
+function injectMobileDeskUX(){
+  if(document.getElementById('pronous-mobile-ux'))return;
+  const style=document.createElement('style');
+  style.id='pronous-mobile-ux';
+  style.textContent=`
+    @media(max-width:900px){
+      .topbar{height:auto;min-height:58px;padding:8px 0;display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}
+      .topbar-title{font-size:10px}.topbar-sub{font-size:8px;margin-left:5px}.health{font-size:8px;padding:5px 7px;grid-column:2;grid-row:1}
+      .wallet-bar{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:0}
+      .wallet-status{font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;color:#9d9788}
+      #connectWalletBtn{width:auto;min-width:132px;padding:8px 11px;font-size:10px;border-radius:9px}
+      .ticker{gap:20px;padding:7px 13px;font-size:9px}
+      .dashboard-head{padding:18px 0 5px}.dashboard-head h1{font-size:27px;line-height:1.02}.dashboard-head p{font-size:11px;margin:8px 0}
+      .eyebrow{font-size:8px}.kpis{gap:7px;margin:11px 0}.kpi{padding:10px;border-radius:11px}.kpi-label{font-size:8px}.kpi-value{font-size:17px;margin-top:5px}.kpi-note{font-size:9px}
+      .card{padding:13px;border-radius:14px}.card h2{font-size:12px}.terminal-head{margin-bottom:8px}.terminal-head small{font-size:8px}
+      .chart-box{padding:7px}.chart-box canvas{height:130px}.gap-chart canvas{height:150px}.result{font-size:10px;line-height:1.5}
+      .metric{font-size:22px}.tag{font-size:8px;padding:5px 7px}
+      .exec-pipeline{gap:5px}.exec-step{min-height:54px;padding:7px;border-radius:8px}.exec-step b{font-size:8px}.exec-step span{font-size:9px}.exec-step em{font-size:8px}
+      .mobile-nav{height:52px;left:8px;right:8px;bottom:8px}.mobile-nav a{font-size:8px}
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 window.connectWallet=async function(){
   const btn=document.getElementById('connectWalletBtn');if(btn)btn.disabled=false;
   if(window.__pronousPrivyConnected){await privyDisconnect?.();return}
@@ -108,4 +132,4 @@ window.connectWallet=async function(){
 };
 window.addEventListener('pronous:privy-disconnect-request',()=>privyDisconnect?.());
 window.addEventListener('error',e=>{if(String(e?.message||'').toLowerCase().includes('privy'))console.error('PRONOUS Privy error:',e.error||e.message)});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{injectMobileDeskUX();mount()},{once:true});else{injectMobileDeskUX();mount()}
