@@ -7,6 +7,15 @@ const PRIVY_APP_ID='cmuhzdouv000i0cl2u6q438gf';
 let privyConnect=null;
 let privyDisconnect=null;
 
+function exposePrivyProvider(provider,address,chainId){
+  try{Object.defineProperty(window,'ethereum',{value:provider,writable:true,configurable:true})}catch(e){window.ethereum=provider}
+  window.__pronousPrivyConnected=true;
+  window.__pronousPrivyAddress=address;
+  window.__pronousPrivyProvider=provider;
+  if(typeof window.initInjectedWallet==='function')window.initInjectedWallet();
+  window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected',{detail:{provider,address,chainId}}));
+}
+
 function PrivyBridge(){
   const {ready,authenticated,login,logout,createWallet}=usePrivy();
   const {wallets}=useWallets();
@@ -23,10 +32,10 @@ function PrivyBridge(){
         await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x38'}]});
         chain=await provider.request({method:'eth_chainId'});
       }
-      window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected',{detail:{provider,address:wallet.address,chainId:chain}}));
+      exposePrivyProvider(provider,wallet.address,chain);
     };
     privyConnect=connect;
-    privyDisconnect=async()=>{if(authenticated)await logout();window.dispatchEvent(new CustomEvent('pronous:privy-wallet-disconnected'))};
+    privyDisconnect=async()=>{if(authenticated)await logout();window.__pronousPrivyConnected=false;window.dispatchEvent(new CustomEvent('pronous:privy-wallet-disconnected'))};
     window.dispatchEvent(new CustomEvent('pronous:privy-ready',{detail:{ready,authenticated,address:wallets?.[0]?.address||null}}));
   },[ready,authenticated,login,logout,createWallet,wallets]);
 
@@ -38,7 +47,7 @@ function PrivyBridge(){
         if(!wallet)return;
         const provider=await wallet.getEthereumProvider();
         const chain=await provider.request({method:'eth_chainId'});
-        window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected',{detail:{provider,address:wallet.address,chainId:chain}}));
+        exposePrivyProvider(provider,wallet.address,chain);
       }catch(e){console.warn('Privy wallet sync:',e)}
     })();
   },[ready,authenticated,wallets]);
@@ -48,7 +57,7 @@ function PrivyBridge(){
 function mount(){
   let el=document.getElementById('privy-root');
   if(!el){el=document.createElement('div');el.id='privy-root';el.hidden=true;document.body.appendChild(el)}
-  createRoot(el).render(React.createElement(PrivyProvider,{appId:PRIVY_APP_ID,defaultChain:bsc,supportedChains:[bsc],config:{loginMethods:['email','google','wallet'],appearance:{theme:'dark',accentColor:'#F0B90B',showWalletLoginFirst:true},embeddedWallets:{createOnLogin:'all-users',requireUserOwnedRecoveryOnCreate:false}}},React.createElement(PrivyBridge)));
+  createRoot(el).render(React.createElement(PrivyProvider,{appId:PRIVY_APP_ID,defaultChain:bsc,supportedChains:[bsc],config:{embeddedWallets:{createOnLogin:'all-users',requireUserOwnedRecoveryOnCreate:false}}},React.createElement(PrivyBridge)));
 }
 
 window.connectWallet=async function(){
