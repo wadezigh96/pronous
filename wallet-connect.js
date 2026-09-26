@@ -91,7 +91,7 @@ function pickWallet(wallets) {
 
 async function connectInjectedFallback() {
   const provider = window.ethereum;
-  if (!provider?.request) throw new Error('No injected wallet and Privy is unavailable');
+  if (!provider?.request) throw new Error('No browser wallet detected. Open in Chrome/Safari or install MetaMask / Binance Wallet extension.');
   const accounts = await provider.request({ method: 'eth_requestAccounts' });
   await switchToBsc(null, provider);
   exposeWallet(provider, accounts?.[0], await provider.request({ method: 'eth_chainId' }));
@@ -183,6 +183,31 @@ async function bootPrivy() {
   setStatus('WALLET NOT CONNECTED');
 }
 
+function isBinanceInAppBrowser() {
+  const ua = String(navigator.userAgent || '').toLowerCase();
+  return ua.includes('binance') || ua.includes('bnctouch') || !!(window.ethereum && (window.ethereum.isBinance || window.ethereum.isBinanceWallet));
+}
+
+function getInjectedProvider() {
+  const eth = window.ethereum;
+  if (!eth) return null;
+  if (Array.isArray(eth.providers) && eth.providers.length) {
+    return eth.providers.find(p => p.isBinance || p.isBinanceWallet || p.isMetaMask) || eth.providers[0];
+  }
+  return eth;
+}
+
+async function connectInjectedPreferred() {
+  const provider = getInjectedProvider();
+  if (!provider?.request) throw new Error('No injected wallet found');
+  setStatus('REQUESTING INJECTED WALLET');
+  const accounts = await provider.request({ method: 'eth_requestAccounts' });
+  if (!accounts?.length) throw new Error('No account returned from wallet');
+  await switchToBsc(null, provider);
+  const chainId = await provider.request({ method: 'eth_chainId' }).catch(() => '0x38');
+  exposeWallet(provider, accounts[0], chainId);
+}
+
 window.connectWallet = async function connectWallet() {
   try {
     if (window.__pronousPrivyConnected) {
@@ -191,6 +216,26 @@ window.connectWallet = async function connectWallet() {
       return;
     }
     setButton('Connecting…', true);
+
+    // 1) Prefer injected provider (Binance Web3 DApp browser / MetaMask / etc.)
+    //    Privy "login with wallet" often fails inside Binance in-app WebView.
+    if (getInjectedProvider()) {
+      try {
+        await connectInjectedPreferred();
+        return;
+      } catch (injErr) {
+        console.warn('Injected wallet failed, trying Privy:', injErr);
+        if (isBinanceInAppBrowser()) {
+          const hint = 'Binance in-app browser: open this site in Chrome/Safari, or use Connect again after unlocking Binance Wallet. Error: ' + (injErr?.message || injErr);
+          setStatus('WALLET ERROR');
+          setButton('Connect Wallet', false);
+          alert(hint);
+          return;
+        }
+      }
+    }
+
+    // 2) Privy modal (email / google / external wallet)
     if (privyConnect) {
       await privyConnect();
       return;
@@ -210,7 +255,10 @@ window.connectWallet = async function connectWallet() {
     setStatus('WALLET ERROR: ' + message);
     setButton('Connect Wallet', false);
     console.error('PRONOUS connectWallet:', e);
-    alert('Wallet connection failed: ' + message);
+    const tip = isBinanceInAppBrowser()
+      ? '\n\nTip: Open https://pronous.vercel.app in Chrome or Safari outside the Binance app, then connect.'
+      : '';
+    alert('Wallet connection failed: ' + message + tip);
   } finally {
     if (!window.__pronousPrivyConnected) setButton('Connect Wallet', false);
   }
