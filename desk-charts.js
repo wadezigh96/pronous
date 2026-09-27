@@ -104,7 +104,7 @@ function startLiveSignal(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && typeof loadMarket==='function')loadMarket({silent:true})});
 startLiveSignal();
 (function(){
-  [['/desk-live.js?v=rwa1',false],['/cmc-radar.js?v=rwa1',true]].forEach(([src,defer])=>{
+  [['/desk-live.js?v=rwa1',false],['/desk-onchain.js?v=abc1',false],['/cmc-radar.js?v=rwa1',true]].forEach(([src,defer])=>{
     if(document.querySelector('script[src^="'+src.split('?')[0]+'"]')) return;
     const s=document.createElement('script');
     s.src=src; if(defer) s.defer=true;
