@@ -78,8 +78,36 @@ async function loadAssetChart(asset){
   }
 }
 
+function hookLiveDeskDom(){
+  const tape=document.querySelector('.ticker-wrap .ticker');
+  if(tape && !tape.id) tape.id='liveGapTape';
+  const head=document.querySelector('#radar-section .terminal-head');
+  if(head && !document.getElementById('radarPulse')){
+    const h2=head.querySelector('h2');
+    const small=head.querySelector('small');
+    if(h2) h2.textContent='Radar RWA';
+    if(small) small.textContent='TOKENIZED STOCKS GAP';
+    const pulse=document.createElement('span');
+    pulse.id='radarPulse';
+    pulse.className='tag live';
+    pulse.textContent='LIVE';
+    head.appendChild(pulse);
+  }
+}
+
 let signalTimer=null;
-function startLiveSignal(){if(signalTimer)return;signalTimer=setInterval(()=>{if(document.hidden)return;loadMarket({silent:true});},15000)}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadMarket()});
+function startLiveSignal(){
+  if(signalTimer)return;
+  hookLiveDeskDom();
+  signalTimer=setInterval(()=>{if(document.hidden)return;if(typeof loadMarket==='function')loadMarket({silent:true});},15000);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden && typeof loadMarket==='function')loadMarket({silent:true})});
 startLiveSignal();
-(function(){const s=document.createElement('script');s.src='/cmc-radar.js?v=rwa1';s.defer=true;document.head.appendChild(s)})();
+(function(){
+  [['/desk-live.js?v=rwa1',false],['/cmc-radar.js?v=rwa1',true]].forEach(([src,defer])=>{
+    if(document.querySelector('script[src^="'+src.split('?')[0]+'"]')) return;
+    const s=document.createElement('script');
+    s.src=src; if(defer) s.defer=true;
+    document.head.appendChild(s);
+  });
+})();
