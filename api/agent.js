@@ -380,7 +380,7 @@ module.exports = async function handler(req,res) {
     if(action==="quote") {
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress")||asset.tokenContractAddress,amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress")};
       const built=buildQuoteParams(input);
-      if(!built.ok) return res.status(400).json({error:"Invalid quote intent",missing:built.missing});
+      if(!built.ok) return res.status(400).json({error:built.error||"Invalid quote intent",missing:built.missing});
       if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"QUOTE_REQUIRES_LIVE_API",ticker,asset,intent:built.params});
       const quote=await binanceGet("/api/v1/dex/aggregator/quote",built.params);
       return res.status(200).json({mode:"live-quote",network:"BSC",ticker,asset,quote,broadcast:false});
