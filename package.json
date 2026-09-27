@@ -4,37 +4,17 @@
   "description": "PRONOUS — tokenized-stock intelligence desk and MCP tools on BNB Smart Chain",
   "private": false,
   "type": "commonjs",
-  "bin": {
-    "pronous-mcp": "mcp/server.mjs"
-  },
-  "files": [
-    "mcp",
-    "lib",
-    "README.md",
-    "docs/MCP.md"
-  ],
+  "bin": { "pronous-mcp": "mcp/server.mjs" },
+  "files": ["mcp", "lib", "README.md", "docs/MCP.md"],
   "scripts": {
     "mcp": "node mcp/server.mjs",
-    "start": "node mcp/server.mjs"
+    "start": "node mcp/server.mjs",
+    "audit": "node scripts/audit.mjs",
+    "test": "node scripts/audit.mjs"
   },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/server": "^2.1.0",
-    "zod": "^4.0.0"
-  },
-  "keywords": [
-    "mcp",
-    "bnb",
-    "bsc",
-    "tokenized-stocks",
-    "rwa",
-    "pronous"
-  ],
+  "engines": { "node": ">=18" },
+  "dependencies": { "@modelcontextprotocol/server": "^2.1.0", "zod": "^4.0.0" },
+  "keywords": ["mcp", "bnb", "bsc", "tokenized-stocks", "rwa", "pronous"],
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/wadezigh96/pronous.git"
-  }
+  "repository": { "type": "git", "url": "https://github.com/wadezigh96/pronous.git" }
 }
