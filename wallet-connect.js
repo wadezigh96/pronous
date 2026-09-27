@@ -18,26 +18,22 @@ function setStatus(text) {
   const status = document.getElementById('walletStatus');
   if (status && !window.__pronousPrivyConnected) status.textContent = text;
 }
-
 function setButton(label, disabled) {
   const btn = document.getElementById('connectWalletBtn');
   if (!btn) return;
   btn.disabled = !!disabled;
   btn.textContent = label;
 }
-
 function exposeWallet(provider, address, chainId) {
+  if (!provider || !address) throw new Error('Wallet provider/address unavailable');
   window.__pronousPrivyConnected = true;
   window.__pronousPrivyAddress = address;
   window.__pronousPrivyProvider = provider;
   window.__pronousChainId = chainId;
-  window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected', {
-    detail: { provider, address, chainId }
-  }));
+  window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected', { detail: { provider, address, chainId } }));
   setStatus('WALLET CONNECTED');
   setButton('Disconnect', false);
 }
-
 function clearWallet() {
   window.__pronousPrivyConnected = false;
   window.__pronousPrivyAddress = null;
@@ -46,32 +42,15 @@ function clearWallet() {
   setStatus('WALLET NOT CONNECTED');
   setButton('Connect Wallet', false);
 }
-
 async function switchToBsc(wallet, provider) {
   if (typeof wallet?.switchChain === 'function') {
     try { await wallet.switchChain(56); return; } catch (e) { console.warn('Privy switchChain', e); }
   }
   if (!provider?.request) return;
-  try {
-    const chain = await provider.request({ method: 'eth_chainId' });
-    if (String(chain).toLowerCase() === '0x38') return;
-    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
-  } catch (e) {
-    if (e?.code === 4902 || String(e?.message || '').includes('Unrecognized chain')) {
-      await provider.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: '0x38',
-          chainName: 'BNB Smart Chain',
-          nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-          rpcUrls: ['https://bsc-dataseed.binance.org'],
-          blockExplorerUrls: ['https://bscscan.com']
-        }]
-      });
-    }
-  }
+  const chain = await provider.request({ method: 'eth_chainId' }).catch(() => null);
+  if (String(chain).toLowerCase() === '0x38') return;
+  await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
 }
-
 async function bindWallet(wallet) {
   const provider = await wallet.getEthereumProvider();
   await switchToBsc(wallet, provider);
@@ -81,20 +60,25 @@ async function bindWallet(wallet) {
   const chainId = await provider.request({ method: 'eth_chainId' }).catch(() => '0x38');
   exposeWallet(provider, address, chainId);
 }
-
 function pickWallet(wallets) {
-  return wallets?.find(w => w.walletClientType === 'privy')
-    || wallets?.find(w => w.chainType === 'ethereum')
-    || wallets?.[0]
-    || null;
+  return wallets?.find(w => w.walletClientType === 'privy') || wallets?.find(w => w.chainType === 'ethereum') || wallets?.[0] || null;
 }
-
-async function connectInjectedFallback() {
-  const provider = window.ethereum;
-  if (!provider?.request) throw new Error('No browser wallet detected. Open in Chrome/Safari or install MetaMask / Binance Wallet extension.');
+function getInjectedProvider() {
+  const eth = window.ethereum;
+  if (!eth) return null;
+  if (Array.isArray(eth.providers) && eth.providers.length) {
+    return eth.providers.find(p => p.isBinance || p.isBinanceWallet || p.isMetaMask) || eth.providers[0];
+  }
+  return eth;
+}
+async function connectInjectedPreferred() {
+  const provider = getInjectedProvider();
+  if (!provider?.request) throw new Error('No injected wallet found');
+  setStatus('REQUESTING INJECTED WALLET');
   const accounts = await provider.request({ method: 'eth_requestAccounts' });
+  if (!accounts?.length) throw new Error('No account returned from wallet');
   await switchToBsc(null, provider);
-  exposeWallet(provider, accounts?.[0], await provider.request({ method: 'eth_chainId' }));
+  exposeWallet(provider, accounts[0], await provider.request({ method: 'eth_chainId' }).catch(() => '0x38'));
 }
 
 async function bootPrivy() {
@@ -105,15 +89,15 @@ async function bootPrivy() {
   const React = ReactMod.default || ReactMod;
   const { useEffect } = ReactMod;
   const { createRoot } = RD;
-  const { PrivyProvider, usePrivy, useWallets } = PrivyMod;
-  if (!PrivyProvider || !usePrivy || !useWallets) throw new Error('Privy SDK exports missing');
+  const { PrivyProvider, usePrivy, useWallets, useConnectOrCreateWallet } = PrivyMod;
+  if (!PrivyProvider || !usePrivy || !useWallets || !useConnectOrCreateWallet) throw new Error('Privy SDK wallet-connect exports missing');
 
   function Bridge() {
     const privy = usePrivy();
     const { wallets } = useWallets();
+    const { connectOrCreateWallet } = useConnectOrCreateWallet();
     const ready = !!privy.ready;
     const authenticated = !!privy.authenticated;
-    const login = privy.login || privy.connectOrCreateWallet || privy.connectWallet;
     const logout = privy.logout;
 
     useEffect(() => {
@@ -126,24 +110,20 @@ async function bootPrivy() {
       privyConnect = async () => {
         if (!ready) { setStatus('PRIVY LOADING'); return; }
         if (window.__pronousPrivyConnected) return;
-        if (!login) throw new Error('Privy login() is not available');
         setStatus('OPENING PRIVY');
         setButton('Connecting…', true);
-        await login();
+        await connectOrCreateWallet();
       };
       privyDisconnect = async () => {
         try { if (authenticated && logout) await logout(); } finally { clearWallet(); }
       };
       window.dispatchEvent(new CustomEvent('pronous:privy-ready', { detail: { ready, authenticated } }));
-    }, [ready, authenticated, login, logout]);
+    }, [ready, authenticated, connectOrCreateWallet, logout]);
 
     useEffect(() => {
       if (!ready || !authenticated) return;
       const wallet = pickWallet(wallets);
-      if (!wallet) {
-        setStatus('CREATING EMBEDDED WALLET');
-        return;
-      }
+      if (!wallet) { setStatus('CREATING EMBEDDED WALLET'); return; }
       bindWallet(wallet).catch(err => {
         bridgeError = err?.message || String(err);
         setStatus('PRIVY ERROR: ' + bridgeError);
@@ -156,124 +136,49 @@ async function bootPrivy() {
   }
 
   let el = document.getElementById('privy-root');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'privy-root';
-    document.body.appendChild(el);
-  }
-  createRoot(el).render(
-    React.createElement(PrivyProvider, {
-      appId: PRIVY_APP_ID,
-      config: {
-        defaultChain: BSC,
-        supportedChains: [BSC],
-        loginMethods: ['email', 'google', 'wallet'],
-        appearance: {
-          theme: 'dark',
-          accentColor: '#E2B714',
-          walletChainType: 'ethereum-only'
-        },
-        embeddedWallets: {
-          createOnLogin: 'all-users',
-          requireUserOwnedRecoveryOnCreate: false
-        }
-      }
-    }, React.createElement(Bridge))
-  );
+  if (!el) { el = document.createElement('div'); el.id = 'privy-root'; document.body.appendChild(el); }
+  createRoot(el).render(React.createElement(PrivyProvider, {
+    appId: PRIVY_APP_ID,
+    config: {
+      defaultChain: BSC,
+      supportedChains: [BSC],
+      loginMethods: ['email', 'google', 'wallet'],
+      appearance: { theme: 'dark', accentColor: '#E2B714', walletChainType: 'ethereum-only' },
+      embeddedWallets: { createOnLogin: 'all-users', requireUserOwnedRecoveryOnCreate: false }
+    }
+  }, React.createElement(Bridge)));
   setStatus('WALLET NOT CONNECTED');
-}
-
-function isBinanceInAppBrowser() {
-  const ua = String(navigator.userAgent || '').toLowerCase();
-  return ua.includes('binance') || ua.includes('bnctouch') || !!(window.ethereum && (window.ethereum.isBinance || window.ethereum.isBinanceWallet));
-}
-
-function getInjectedProvider() {
-  const eth = window.ethereum;
-  if (!eth) return null;
-  if (Array.isArray(eth.providers) && eth.providers.length) {
-    return eth.providers.find(p => p.isBinance || p.isBinanceWallet || p.isMetaMask) || eth.providers[0];
-  }
-  return eth;
-}
-
-async function connectInjectedPreferred() {
-  const provider = getInjectedProvider();
-  if (!provider?.request) throw new Error('No injected wallet found');
-  setStatus('REQUESTING INJECTED WALLET');
-  const accounts = await provider.request({ method: 'eth_requestAccounts' });
-  if (!accounts?.length) throw new Error('No account returned from wallet');
-  await switchToBsc(null, provider);
-  const chainId = await provider.request({ method: 'eth_chainId' }).catch(() => '0x38');
-  exposeWallet(provider, accounts[0], chainId);
 }
 
 window.connectWallet = async function connectWallet() {
   try {
     if (window.__pronousPrivyConnected) {
-      if (privyDisconnect) await privyDisconnect();
-      else clearWallet();
+      if (privyDisconnect) await privyDisconnect(); else clearWallet();
       return;
     }
     setButton('Connecting…', true);
-
-    // 1) Prefer injected provider (Binance Web3 DApp browser / MetaMask / etc.)
-    //    Privy "login with wallet" often fails inside Binance in-app WebView.
-    if (getInjectedProvider()) {
-      try {
-        await connectInjectedPreferred();
-        return;
-      } catch (injErr) {
-        console.warn('Injected wallet failed, trying Privy:', injErr);
-        if (isBinanceInAppBrowser()) {
-          const hint = 'Binance in-app browser: open this site in Chrome/Safari, or use Connect again after unlocking Binance Wallet. Error: ' + (injErr?.message || injErr);
-          setStatus('WALLET ERROR');
-          setButton('Connect Wallet', false);
-          alert(hint);
-          return;
-        }
-      }
+    const injected = getInjectedProvider();
+    if (injected) {
+      try { await connectInjectedPreferred(); return; }
+      catch (injErr) { console.warn('Injected wallet failed, trying Privy:', injErr); }
     }
-
-    // 2) Privy modal (email / google / external wallet)
-    if (privyConnect) {
-      await privyConnect();
-      return;
-    }
+    if (privyConnect) { await privyConnect(); return; }
     const deadline = Date.now() + 15000;
-    while (!privyConnect && !bridgeError && Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 120));
-    }
-    if (privyConnect) {
-      await privyConnect();
-      return;
-    }
-    console.warn('Privy bridge unavailable, falling back to injected wallet', bridgeError);
-    await connectInjectedFallback();
+    while (!privyConnect && !bridgeError && Date.now() < deadline) await new Promise(r => setTimeout(r, 120));
+    if (privyConnect) { await privyConnect(); return; }
+    throw new Error(bridgeError || 'Privy bridge did not initialize');
   } catch (e) {
     const message = e?.message || String(e);
     setStatus('WALLET ERROR: ' + message);
     setButton('Connect Wallet', false);
     console.error('PRONOUS connectWallet:', e);
-    const tip = isBinanceInAppBrowser()
-      ? '\n\nTip: Open https://pronous.vercel.app in Chrome or Safari outside the Binance app, then connect.'
-      : '';
-    alert('Wallet connection failed: ' + message + tip);
   } finally {
     if (!window.__pronousPrivyConnected) setButton('Connect Wallet', false);
   }
 };
-
 window.addEventListener('pronous:privy-disconnect-request', () => privyDisconnect?.());
-window.addEventListener('pronous:privy-ready', () => {
-  if (window.__pronousConnectQueued && privyConnect && !window.__pronousPrivyConnected) {
-    window.__pronousConnectQueued = false;
-    privyConnect().catch(err => console.error('PRONOUS queued connect:', err));
-  }
-});
-
 bootPrivy().catch(err => {
   bridgeError = err?.message || String(err);
-  setStatus('PRIVY UNAVAILABLE');
+  setStatus('PRIVY UNAVAILABLE: ' + bridgeError);
   console.error('PRONOUS Privy boot failed:', err);
 });
