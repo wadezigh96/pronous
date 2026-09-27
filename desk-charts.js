@@ -79,7 +79,7 @@ async function loadAssetChart(asset){
 }
 
 let signalTimer=null;
-function startLiveSignal(){if(signalTimer)return;signalTimer=setInterval(()=>{if(document.hidden)return;loadMarket();},20000)}
+function startLiveSignal(){if(signalTimer)return;signalTimer=setInterval(()=>{if(document.hidden)return;loadMarket({silent:true});},15000)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadMarket()});
 startLiveSignal();
-(function(){const s=document.createElement('script');s.src='/cmc-radar.js?v=2439fa1';s.defer=true;document.head.appendChild(s)})();
+(function(){const s=document.createElement('script');s.src='/cmc-radar.js?v=rwa1';s.defer=true;document.head.appendChild(s)})();
