@@ -1,8 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "functions": {
-    "api/agent.js": { "regions": ["sin1"] }
-  }
+    "api/agent.js": {
+      "regions": [
+        "sin1"
+      ]
+    }
+  },
+  "headers": [
+    {
+      "source": "/(desk-app|desk-onchain|wallet-connect|execution-gates)\\.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
+  ]
 }
