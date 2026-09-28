@@ -42,7 +42,7 @@ This report is the actual build log. It is not a compliment sheet.
 
 ## 5. AI stack
 
-- Agentic Wallet: documented command contract in `agent/AGENTIC_WALLET.md`. Live wallet execution is not broadcast by the web app.
+- Agentic Wallet: documented command contract in `agent/AGENTIC_WALLET.md`. Live wallet execution is available only after preflight, quote/build, chain simulation, explicit confirmation, transaction-binding hash verification, and a final chain simulation; the user's wallet performs the signing/broadcast. Server-side broadcast remains off.
 - Wallet Skills: targeted for the $2,000 special. Skills are not a substitute for a funded user wallet.
 - BNB Agent Studio: deploy prompt is in `agent/AGENT_STUDIO_DEPLOY.md`. A GitHub repo cannot mint the hosted ERC-8004 identity or x402 runtime; that step is still manual in Studio.
 - Model / IDE: Grok + Vercel + GitHub. Termux/OpenSSL used to generate Ed25519 keys that we later abandoned for HMAC after the key-type mismatch.
