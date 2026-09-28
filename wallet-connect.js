@@ -307,9 +307,9 @@ async function disconnectActive() {
 }
 async function bootPrivy() {
   setStatus('PRIVY LOADING');
-  const ReactMod = await import('https://esm.sh/react@18.3.1?target=es2022');
-  const RD = await import('https://esm.sh/react-dom@18.3.1/client?target=es2022');
-  const PrivyMod = await import('https://esm.sh/@privy-io/react-auth@2.13.0?deps=react@18.3.1,react-dom@18.3.1&target=es2022');
+  const ReactMod = await import('/vendor/privy-bundle.js');
+  const RD = ReactMod;
+  const PrivyMod = ReactMod;
   const React = ReactMod.default || ReactMod;
   const { useEffect } = ReactMod;
   const { createRoot } = RD;
