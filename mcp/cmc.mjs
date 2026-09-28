@@ -1,23 +1,21 @@
-const CMC_BASE = "https://pro-api.coinmarketcap.com";
+const CMC_KEYLESS_BASE = "https://pro-api.coinmarketcap.com/public-api";
+const CMC_AUTH_BASE = "https://pro-api.coinmarketcap.com";
 
-function apiKey() {
+function getBaseAndHeaders() {
   const key = process.env.CMC_API_KEY;
-  if (!key) throw Object.assign(new Error("CMC_API_KEY_NOT_CONFIGURED"), { code: "CMC_API_KEY_NOT_CONFIGURED" });
-  return key;
+  return key
+    ? { base: CMC_AUTH_BASE, headers: { Accept: "application/json", "X-CMC_PRO_API_KEY": key }, authenticated: true }
+    : { base: CMC_KEYLESS_BASE, headers: { Accept: "application/json" }, authenticated: false };
 }
 
 async function getJSON(path, params = {}) {
+  const { base, headers, authenticated } = getBaseAndHeaders();
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
   }
-  const url = CMC_BASE + path + (query.toString() ? "?" + query.toString() : "");
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "X-CMC_PRO_API_KEY": apiKey()
-    }
-  });
+  const url = base + path + (query.toString() ? "?" + query.toString() : "");
+  const response = await fetch(url, { headers });
   const text = await response.text();
   let data;
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
@@ -27,15 +25,16 @@ async function getJSON(path, params = {}) {
     error.data = data;
     throw error;
   }
-  return data;
+  return { data, authenticated };
 }
 
 export async function cmcGlobalContext() {
-  const data = await getJSON("/v1/global-metrics/quotes/latest", { convert: "USD" });
+  const { data, authenticated } = await getJSON("/v1/global-metrics/quotes/latest", { convert: "USD" });
   const q = data?.data?.quote?.USD || {};
   return {
     source: "coinmarketcap-api",
-    authenticated: true,
+    authenticated,
+    keyless: !authenticated,
     timestamp: data?.status?.timestamp || null,
     totalMarketCapUsd: q.total_market_cap ?? null,
     totalVolume24hUsd: q.total_volume_24h ?? null,
@@ -49,17 +48,18 @@ export async function cmcGlobalContext() {
 export async function cmcCryptoPrice(symbol) {
   const normalized = String(symbol || "").trim().toUpperCase();
   if (!/^[A-Z0-9._-]{1,20}$/.test(normalized)) throw new Error("INVALID_CMC_SYMBOL");
-  const data = await getJSON("/v2/cryptocurrency/quotes/latest", {
+  const { data, authenticated } = await getJSON("/v2/simple/price", {
     symbol: normalized,
     convert: "USD"
   });
-  const entries = Object.values(data?.data || {});
+  const entries = Array.isArray(data?.data) ? data.data : Object.values(data?.data || {});
   const item = entries[0];
-  const quote = item?.quote?.USD || {};
+  const quote = item?.quotes?.[0] || item?.quote?.USD || {};
   if (!item || quote.price == null) throw Object.assign(new Error("CMC_ASSET_NOT_FOUND"), { status: 404 });
   return {
     source: "coinmarketcap-api",
-    authenticated: true,
+    authenticated,
+    keyless: !authenticated,
     symbol: item.symbol,
     name: item.name,
     priceUsd: quote.price,
