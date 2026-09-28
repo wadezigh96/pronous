@@ -17,21 +17,26 @@ function parseEd25519(secret) {
   try { return crypto.createPrivateKey({key:der,format:"der",type:"pkcs8"}); }
   catch (_) { if(der.length===32) return crypto.createPrivateKey({key:Buffer.concat([Buffer.from("302e020100300506032b657004220420","hex"),der]),format:"der",type:"pkcs8"}); throw _; }
 }
-function signedGet(path) {
+async function signedGet(path) {
   const apiKey = cred(process.env.BINANCE_WEB3_API_KEY);
   const secret = cred(process.env.BINANCE_WEB3_API_SECRET);
   if (!apiKey || !secret) throw new Error("LIVE_API_NOT_CONFIGURED");
   const timestamp = new Date().toISOString();
   const signedPath = wirePath(path);
   const prehash = timestamp + "GET" + signedPath;
-  const signature = crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
+  const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
+  if (!["HMAC_SHA256","HMAC-SHA256","ED25519"].includes(algorithm)) throw new Error("UNSUPPORTED_SIGN_ALGO");
+  const signature = algorithm === "ED25519"
+    ? crypto.sign(null, Buffer.from(prehash, "utf8"), parseEd25519(secret)).toString("base64")
+    : crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
   const r = await fetch(BASE + path, {
     headers: {
       "X-OC-APIKEY": apiKey,
       "X-OC-TIMESTAMP": timestamp,
       "X-OC-SIGN": signature,
-      "X-OC-RECV-WINDOW": process.env.BINANCE_WEB3_RECV_WINDOW || "60000"
-    }
+      "X-OC-RECV-WINDOW": RECV_WINDOW
+    },
+    signal: AbortSignal.timeout(8000)
   });
   const data = await r.json();
   return { ok: r.ok && (data.code === undefined || data.code === 0), status: r.status, data };
