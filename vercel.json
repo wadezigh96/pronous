@@ -13,7 +13,7 @@
   },
   "headers": [
     {
-      "source": "/(desk-app|desk-onchain|wallet-connect|execution-gates)\\.js",
+      "source": "/(desk-app|desk-onchain|wallet-connect|wallet-state|execution-gates)\\.js",
       "headers": [
         {
           "key": "Cache-Control",
