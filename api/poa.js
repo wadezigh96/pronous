@@ -39,6 +39,6 @@ module.exports = async function handler(req,res){
 
     return res.status(400).json({error:"Unknown POA action"});
   } catch (e) {
-    return res.status(400).json({agent:"PRONOUS",skill:"proof_of_action",error:e.message||"POA error"});
+    return safeError(res, 400, "POA_REQUEST_FAILED");
   }
 };
