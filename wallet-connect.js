@@ -43,7 +43,7 @@ function setStatus(text) {
 }
 function setWalletDisplay(wallet) {
   const source = document.getElementById('walletSource');
-  const addr = document.getElementById('walletAddress');
+  const addr = document.getElementById('walletAddressTop');
   if (source) source.textContent = wallet ? (wallet.source === 'privy' ? 'PRIVY' : 'BROWSER WALLET') : 'NO WALLET';
   if (addr) addr.textContent = wallet ? shortAddress(wallet.address) : 'Not connected';
 }
