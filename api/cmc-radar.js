@@ -78,6 +78,7 @@ async function loadIssuerTokens(limit) {
   return issuers.map(i => ({ kind: 'rwa-issuer', category: 'tokenization', id: i.issuer_id, name: i.name, symbol: 'ISSUER', assetType: 'tokenization', tokenCount: num(i.num_tokens), price: null, change1h: null, change24h: null, volume24h: null, marketCap: null, lastUpdated: body.status?.timestamp })).slice(0, limit);
 }
 module.exports = async function handler(req, res) {
+  if (!guardRequest(req, res)) return;
   try {
     const url = new URL(req.url, 'http://localhost');
     const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 15, 5), 40);
