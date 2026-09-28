@@ -42,10 +42,10 @@ module.exports = async function handler(req, res) {
       volume: Number(row[4]), time: Number(row[5]), trades: Number(row[6] || 0)
     } : row);
     if (!r.ok || (data.code !== undefined && data.code !== 0)) {
-      return res.status(r.status || 502).json({ error: data.msg || "Candle error", details: data });
+      return safeError(res, r.status || 502, "CANDLE_UPSTREAM_FAILED");
     }
     return res.status(200).json({ mode: "live-data", source: "binance-web3-candles", bar, token, candles });
   } catch (e) {
-    return res.status(500).json({ error: e.message || "Candle error" });
+    return safeError(res, 500, "CANDLE_REQUEST_FAILED");
   }
 };
