@@ -339,6 +339,8 @@ async function simulateEvmTransaction(evmTx = {}) {
 
 module.exports = async function handler(req,res) {
   if (!guardRequest(req, res)) return;
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
   try {
     const url=new URL(req.url,"http://localhost");
     const action=url.searchParams.get("action")||"scan";
