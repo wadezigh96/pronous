@@ -4,18 +4,29 @@ PRONOUS can enrich its read-only MCP surface with official CoinMarketCap market 
 
 ## What was added
 
-- `mcp/cmc.mjs` uses CoinMarketCap's official keyless public REST surface.
+- `mcp/cmc.mjs` uses CoinMarketCap's official Pro REST API.
+- Authentication is supplied at runtime through `CMC_API_KEY`; the key is never stored in the repository.
 - `cmc_market_context` is exposed by `mcp/server.mjs`.
 - The tool can return global crypto market context and, optionally, a simple price lookup for a crypto symbol.
 - It never signs, places, or broadcasts a transaction.
-- No CoinMarketCap API key is stored in the repository.
 
-CoinMarketCap documents the keyless public API at `https://pro-api.coinmarketcap.com/public-api` and its AI Agent Hub/MCP separately. The official MCP server remains available at `https://mcp.coinmarketcap.com/mcp` when a CMC API key is desired.
+CoinMarketCap's current official MCP endpoint is `https://mcp.coinmarketcap.com/mcp` and uses the `X-CMC-MCP-API-KEY` header. CoinMarketCap also documents an x402 MCP endpoint for pay-per-request access without an API key. PRONOUS's local adapter deliberately does not make payments; it uses an ordinary runtime API key instead.
+
+## Runtime configuration
+
+Set the key only in the local environment or deployment secret store:
+
+```bash
+export CMC_API_KEY="YOUR_CMC_API_KEY"
+```
+
+Never commit the value or place it in source code.
 
 ## Local MCP test
 
 ```bash
 npm run build
+node --test scripts/cmc.test.mjs
 node mcp/server.mjs
 ```
 
@@ -31,11 +42,11 @@ Example input:
 {"symbol":"BTC"}
 ```
 
-Example use from an MCP client is to ask for CMC global market context, or request a specific crypto symbol. PRONOUS should treat the CMC result as external market context, not as an execution authorization or tokenized-stock reference price.
+PRONOUS should treat the CMC result as external crypto market context, not as an execution authorization or tokenized-stock reference price.
 
 ## Optional direct CMC MCP
 
-For Claude Code/Cursor/Windsurf, CoinMarketCap also provides a separate MCP endpoint:
+For Claude Code/Cursor/Windsurf, CoinMarketCap provides a separate MCP endpoint:
 
 ```json
 {
