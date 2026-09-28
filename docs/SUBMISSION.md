@@ -56,7 +56,7 @@ Market (bStocks / Ondo / xStocks)
 - **On-chain anchor:** `anchor(poaHash, status, poaId)` — does **not** execute swaps.
 - **Network:** BSC mainnet (chainId 56) only.
 
-See also: [POA_ONCHAIN.md](./POA_ONCHAIN.md) · [PRODUCT.md](./PRODUCT.md) · [HACKATHON.md](./HACKATHON.md) · [DEVEX_REPORT.md](./DEVEX_REPORT.md)
+See also: [CHECKLIST.md](./CHECKLIST.md) · [POA_ONCHAIN.md](./POA_ONCHAIN.md) · [PRODUCT.md](./PRODUCT.md) · [HACKATHON.md](./HACKATHON.md) · [DEVEX_REPORT.md](./DEVEX_REPORT.md)
 
 ---
 
