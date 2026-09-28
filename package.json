@@ -18,7 +18,7 @@
     "start": "node mcp/server.mjs",
     "audit": "node scripts/audit.mjs",
     "test": "npm run build && node --test scripts/*.test.mjs && node scripts/audit.mjs",
-    "build": "node scripts/build-vendor.mjs"
+    "build": "node build-vendor.mjs"
   },
   "engines": {
     "node": ">=18"
