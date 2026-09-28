@@ -71,8 +71,8 @@ function resetExecution(reason) {
   window.latestQuote = null;
   window.preflightReady = false;
 }
-function emitWalletChanged(next, reason) {
-  const prev = activeWallet;
+function emitWalletChanged(next, reason, previous = activeWallet) {
+  const prev = previous;
   const changed = !prev ||
     prev.source !== next?.source ||
     String(prev.address || '').toLowerCase() !== String(next?.address || '').toLowerCase() ||
@@ -200,8 +200,9 @@ async function ensureBsc(provider = activeProvider) {
   const after = await provider.request({ method: 'eth_chainId' });
   if (String(after).toLowerCase() !== BSC_HEX) throw new Error('Wallet did not switch to BSC Mainnet');
   if (activeWallet) {
+    const previous = activeWallet;
     activeWallet = { ...activeWallet, chainId: 56 };
-    emitWalletChanged(activeWallet, 'switched to BSC');
+    emitWalletChanged(activeWallet, 'switched to BSC', previous);
   }
   return 56;
 }
@@ -212,10 +213,11 @@ function setActiveWallet(source, provider, address, chainId) {
     detachProviderListeners();
     resetExecution('wallet source changed');
   }
+  const previous = activeWallet;
   activeProvider = provider;
   activeWallet = next;
   attachProviderListeners(provider, source);
-  emitWalletChanged(next, source === 'privy' ? 'privy wallet connected' : 'browser wallet connected');
+  emitWalletChanged(next, source === 'privy' ? 'privy wallet connected' : 'browser wallet connected', previous);
   setStatus(source === 'privy' ? 'PRIVY WALLET CONNECTED' : 'BROWSER WALLET CONNECTED');
   setButton('Disconnect', false);
 }
