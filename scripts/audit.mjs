@@ -18,6 +18,11 @@ function ok(label, pass) {
 for (const file of files) {
   ok(`${file} exists`, fs.existsSync(file));
   if (!fs.existsSync(file)) continue;
+  if (file === 'package.json') {
+    try { JSON.parse(fs.readFileSync(file, 'utf8')); ok('package.json JSON', true); }
+    catch { ok('package.json JSON', false); }
+    continue;
+  }
   try { execFileSync(process.execPath, ['--check', file], { stdio: 'ignore' }); ok(`${file} syntax`, true); }
   catch { ok(`${file} syntax`, false); }
 }
