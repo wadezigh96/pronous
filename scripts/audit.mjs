@@ -87,6 +87,7 @@ for (const file of frontendFiles) {
 }
 
 const wallet = readText('wallet-connect.js') || '';
+const page = readText('index.html') || '';
 const cmc = readText('api/cmc-radar.js') || '';
 const execution = readText('lib/execution.js') || '';
 const gates = readText('lib/execution-gates.js') || '';
@@ -99,7 +100,7 @@ ok('Execution confirmation gate', execution.includes('confirmationGate') && exec
 ok('Pure canExecute gate exists', gates.includes('function canExecute'));
 ok('Pure reset state exists', gates.includes('function resetExecutionState'));
 ok('Pure in-flight guard exists', gates.includes('function beginExecution'));
-ok('Wallet source chooser', wallet.includes('Browser wallet') && wallet.includes('Email / Google (Privy)'));
+ok('Wallet source chooser', page.includes('Browser wallet') && page.includes('Email / Google (Privy)'));
 ok('Privy wallet creation policy', wallet.includes("createOnLogin: 'users-without-wallets'") && wallet.includes('showWalletUIs: true'));
 ok('Privy is not auto-bound without user preference', wallet.includes("getPreference() !== 'privy'"));
 ok('Wallet provider is not exposed globally', !/window\.__pronousPrivyProvider|window\.walletProvider|window\.ethereum\s*=/m.test(wallet));
