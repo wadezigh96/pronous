@@ -91,6 +91,6 @@ module.exports = async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=45, stale-while-revalidate=30');
     return res.status(200).json({ source: 'CoinMarketCap', sourceMode: 'authenticated', universe: 'RWA + Tokenisation', freshness: 'CMC RWA quotes ~60s; issuer map ~30s', timestamp: rwaResult.timestamp || new Date().toISOString(), rwaAssets, rwaTokens: [], tokenisation: issuers, radar, counts: { rwaAssets: rwaAssets.length, rwaTokens: 0, tokenisation: issuers.length } });
   } catch (e) {
-    return res.status(502).json({ error: 'CMC_RADAR_UNAVAILABLE', message: e.message || String(e), source: 'CoinMarketCap', universe: 'RWA + Tokenisation' });
+    return safeError(res, 502, 'CMC_RADAR_UNAVAILABLE');
   }
 };
