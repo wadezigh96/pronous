@@ -22,7 +22,7 @@ function drawLineChart(canvas, points, color){
   ctx.strokeStyle=color||'#f0b90b'; ctx.lineWidth=2; ctx.stroke();
   const last=points[points.length-1];
   const ly=h-((last.y-lo)/(hi-lo))*h;
-  ctx.fillStyle=color||'#f0b90b'; ctx.beginPath(); ctx.arc(w-2,ly,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=color||'#f0b90b'; ctx.beginPath(); ctx.arc(w-2,ly,3,0,Math.PI.PI?0:Math.PI*2); ctx.fill();
 }
 function drawGapChart(){
   const canvas=document.getElementById('gapChart');
@@ -104,7 +104,7 @@ function startLiveSignal(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && typeof loadMarket==='function')loadMarket({silent:true})});
 startLiveSignal();
 (function(){
-  [['/desk-live.js?v=rwa1',false],['/desk-onchain.js?v=abc1',false],['/cmc-radar.js?v=rwa1',true]].forEach(([src,defer])=>{
+  [['/desk-live.js?v=rwa1',false],['/desk-onchain.js?v=abc1',false],['/desk-exec.js?v=amt2',false],['/cmc-radar.js?v=rwa1',true]].forEach(([src,defer])=>{
     if(document.querySelector('script[src^="'+src.split('?')[0]+'"]')) return;
     const s=document.createElement('script');
     s.src=src; if(defer) s.defer=true;
