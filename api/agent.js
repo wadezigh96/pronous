@@ -437,6 +437,10 @@ module.exports = async function handler(req,res) {
 
     if(action==="build") {
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress"),amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress"),quoteId:url.searchParams.get("quoteId"),slippagePercent:url.searchParams.get("slippagePercent"),approveTransaction:url.searchParams.get("approveTransaction")};
+      if(!isAmount(input.amount)) return res.status(400).json({error:"Invalid amount"});
+      if(input.fromTokenAddress && !isAddress(input.fromTokenAddress)) return res.status(400).json({error:"Invalid fromTokenAddress"});
+      if(input.toTokenAddress && !isAddress(input.toTokenAddress)) return res.status(400).json({error:"Invalid toTokenAddress"});
+      if(input.userWalletAddress && !isAddress(input.userWalletAddress)) return res.status(400).json({error:"Invalid userWalletAddress"});
       const built=buildSwapParams(input);
       if(!built.ok) return res.status(400).json({error:"Invalid swap intent",missing:built.missing});
       if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"BUILD_REQUIRES_LIVE_API",ticker,asset,intent:built.params,broadcast:false});
@@ -513,6 +517,9 @@ module.exports = async function handler(req,res) {
     if(action==="preflight") {
       const amount=url.searchParams.get("amount")||"0";
       const maxSpend=url.searchParams.get("maxSpend")||"100";
+      if(!isAmount(amount) || !isAmount(maxSpend)) return res.status(400).json({error:"Invalid amount or maxSpend"});
+      const spend=validateSpendCap(amount,maxSpend);
+      if(!spend.ok) return res.status(400).json({error:spend.error});
       return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend}),broadcast:false});
     }
     if(action==="loop") {
