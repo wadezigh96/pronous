@@ -1,9 +1,12 @@
+const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const { createPOA, verifyPOA, buildIntentHash } = require("../lib/poa");
 
 module.exports = async function handler(req,res){
+  if (!guardRequest(req, res)) return;
   try {
     const url = new URL(req.url,"http://localhost");
     const action = url.searchParams.get("action") || "info";
+    if (!["info","create","verify"].includes(action)) return res.status(400).json({error:"Unknown POA action"});
 
     if (action === "info") {
       return res.status(200).json({
