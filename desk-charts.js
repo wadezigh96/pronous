@@ -22,7 +22,7 @@ function drawLineChart(canvas, points, color){
   ctx.strokeStyle=color||'#f0b90b'; ctx.lineWidth=2; ctx.stroke();
   const last=points[points.length-1];
   const ly=h-((last.y-lo)/(hi-lo))*h;
-  ctx.fillStyle=color||'#f0b90b'; ctx.beginPath(); ctx.arc(w-2,ly,3,0,Math.PI.PI?0:Math.PI*2); ctx.fill();
+  ctx.fillStyle=color||'#f0b90b'; ctx.beginPath(); ctx.arc(w-2,ly,3,0,Math.PI*2); ctx.fill();
 }
 function drawGapChart(){
   const canvas=document.getElementById('gapChart');
