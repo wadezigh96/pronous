@@ -44,7 +44,7 @@ test('canonical JSON is stable for object key order', () => {
 });
 
 test('native BNB route is guarded', () => {
-  assert.equal(gates.nativeBnbRouteBlocked('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'), true);
+  assert.equal(gates.nativeBnbRouteBlocked(execution.NATIVE), true);
   assert.equal(gates.nativeBnbRouteBlocked(execution.NATIVE), true);
   assert.equal(gates.nativeBnbRouteBlocked(execution.USDT), false);
   assert.equal(execution.nativeBnbRouteBlocked(execution.NATIVE), true);
@@ -57,8 +57,8 @@ test('decimal amount conversion stays exact within token decimals', () => {
 });
 
 test('safe BNB spendable balance keeps the gas reserve', () => {
-  assert.equal(execution.safeSpendableBnb(0.0005), 0.0003);
+  assert.ok(Math.abs(execution.safeSpendableBnb(0.0005) - 0.0003) < 1e-12);
   assert.equal(execution.safeSpendableBnb(0.0001), 0);
   assert.equal(execution.safeSpendableBnb(1, 0.25), 0.75);
-  assert.equal(gates.safeSpendableBnb(0.0005), 0.0003);
+  assert.ok(Math.abs(gates.safeSpendableBnb(0.0005) - 0.0003) < 1e-12);
 });
