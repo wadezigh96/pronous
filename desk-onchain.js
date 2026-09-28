@@ -350,22 +350,25 @@
       const toToken = asset && asset.tokenContractAddress;
       const amount = document.getElementById("amount") && document.getElementById("amount").value;
       const t = ((document.getElementById("ticker") && document.getElementById("ticker").value) || "NVDA").trim().toUpperCase();
-      set("Refreshing quote\u2026");
-      const qp = new URLSearchParams({ action: "quote", ticker: t, fromTokenAddress: fromToken, amount: amount, userWalletAddress: w.address });
+      set("Quote + build…");
+      const qp = new URLSearchParams({
+        action: "quoteBuild",
+        ticker: t,
+        fromTokenAddress: fromToken,
+        amount: amount,
+        userWalletAddress: w.address,
+        vendor: "LiquidMesh",
+        slippagePercent: "0.5",
+        approveTransaction: "true"
+      });
       if (toToken) qp.set("toTokenAddress", toToken);
-      const qr = await fetch("/api/agent?" + qp.toString());
-      const quoteWrap = await qr.json();
-      if (!qr.ok || quoteWrap.error) throw new Error(quoteWrap.error || "Quote failed");
-      window.latestQuote = quoteWrap;
-      const quoteId = pickQuoteId(quoteWrap.quote || quoteWrap);
-      const mode = pickExecutionMode(quoteWrap.quote || quoteWrap);
-      set("Building swap (" + (mode || "AUTO") + ")\u2026");
-      const bp = new URLSearchParams({ action: "build", ticker: t, fromTokenAddress: fromToken, amount: amount, userWalletAddress: w.address, approveTransaction: "true" });
-      if (toToken) bp.set("toTokenAddress", toToken);
-      if (quoteId) bp.set("quoteId", quoteId);
-      const br = await fetch("/api/agent?" + bp.toString());
+      const br = await fetch("/api/agent?" + qp.toString());
       const built = await br.json();
-      if (!br.ok || built.error) throw new Error(built.error || "Build failed");
+      if (!br.ok || built.error) throw new Error(built.error || "Quote + build failed");
+      window.latestQuote = built;
+      const quoteId = pickQuoteId(built.built || built);
+      const mode = pickExecutionMode(built.built || built);
+      set("Built swap (" + (mode || "SWAP") + ") · simulation required…");
       const rfq = pickRfq(built);
       const tx = pickTx(built);
       if (rfq && rfq.typedDataToSign) {
