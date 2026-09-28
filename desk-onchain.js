@@ -126,9 +126,18 @@
         btn.id = "executeOnchainBtn";
         btn.type = "button";
         btn.textContent = "Execute on-chain";
-        btn.disabled = true;
+        btn.disabled = false;
         btn.onclick = async function () {
-          if (!window.__pronousSimulated || !wallet().address) return;
+          if (!wallet().address) {
+            const status = document.getElementById("poaGateStatus");
+            if (status) status.textContent = "Connect wallet before Execute.";
+            return;
+          }
+          if (!window.__pronousSimulated) {
+            const status = document.getElementById("poaGateStatus");
+            if (status) status.textContent = "Run simulation first. Execute stays gated.";
+            return;
+          }
           if (typeof window.confirmAction === "function") await window.confirmAction();
           if (window.__pronousSimulated && window.executeOnchain) await window.executeOnchain();
         };
@@ -418,10 +427,12 @@
   function enableExecuteIfReady() {
     const btn = document.getElementById("executeOnchainBtn");
     if (!btn) return;
-    btn.disabled = !(window.__pronousSimulated && wallet().address);
-    btn.title = btn.disabled
-      ? "Connect wallet and pass simulation first."
-      : "Click to confirm and send the swap from your wallet.";
+    btn.disabled = false;
+    btn.title = wallet().address
+      ? (window.__pronousSimulated
+        ? "Click to confirm and send the swap from your wallet."
+        : "Run simulation first. Execute will remain gated until simulation passes.")
+      : "Connect wallet first.";
   }
 
   window.addEventListener("pronous:simulation-passed", enableExecuteIfReady);
