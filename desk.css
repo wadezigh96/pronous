@@ -60,3 +60,16 @@ input{border-radius:12px !important;background:rgba(8,9,12,.85) !important;borde
 .topbar-left{flex-shrink:0}.topbar-search{flex:1;max-width:420px;margin:0 12px;display:flex;align-items:center;gap:8px;background:rgba(18,16,12,.75);border:1px solid rgba(245,190,55,.16);border-radius:999px;padding:8px 16px;backdrop-filter:blur(12px)}.topbar-search .search-icon{color:var(--muted);font-size:14px;opacity:.8}.topbar-search input{border:none !important;background:transparent !important;box-shadow:none !important;padding:4px 0 !important;font-size:13px;color:var(--text);width:100%;font-family:Inter,system-ui,sans-serif !important}.topbar-search input::placeholder{color:var(--muted);opacity:.75}.topbar-search input:focus{outline:none}
 @media(max-width:900px){.topbar-search{display:none}.topbar-left .topbar-sub{display:none}.wrap{padding:0 14px 96px !important}.card{padding:18px !important;border-radius:18px !important}.kpi{min-height:108px !important;padding:16px !important}.dashboard-head h1{font-size:34px !important}.topbar{height:68px !important}.topbar-sub,.health{display:none}.wallet-status{display:none}.wallet-bar button{min-width:112px}.kpis{grid-template-columns:1fr 1fr;gap:9px}.grid{grid-template-columns:1fr}}
 @media(max-width:560px){.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(n+3){display:none}.dashboard-head p{font-size:12px}.card{padding:16px;border-radius:16px}.gap-chart canvas{height:190px}.exec-pipeline{grid-template-columns:1fr 1fr}.exec-step{min-height:72px}}
+
+.wallet-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.wallet-source{font:800 9px "IBM Plex Mono",monospace;color:#f5c542;letter-spacing:.08em}
+.wallet-status{font:800 9px "IBM Plex Mono",monospace;color:var(--dim)}
+.wallet-address{font:10px "IBM Plex Mono",monospace;color:var(--muted)}
+.wallet-chooser{position:fixed;inset:0;z-index:80;display:block}
+.wallet-chooser[hidden]{display:none}
+.wallet-chooser-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.74);backdrop-filter:blur(6px)}
+.wallet-chooser-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(430px,92vw);padding:22px;border:1px solid rgba(245,190,55,.3);border-radius:18px;background:linear-gradient(160deg,#11120f,#050812);box-shadow:0 25px 90px rgba(0,0,0,.58)}
+.wallet-chooser-panel h2{margin:8px 0 7px;font-size:22px}
+.wallet-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
+.wallet-cancel{margin-top:9px}
+@media(max-width:600px){.topbar{height:auto;min-height:68px;padding:10px 0;flex-wrap:wrap;gap:8px}.wallet-bar{width:100%;justify-content:flex-start}.wallet-choice-grid{grid-template-columns:1fr}}
