@@ -1,3 +1,4 @@
+const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const { SKILLS } = require("../lib/skills");
 
 function answerQuestion(q, ticker) {
@@ -28,6 +29,7 @@ module.exports = async function handler(req,res) {
   const url=new URL(req.url,"http://localhost");
   const q=(url.searchParams.get("q")||"").trim();
   const ticker=(url.searchParams.get("ticker")||"NVDA").toUpperCase();
-  if(!q) return res.status(400).json({error:"Question is required"});
+  if(!q || q.length > 500) return res.status(400).json({error:"Invalid question"});
+  if(ticker && !/^[A-Z0-9.-]{1,20}$/.test(ticker)) return res.status(400).json({error:"Invalid ticker"});
   return res.status(200).json({agent:"PRONOUS",ticker,answer:answerQuestion(q,ticker),mode:"rule-based-assistant",skills:SKILLS.length});
 };
