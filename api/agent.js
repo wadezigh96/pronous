@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { calculateSpreadPct, normalizeAsset, assessQuote, isSupportedPlatform } = require("../lib/market");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
-const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
+const { guardRequest, isAddress, isAmount, safeError, requireSameOrigin } = require("../lib/http-policy");
 const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 
 const BASE = "https://web3.binance.com/build";
@@ -147,7 +147,7 @@ async function binanceGet(path, params = {}) {
   const headers = signedHeaders("GET", requestPath, "");
   if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
   const debug = headers._debug; delete headers._debug;
-  const r = await fetch(BASE + requestPath, {headers});
+  const r = await fetch(BASE + requestPath, {headers, signal: AbortSignal.timeout(8000)});
   const data = await r.json();
   if (!r.ok || (data.code !== undefined && data.code !== 0)) {
     const e = new Error(data.msg || "Binance Web3 API error");
@@ -163,7 +163,7 @@ async function binancePost(path, body = {}) {
   const headers = signedHeaders("POST", path, requestBody);
   if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
   headers["Content-Type"] = "application/json";
-  const r = await fetch(BASE + path, {method:"POST",headers,body:requestBody});
+  const r = await fetch(BASE + path, {method:"POST",headers,body:requestBody,signal:AbortSignal.timeout(8000)});
   const data = await r.json();
   if (!r.ok || (data.code !== undefined && data.code !== 0)) {
     const e = new Error(data.msg || "Binance Web3 API error");
@@ -319,7 +319,8 @@ async function simulateEvmTransaction(evmTx = {}) {
   const rpc = await fetch(rpcUrl, {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]})
+    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]}),
+    signal:AbortSignal.timeout(8000)
   });
   const body = await rpc.json();
   if (!rpc.ok || body.error) {
@@ -339,6 +340,8 @@ async function simulateEvmTransaction(evmTx = {}) {
 
 module.exports = async function handler(req,res) {
   if (!guardRequest(req, res)) return;
+  if (req.method !== "GET") return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
+  if (!requireSameOrigin(req, res)) return;
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
   try {
