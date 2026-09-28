@@ -127,7 +127,11 @@
         btn.type = "button";
         btn.textContent = "Execute on-chain";
         btn.disabled = true;
-        btn.onclick = function () { if (window.executeOnchain) window.executeOnchain(); };
+        btn.onclick = async function () {
+          if (!window.__pronousSimulated || !wallet().address) return;
+          if (typeof window.confirmAction === "function") await window.confirmAction();
+          if (window.__pronousSimulated && window.executeOnchain) await window.executeOnchain();
+        };
         row.insertBefore(btn, row.firstChild);
       }
     }
@@ -415,7 +419,12 @@
     const btn = document.getElementById("executeOnchainBtn");
     if (!btn) return;
     btn.disabled = !(window.__pronousSimulated && wallet().address);
+    btn.title = btn.disabled
+      ? "Connect wallet and pass simulation first."
+      : "Click to confirm and send the swap from your wallet.";
   }
+
+  window.addEventListener("pronous:simulation-passed", enableExecuteIfReady);
 
   const origConfirm = window.confirmAction;
   window.confirmAction = async function () {
