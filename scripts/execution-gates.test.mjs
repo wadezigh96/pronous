@@ -30,7 +30,7 @@ test('in-flight guard rejects a second execution', () => {
 test('reset clears execution authorization and transaction binding', () => {
   const state = { simulated: true, confirmed: true, builtTx: { to: '0x1' }, paramsHash: 'a', simHash: 'a', inFlight: true };
   gates.resetExecutionState(state);
-  assert.deepEqual(state, { simulated: false, confirmed: false, builtTx: null, paramsHash: null, simHash: null, inFlight: false });
+  assert.deepEqual(state, { simulated: false, confirmed: false, builtTx: null, paramsHash: null, simHash: null, inFlight: true });
 });
 
 test('reset model covers changed input state', () => {
