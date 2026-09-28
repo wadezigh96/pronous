@@ -124,18 +124,29 @@
       const btn = existingExecute;
       btn.__pronousBound = true;
         btn.onclick = async function () {
+          const status = document.getElementById("poaGateStatus");
           if (!wallet().address) {
-            const status = document.getElementById("poaGateStatus");
             if (status) status.textContent = "Connect wallet before Execute.";
             return;
           }
           if (!window.__pronousSimulated) {
-            const status = document.getElementById("poaGateStatus");
             if (status) status.textContent = "Run simulation first. Execute stays gated.";
             return;
           }
-          if (typeof window.confirmAction === "function") await window.confirmAction();
-          if (window.__pronousSimulated && window.executeOnchain) await window.executeOnchain();
+          if (typeof window.confirmAction !== "function") {
+            if (status) status.textContent = "Confirmation handler unavailable. Execution blocked.";
+            return;
+          }
+          const result = await window.confirmAction();
+          if (result !== true) {
+            if (status) status.textContent = "Confirmation was not accepted. Execution blocked.";
+            return;
+          }
+          if (typeof window.executeOnchain !== "function") {
+            if (status) status.textContent = "Execution handler unavailable. Execution blocked.";
+            return;
+          }
+          await window.executeOnchain();
         };
     }
     if (!document.getElementById("poaChainStatus")) {
@@ -174,8 +185,9 @@
       const usdtHuman = fromWei(usdt, 18);
       const usdcHuman = fromWei(usdc, 18);
       const wbnbHuman = fromWei(wbnb, 18);
-      const gasReserve = 0.0002;
-      const spendableBnb = Math.max(0, Number(bnbHuman) - gasReserve);
+      const gates = window.PRONOUS_EXECUTION_GATES;
+      const gasReserve = gates ? gates.GAS_RESERVE_BNB : 0.0002;
+      const spendableBnb = gates ? gates.safeSpendableBnb(bnbHuman, gasReserve) : Math.max(0, Number(bnbHuman) - gasReserve);
       const hasStable = Number(usdtHuman) > 0 || Number(usdcHuman) > 0;
       box.innerHTML =
         '<div class="muted small">ON-CHAIN WALLET · BSC MAINNET</div>' +
@@ -360,61 +372,56 @@
   window.executeOnchain = async function executeOnchain() {
     const status = document.getElementById("poaGateStatus");
     const set = function (t) { if (status) status.textContent = t; };
+    const btn = document.getElementById("executeOnchainBtn");
     const w = wallet();
+    const state = window.__pronousExecutionState || (window.__pronousExecutionState = { inFlight: false });
+    const gates = window.PRONOUS_EXECUTION_GATES;
     if (!w.address || !w.provider || !w.provider.request) { set("Connect wallet before on-chain execute."); return; }
     if (!window.__pronousSimulated) { set("Run chain simulation before execute."); return; }
     if (!window.__pronousConfirmed) { set("Confirm action before wallet signing."); return; }
+    if (!window.__pronousBuiltTx || !window.__pronousSimTxHash) { set("Simulated transaction is missing. Run simulation again."); return; }
+    const currentBinding = gates && gates.canonicalJson
+      ? await (async () => {
+          const json = gates.canonicalJson({ params: window.__pronousExecutionParams ? window.__pronousExecutionParams() : {
+            ticker: ((document.getElementById("ticker") && document.getElementById("ticker").value) || "NVDA").trim().toUpperCase(),
+            amount: ((document.getElementById("amount") && document.getElementById("amount").value) || "").trim(),
+            fromTokenAddress: ((document.getElementById("fromTokenAddress") && document.getElementById("fromTokenAddress").value) || "").trim(),
+            wallet: w.address || ""
+          }, tx: window.__pronousBuiltTx });
+          const bytes = new TextEncoder().encode(json);
+          const digest = await crypto.subtle.digest("SHA-256", bytes);
+          return Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, "0")).join("");
+        })()
+      : window.__pronousSimTxHash;
+    if (currentBinding !== window.__pronousSimTxHash) {
+      set("Transaction or execution inputs changed. Run simulation again.");
+      window.__pronousSimulated = false;
+      window.__pronousConfirmed = false;
+      window.__pronousBuiltTx = null;
+      return;
+    }
+    if (gates && !gates.canExecute({
+      wallet: w.address,
+      simulated: window.__pronousSimulated,
+      confirmed: window.__pronousConfirmed,
+      paramsHash: currentBinding,
+      simHash: window.__pronousSimTxHash
+    })) {
+      set("Execution gate blocked. Re-run simulation and confirmation.");
+      return;
+    }
+    if (gates && !gates.beginExecution(state)) {
+      set("Execution already in progress.");
+      return;
+    }
+    if (btn) btn.disabled = true;
     try {
       await ensureBsc(w.provider);
-      const fromToken = ((document.getElementById("fromTokenAddress") && document.getElementById("fromTokenAddress").value) || "").trim();
-      if (!/^0x[a-fA-F0-9]{40}$/.test(fromToken)) { set("Set spend token (USDT / WBNB / USDC) first."); return; }
+      const tx = window.__pronousBuiltTx;
+      const t = ((document.getElementById("ticker") && document.getElementById("ticker").value) || "NVDA").trim().toUpperCase();
       const asset = pickAsset();
       const toToken = asset && asset.tokenContractAddress;
-      const amount = document.getElementById("amount") && document.getElementById("amount").value;
-      const t = ((document.getElementById("ticker") && document.getElementById("ticker").value) || "NVDA").trim().toUpperCase();
-      set("Quote + build…");
-      const qp = new URLSearchParams({
-        action: "quoteBuild",
-        ticker: t,
-        fromTokenAddress: fromToken,
-        amount: amount,
-        userWalletAddress: w.address,
-        vendor: "LiquidMesh",
-        slippagePercent: "0.5",
-        approveTransaction: "true"
-      });
-      if (toToken) qp.set("toTokenAddress", toToken);
-      const br = await fetch("/api/agent?" + qp.toString());
-      const built = await br.json();
-      if (!br.ok || built.error) throw new Error(built.error || "Quote + build failed");
-      window.latestQuote = built;
-      const quoteId = pickQuoteId(built.built || built);
-      const mode = pickExecutionMode(built.built || built);
-      set("Built swap (" + (mode || "SWAP") + ") · simulation required…");
-      const rfq = pickRfq(built);
-      const tx = pickTx(built);
-      if (rfq && rfq.typedDataToSign) {
-        set("Sign RFQ in wallet\u2026");
-        const sig = await w.provider.request({ method: "eth_signTypedData_v4", params: [w.address, JSON.stringify(rfq.typedDataToSign)] });
-        set("Submitting RFQ order\u2026");
-        const body = {
-          userSignature: sig,
-          vendor: rfq.vendor || (asset && asset.platformId) || "ondo",
-          quoteId: quoteId || rfq.quoteId,
-          requestId: (crypto.randomUUID && crypto.randomUUID()) || String(Date.now())
-        };
-        const sr = await fetch("/api/trade?action=submitRfq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        const sj = await sr.json();
-        if (!sr.ok || sj.error) throw new Error(sj.error || "RFQ submit failed");
-        const orderId = (sj.data && sj.data.data && sj.data.data.orderId) || (sj.data && sj.data.orderId) || rfq.orderId || body.requestId;
-        set("RFQ submitted \u00b7 " + orderId);
-        if (typeof setExecutionStep === "function") setExecutionStep("execution", "RFQ");
-        await createExecutedPoa("rfq:" + orderId, { mode: "RFQ", orderId: orderId });
-        await refreshPoaChain();
-        return;
-      }
-      if (!tx || !tx.to) throw new Error("Build did not return an EVM tx or RFQ payload");
-      set("Confirm swap in wallet\u2026");
+      if (!tx || !tx.to) throw new Error("Simulated transaction is unavailable. Run simulation again.");
       set("Final chain simulation…");
       const simUrl = "/api/agent?action=simulateTx&ticker=" + encodeURIComponent(t) + "&evmTx=" + encodeURIComponent(JSON.stringify(tx));
       const simRes = await fetch(simUrl);
@@ -424,12 +431,12 @@
       }
       set("Simulation passed · confirm in wallet…");
       const txHash = await sendTx(w.provider, tx, w.address);
-      set("Broadcast \u00b7 " + String(txHash).slice(0, 12) + "\u2026");
+      set("Broadcast · " + String(txHash).slice(0, 12) + "…");
       if (typeof setExecutionStep === "function") setExecutionStep("execution", "SENT");
       const link = document.getElementById("poaAnchorTx");
       if (link) {
         link.href = "https://bscscan.com/tx/" + txHash;
-        link.textContent = String(txHash).slice(0, 18) + "\u2026";
+        link.textContent = String(txHash).slice(0, 18) + "…";
         link.style.display = "inline";
       }
       await createExecutedPoa(txHash, { mode: "SWAP" });
@@ -438,8 +445,19 @@
     } catch (e) {
       set("Execute failed: " + (e.message || e));
       console.error("PRONOUS executeOnchain", e);
+    } finally {
+      if (gates) gates.endExecution(state);
+      else state.inFlight = false;
+      window.__pronousSimulated = false;
+      window.__pronousConfirmed = false;
+      window.__pronousBuiltTx = null;
+      window.__pronousSimulation = null;
+      window.__pronousSimTxHash = null;
+      window.__pronousParamsHash = null;
+      if (btn) btn.disabled = false;
     }
   };
+
 
   function enableExecuteIfReady() {
     const btn = document.getElementById("executeOnchainBtn");
@@ -456,9 +474,11 @@
 
   const origConfirm = window.confirmAction;
   window.confirmAction = async function () {
-    if (typeof origConfirm === "function") await origConfirm();
+    if (typeof origConfirm !== "function") return false;
+    const result = await origConfirm();
     enableExecuteIfReady();
     setTimeout(refreshPoaChain, 400);
+    return result;
   };
 
   window.addEventListener("pronous:privy-wallet-connected", function () {
