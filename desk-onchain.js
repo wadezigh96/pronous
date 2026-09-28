@@ -338,7 +338,7 @@
       txHash: txHash,
       userConfirmation: true
     };
-    const r = await fetch("/api/poa?action=create&proof=" + encodeURIComponent(JSON.stringify(input)));
+    const r = await fetch("/api/poa?action=create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ proof: input }) });
     const j = await r.json();
     if (!r.ok || j.error) throw new Error(j.error || "POA EXECUTED create failed");
     window.currentPOA = j.proof;
