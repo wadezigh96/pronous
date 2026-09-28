@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { calculateSpreadPct, normalizeAsset, assessQuote, isSupportedPlatform } = require("../lib/market");
-const { buildGuardChecks, preflightStatus } = require("../lib/policy");
+const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
+const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 
 const BASE = "https://web3.binance.com/build";
@@ -337,6 +338,7 @@ async function simulateEvmTransaction(evmTx = {}) {
 }
 
 module.exports = async function handler(req,res) {
+  if (!guardRequest(req, res)) return;
   try {
     const url=new URL(req.url,"http://localhost");
     const action=url.searchParams.get("action")||"scan";
@@ -401,12 +403,20 @@ module.exports = async function handler(req,res) {
         amount:url.searchParams.get("amount"),
         userWalletAddress:url.searchParams.get("userWalletAddress")
       };
+      const maxSpend=url.searchParams.get("maxSpend");
+      if(!isAmount(input.amount) || !isAmount(maxSpend)) return res.status(400).json({error:"Invalid amount or maxSpend"});
+      const spend=validateSpendCap(input.amount, maxSpend);
+      if(!spend.ok) return res.status(400).json({error:spend.error});
+      if(input.fromTokenAddress && !isAddress(input.fromTokenAddress)) return res.status(400).json({error:"Invalid fromTokenAddress"});
+      if(input.toTokenAddress && !isAddress(input.toTokenAddress)) return res.status(400).json({error:"Invalid toTokenAddress"});
+      if(input.userWalletAddress && !isAddress(input.userWalletAddress)) return res.status(400).json({error:"Invalid userWalletAddress"});
       const built=buildQuoteParams(input);
       if(!built.ok) return res.status(400).json({error:built.error||"Invalid quote intent",missing:built.missing});
       const vendor=String(url.searchParams.get("vendor")||"LiquidMesh").trim();
       const flashParams={
         ...built.params,
         userWalletAddress:String(input.userWalletAddress||"").trim(),
+        maxSpend:String(maxSpend).trim(),
         vendor,
         slippagePercent:String(url.searchParams.get("slippagePercent")||"0.5"),
         approveTransaction:String(url.searchParams.get("approveTransaction")||"false")
@@ -513,9 +523,6 @@ module.exports = async function handler(req,res) {
     if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-dry-run",simulationMode:"DRY_RUN",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false,next:"No blockchain transaction was sent. Build a transaction and run a chain-level simulation before live execution."});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
-    const out={error:e.message||"Agent error",details:e.data||undefined};
-    if(process.env.DEBUG_AUTH==="1" && e.authDebug) out.authDebug=e.authDebug;
-    if(process.env.DEBUG_AUTH==="1" && e.message==="INVALID_ED25519_PRIVATE_KEY_FORMAT") out.credentialDebug=credentialShape(process.env.BINANCE_WEB3_API_SECRET);
-    return res.status(e.status||500).json(out);
+    return safeError(res, Number(e.status) >= 400 ? Number(e.status) : 500, "AGENT_REQUEST_FAILED");
   }
 };
