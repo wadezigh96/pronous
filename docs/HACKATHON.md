@@ -19,7 +19,7 @@ Prize pool: **$20,000** (BNB Chain + Binance Web3 Wallet).
 |---|---|
 | Public repo | https://github.com/wadezigh96/pronous |
 | Deployed link | https://pronous.vercel.app |
-| Demo video (≤ 4 minutes) | Still required before 11 Oct |
+| Demo video (≤ 4 minutes) | Script ready: [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) · [DEMO_VIDEO.md](./DEMO_VIDEO.md). Upload the recorded file to the official form. |
 | Developer Experience Report (25% of score) | [DEVEX_REPORT.md](./DEVEX_REPORT.md) |
 
 Registration form: https://forms.gle/NEmy3FxYc4f5Dua47

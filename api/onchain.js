@@ -34,6 +34,7 @@ function pick(result) {
 }
 
 module.exports = async function handler(req, res) {
+  if (!guardRequest(req, res)) return;
   try {
     const url = new URL(req.url, "http://localhost");
     const token = (url.searchParams.get("token") || "").trim();
