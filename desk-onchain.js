@@ -170,15 +170,29 @@
       const usdc = await erc20Balance(TOKENS.USDC, address);
       const wbnb = await erc20Balance(TOKENS.WBNB, address);
       const stock = stockToken ? await erc20Balance(stockToken, address) : 0n;
+      const bnbHuman = fromWei(bnb, 18);
+      const usdtHuman = fromWei(usdt, 18);
+      const usdcHuman = fromWei(usdc, 18);
+      const wbnbHuman = fromWei(wbnb, 18);
+      const gasReserve = 0.0002;
+      const spendableBnb = Math.max(0, Number(bnbHuman) - gasReserve);
+      const hasStable = Number(usdtHuman) > 0 || Number(usdcHuman) > 0;
       box.innerHTML =
-        '<div class="muted small">ON-CHAIN WALLET \u00b7 BSC</div>' +
+        '<div class="muted small">ON-CHAIN WALLET · BSC MAINNET</div>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:8px">' +
-        cell("BNB", fromWei(bnb, 18)) +
-        cell("USDT", fromWei(usdt, 18)) +
-        cell("USDC", fromWei(usdc, 18)) +
-        cell("WBNB", fromWei(wbnb, 18)) +
+        cell("BNB", bnbHuman) +
+        cell("USDT", usdtHuman) +
+        cell("USDC", usdcHuman) +
+        cell("WBNB", wbnbHuman) +
         (stockToken ? cell("STOCK", fromWei(stock, 18)) : "") +
+        cell("Spendable BNB*", spendableBnb.toFixed(6)) +
         "</div>" +
+        '<div class="muted small" style="margin-top:8px">' +
+        (hasStable
+          ? "Stablecoin balance detected · quote can use USDT/USDC if Binance route allows it."
+          : "BNB-only wallet detected · keep BNB for gas. Native BNB → NVDAon is not enabled by the current Binance route, so Execute remains gated.") +
+        '</div>' +
+        '<div class="muted small" style="margin-top:6px">*Reserve: 0.0002 BNB for gas. No transaction is broadcast by balance checking.</div>' +
         '<div class="muted small" style="margin-top:8px"><a href="https://bscscan.com/address/' +
         esc(address) + '" target="_blank" rel="noopener">' + esc(short(address)) + "</a></div>";
     } catch (e) {
