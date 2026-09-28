@@ -24,11 +24,20 @@ module.exports = async function handler(req,res){
     if (action === "create") {
       if (req.method !== "POST") return res.status(405).json({error:"METHOD_NOT_ALLOWED"});
       if (!requireSameOrigin(req, res)) return;
-      const raw = await new Promise((resolve) => {
-        let body=""; req.on("data", c => { body += c; if (body.length > 200000) { req.destroy(); resolve(""); } });
-        req.on("end", () => resolve(body)); req.on("error", () => resolve("")); });
       let parsed;
-      try { parsed = JSON.parse(raw || "{}"); } catch (_) { return res.status(400).json({error:"Invalid request JSON"}); }
+      try {
+        if (req.body && typeof req.body === "object") {
+          parsed = req.body;
+        } else {
+          const raw = await new Promise((resolve) => {
+            let body="";
+            req.on("data", c => { body += c; if (body.length > 200000) { req.destroy(); resolve(""); } });
+            req.on("end", () => resolve(body));
+            req.on("error", () => resolve("")); 
+          });
+          parsed = JSON.parse(raw || "{}");
+        }
+      } catch (_) { return res.status(400).json({error:"Invalid request JSON"}); }
       const proofValue = parsed.proof ?? parsed;
       if (!proofValue || typeof proofValue !== "object") return res.status(400).json({error:"proof JSON is required"});
       const input = proofValue;
