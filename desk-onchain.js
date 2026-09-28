@@ -48,24 +48,10 @@
     return j.result;
   }
 
-  function encodeGetRecord(poaHash) {
-    const clean = String(poaHash || "").replace(/^0x/, "");
-    if (!/^[0-9a-fA-F]{64}$/.test(clean)) throw new Error("Invalid POA hash");
-    return "0x" + "c4f7c4a7" + clean;
+  async function getViem() {
+    return import("/vendor/privy-bundle.js");
   }
-  function decodeGetRecord(raw) {
-    const hex = String(raw || "").replace(/^0x/, "");
-    if (hex.length < 64 * 4) throw new Error("Invalid POA record response");
-    const actor = "0x" + hex.slice(24, 64);
-    const status = Number(BigInt("0x" + hex.slice(64, 128)));
-    const timestamp = Number(BigInt("0x" + hex.slice(128, 192)));
-    const offset = Number(BigInt("0x" + hex.slice(192, 256))) * 2;
-    const strStart = 192 + offset;
-    const len = Number(BigInt("0x" + hex.slice(strStart, strStart + 64)));
-    const poaId = Buffer.from(hex.slice(strStart + 64, strStart + 64 + len * 2), "hex").toString("utf8");
-    const exists = BigInt("0x" + hex.slice(256, 320)) !== 0n;
-    return [actor, status, timestamp, poaId, exists];
-  }
+
 
   function wallet() {
     const api = window.PRONOUS_WALLET;
@@ -247,11 +233,12 @@
     if (!poaHash) return null;
     const hash = poaHash.startsWith("0x") ? poaHash : "0x" + poaHash;
     const padded = hash.length === 66 ? hash : "0x" + pad32(hash);
-    const data = encodeGetRecord(padded);
+    const viem = await getViem();
+    const data = viem.encodeFunctionData({ abi: GET_RECORD_ABI, functionName: "getRecord", args: [padded] });
     const raw = await rpc("eth_call", [{ to: ANCHOR, data: data }, "latest"]);
     if (!raw || raw === "0x") return { exists: false };
     try {
-      const decoded = decodeGetRecord(raw);
+      const decoded = viem.decodeFunctionResult({ abi: GET_RECORD_ABI, functionName: "getRecord", data: raw });
       const actor = decoded[0], status = decoded[1], timestamp = decoded[2], poaId = decoded[3], exists = decoded[4];
       return {
         exists: !!exists,
