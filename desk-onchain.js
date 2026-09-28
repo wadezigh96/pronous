@@ -348,7 +348,8 @@
     const set = function (t) { if (status) status.textContent = t; };
     const w = wallet();
     if (!w.address || !w.provider || !w.provider.request) { set("Connect wallet before on-chain execute."); return; }
-    if (!window.__pronousSimulated) { set("Run simulation before execute."); return; }
+    if (!window.__pronousSimulated) { set("Run chain simulation before execute."); return; }
+    if (!window.__pronousConfirmed) { set("Confirm action before wallet signing."); return; }
     try {
       await ensureBsc(w.provider);
       const fromToken = ((document.getElementById("fromTokenAddress") && document.getElementById("fromTokenAddress").value) || "").trim();
@@ -400,6 +401,14 @@
       }
       if (!tx || !tx.to) throw new Error("Build did not return an EVM tx or RFQ payload");
       set("Confirm swap in wallet\u2026");
+      set("Final chain simulation…");
+      const simUrl = "/api/agent?action=simulateTx&ticker=" + encodeURIComponent(t) + "&evmTx=" + encodeURIComponent(JSON.stringify(tx));
+      const simRes = await fetch(simUrl);
+      const simJson = await simRes.json();
+      if (!simRes.ok || simJson.status !== "PASSED" || !simJson.simulation || simJson.simulation.status !== "PASSED") {
+        throw new Error(simJson.reason || simJson.error || "Final BSC simulation failed");
+      }
+      set("Simulation passed · confirm in wallet…");
       const txHash = await sendTx(w.provider, tx, w.address);
       set("Broadcast \u00b7 " + String(txHash).slice(0, 12) + "\u2026");
       if (typeof setExecutionStep === "function") setExecutionStep("execution", "SENT");
