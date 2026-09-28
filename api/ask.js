@@ -26,6 +26,7 @@ function answerQuestion(q, ticker) {
 }
 
 module.exports = async function handler(req,res) {
+  if (!guardRequest(req, res)) return;
   const url=new URL(req.url,"http://localhost");
   const q=(url.searchParams.get("q")||"").trim();
   const ticker=(url.searchParams.get("ticker")||"NVDA").toUpperCase();
