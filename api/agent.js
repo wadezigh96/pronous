@@ -386,6 +386,37 @@ module.exports = async function handler(req,res) {
       return res.status(200).json({mode:"live-quote",network:"BSC",ticker,asset,quote,broadcast:false});
     }
 
+    if(action==="quoteBuild") {
+      const input={
+        fromTokenAddress:url.searchParams.get("fromTokenAddress"),
+        toTokenAddress:url.searchParams.get("toTokenAddress")||asset.tokenContractAddress,
+        amount:url.searchParams.get("amount"),
+        userWalletAddress:url.searchParams.get("userWalletAddress")
+      };
+      const built=buildQuoteParams(input);
+      if(!built.ok) return res.status(400).json({error:built.error||"Invalid quote intent",missing:built.missing});
+      const vendor=String(url.searchParams.get("vendor")||"LiquidMesh").trim();
+      const flashParams={
+        ...built.params,
+        userWalletAddress:String(input.userWalletAddress||"").trim(),
+        vendor,
+        slippagePercent:String(url.searchParams.get("slippagePercent")||"0.5"),
+        approveTransaction:String(url.searchParams.get("approveTransaction")||"false")
+      };
+      if(!flashParams.userWalletAddress) return res.status(400).json({error:"Invalid quote/build intent",missing:["userWalletAddress"]});
+      if(!LIVE_ENABLED) return res.status(200).json({mode:"demo",status:"QUOTE_BUILD_REQUIRES_LIVE_API",ticker,asset,intent:flashParams,broadcast:false});
+      const swap=await binanceGet("/api/v1/dex/aggregator/quote-and-swap",flashParams);
+      return res.status(200).json({
+        mode:"live-quote-build",
+        network:"BSC",
+        ticker,
+        asset,
+        built:swap,
+        broadcast:false,
+        next:"Simulation and user wallet confirmation required before broadcast."
+      });
+    }
+
     if(action==="build") {
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress"),amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress"),quoteId:url.searchParams.get("quoteId"),slippagePercent:url.searchParams.get("slippagePercent"),approveTransaction:url.searchParams.get("approveTransaction")};
       const built=buildSwapParams(input);
