@@ -24,6 +24,9 @@ module.exports = async function handler(req,res){
       if (!raw) return res.status(400).json({error:"proof JSON is required"});
       let input;
       try { input = JSON.parse(raw); } catch (_) { return res.status(400).json({error:"Invalid proof JSON"}); }
+      if (input.intent?.wallet && !isAddress(input.intent.wallet)) return res.status(400).json({error:"Invalid intent wallet"});
+      if (input.intent?.amount != null && !isAmount(input.intent.amount)) return res.status(400).json({error:"Invalid intent amount"});
+      if (input.txHash && !/^0x[a-fA-F0-9]{64}$/.test(String(input.txHash))) return res.status(400).json({error:"Invalid txHash"});
       if (!input.intentHash && input.intent) input.intentHash = buildIntentHash(input.intent);
       const proof = createPOA(input);
       return res.status(200).json({agent:"PRONOUS",skill:"proof_of_action",proof});
