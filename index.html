@@ -17,7 +17,7 @@
 <div class="topbar-left"><span class="topbar-title">PRONOUS DESK</span><span class="topbar-sub">LIVING MARKET OS · BSC</span></div>
 <div class="topbar-search" role="search"><span class="search-icon">⌕</span><input type="search" placeholder="Find asset, gap, or moment…" aria-label="Search desk" onkeydown="if(event.key==='Enter'){const t=this.value.trim().toUpperCase();if(t){document.getElementById('ticker').value=t;scan();}}"></div>
 <div class="health">● SYSTEM ONLINE</div>
-<div class="wallet-bar"><span id="walletStatus" class="wallet-status">WALLET NOT CONNECTED</span><button id="connectWalletBtn" class="secondary" type="button" onclick="connectWallet()">Connect Wallet</button></div>
+<div class="wallet-bar"><span id="walletSource" class="wallet-source">NO WALLET</span><span id="walletStatus" class="wallet-status">WALLET NOT CONNECTED</span><span id="walletAddress" class="wallet-address">Not connected</span><button id="connectWalletBtn" class="secondary" type="button" onclick="connectWallet()">Connect Wallet</button></div>
 </div>
 <div class="ticker-wrap"><div class="ticker"><span>NVDA</span><span>AAPL</span><span>TSLA</span><span>SPOT ONLY</span><span>NO PERPS</span><span>HUMAN CONFIRMATION</span></div></div>
 <section id="overview" class="hero" style="padding-bottom:12px"><div class="dashboard-head"><div><div class="eyebrow">AUTONOMOUS MARKET INTELLIGENCE</div><h1>Tokenized equity<br>command center.</h1><p>Observe the market. Inspect the asset. Simulate before execution.</p></div><div class="head-actions"><button class="secondary" onclick="loadMarket()">↻ Refresh</button></div></div></section>
@@ -49,9 +49,22 @@
 </div>
 <div class="poa-ledger-head"><span class="muted small">LOCAL POA LEDGER</span><button class="secondary" type="button" onclick="clearPOALedger()">Clear</button></div><div id="poaLedger" class="poa-ledger">No evidence yet.</div></section>
 <input id="question" type="hidden"><div id="chatlog" hidden></div></div><nav class="mobile-nav" aria-label="Mobile navigation"><a href="#overview">Home</a><a href="#market">Market</a><a href="#radar-section">Radar</a><a href="#agent">Scan</a><a href="#execution">Execute</a></nav></main></div>
+<div id="walletChooser" class="wallet-chooser" hidden aria-hidden="true">
+  <div class="wallet-chooser-backdrop" onclick="closeWalletChooser()"></div>
+  <section class="wallet-chooser-panel" role="dialog" aria-modal="true" aria-labelledby="walletChooserTitle">
+    <div class="eyebrow">WALLET CONNECTION</div>
+    <h2 id="walletChooserTitle">Choose how to connect</h2>
+    <p class="muted small">PRONOUS keeps one active wallet source. Browser wallet and Privy never overwrite each other silently.</p>
+    <div class="wallet-choice-grid">
+      <button type="button" onclick="connectBrowserWallet()">Browser wallet</button>
+      <button type="button" class="secondary" onclick="connectPrivyWallet()">Email / Google (Privy)</button>
+    </div>
+    <button type="button" class="secondary wallet-cancel" onclick="closeWalletChooser()">Cancel</button>
+  </section>
+</div>
 <div id="assetDrawer" class="asset-drawer" aria-hidden="true"><div class="drawer-backdrop" onclick="closeAsset()"></div><aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button><div id="drawerContent" style="padding-top:24px"></div></aside></div>
 <script src="/desk-charts.js"></script>
-<script src="/lib/execution-gates.js"></script>
+<script src="/lib/execution-gates.js"></script><script src="/lib/wallet-state.js"></script>
 <script src="/wallet-connect.js"></script>
 <script src="/desk-app.js"></script>
 <script src="/cmc-radar.js"></script><script src="/desk-onchain.js"></script></body></html>
