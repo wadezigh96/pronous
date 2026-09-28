@@ -53,32 +53,13 @@
   }
 
   function wallet() {
+    const api = window.PRONOUS_WALLET;
     return {
-      address: window.__pronousPrivyAddress || window.walletAddress || null,
-      provider: window.__pronousPrivyProvider || window.walletProvider || window.ethereum || null
+      address: api && typeof api.getAddress === "function" ? api.getAddress() : null,
+      chainId: api && typeof api.getChainId === "function" ? api.getChainId() : null,
+      source: api && typeof api.getSource === "function" ? api.getSource() : null,
+      api: api && typeof api.request === "function" ? api : null
     };
-  }
-
-  async function ensureBsc(provider) {
-    if (!provider || !provider.request) return;
-    const chainId = await provider.request({ method: "eth_chainId" }).catch(() => null);
-    if (String(chainId).toLowerCase() === "0x38") return;
-    try {
-      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
-    } catch (e) {
-      if (e && (e.code === 4902 || String(e.message || "").includes("Unrecognized"))) {
-        await provider.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x38",
-            chainName: "BNB Smart Chain",
-            nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-            rpcUrls: [RPC],
-            blockExplorerUrls: ["https://bscscan.com"]
-          }]
-        });
-      } else throw e;
-    }
   }
 
   function pad32(hex) {
@@ -325,11 +306,12 @@
     if (s.startsWith("0x")) return s;
     try { return "0x" + BigInt(s).toString(16); } catch (_) { return "0x0"; }
   }
-  async function sendTx(provider, tx, from) {
+  async function sendTx(api, tx, from) {
+    if (!api || typeof api.request !== "function") throw new Error("Active wallet API unavailable");
     const params = { from: from, to: tx.to, data: tx.data || tx.input || "0x", value: toHex(tx.value || "0") };
     if (tx.gas || tx.gasLimit) params.gas = toHex(tx.gas || tx.gasLimit);
     if (tx.gasPrice) params.gasPrice = toHex(tx.gasPrice);
-    return provider.request({ method: "eth_sendTransaction", params: [params] });
+    return api.request("eth_sendTransaction", [params], "pronous-desk");
   }
 
   async function createExecutedPoa(txHash, extra) {
@@ -377,7 +359,7 @@
     const state = window.__pronousExecutionState || (window.__pronousExecutionState = { inFlight: false });
     const gates = window.PRONOUS_EXECUTION_GATES;
     if (!gates) { set("Execution security module unavailable. Execution blocked."); return; }
-    if (!w.address || !w.provider || !w.provider.request) { set("Connect wallet before on-chain execute."); return; }
+    if (!w.address || !w.api) { set("Connect wallet before on-chain execute."); return; }
     if (!window.__pronousSimulated) { set("Run chain simulation before execute."); return; }
     if (!window.__pronousConfirmed) { set("Confirm action before wallet signing."); return; }
     if (!window.__pronousBuiltTx || !window.__pronousSimTxHash) { set("Simulated transaction is missing. Run simulation again."); return; }
@@ -415,7 +397,10 @@
     }
     if (btn) btn.disabled = true;
     try {
-      await ensureBsc(w.provider);
+      if (Number(w.chainId) !== 56) {
+        if (typeof w.api.ensureBsc === "function") await w.api.ensureBsc();
+        throw new Error("Wallet switched to BSC. Run simulation again after the chain change.");
+      }
       const tx = window.__pronousBuiltTx;
       const t = ((document.getElementById("ticker") && document.getElementById("ticker").value) || "NVDA").trim().toUpperCase();
       const asset = pickAsset();
@@ -429,7 +414,7 @@
         throw new Error(simJson.reason || simJson.error || "Final BSC simulation failed");
       }
       set("Simulation passed · confirm in wallet…");
-      const txHash = await sendTx(w.provider, tx, w.address);
+      const txHash = await sendTx(w.api, tx, w.address);
       set("Broadcast · " + String(txHash).slice(0, 12) + "…");
       if (typeof setExecutionStep === "function") setExecutionStep("execution", "SENT");
       const link = document.getElementById("poaAnchorTx");
