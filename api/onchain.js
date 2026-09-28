@@ -1,6 +1,7 @@
-const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
+const { guardRequest, isAddress, isAmount, safeError, requireSameOrigin } = require("../lib/http-policy");
 const crypto = require("crypto");
 const BASE = "https://web3.binance.com/build";
+const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "60000";
 
 function cred(v) {
   return String(v || "").replace(/^["']|["']$/g, "").replace(/\\n/g, "\n").trim();
@@ -9,7 +10,14 @@ function wirePath(p) {
   if (!p) return "/build";
   return p.startsWith("/build") ? p : "/build" + p;
 }
-async function signedGet(path) {
+function parseEd25519(secret) {
+  const normalized=cred(secret);
+  if (/-----BEGIN PRIVATE KEY-----/.test(normalized)) return crypto.createPrivateKey({key:normalized,format:"pem",type:"pkcs8"});
+  const compact=normalized.replace(/\s+/g,""), b64=compact.replace(/-/g,"+").replace(/_/g,"/"), der=Buffer.from(b64+"=".repeat((4-(b64.length%4))%4),"base64");
+  try { return crypto.createPrivateKey({key:der,format:"der",type:"pkcs8"}); }
+  catch (_) { if(der.length===32) return crypto.createPrivateKey({key:Buffer.concat([Buffer.from("302e020100300506032b657004220420","hex"),der]),format:"der",type:"pkcs8"}); throw _; }
+}
+function signedGet(path) {
   const apiKey = cred(process.env.BINANCE_WEB3_API_KEY);
   const secret = cred(process.env.BINANCE_WEB3_API_SECRET);
   if (!apiKey || !secret) throw new Error("LIVE_API_NOT_CONFIGURED");
@@ -35,6 +43,8 @@ function pick(result) {
 
 module.exports = async function handler(req, res) {
   if (!guardRequest(req, res)) return;
+  if (req.method !== "GET") return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
+  if (!requireSameOrigin(req, res)) return;
   try {
     const url = new URL(req.url, "http://localhost");
     const token = (url.searchParams.get("token") || "").trim();
