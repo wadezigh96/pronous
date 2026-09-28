@@ -35,6 +35,7 @@ async function hashExecutionValue(value){
 function resetOnExecutionInput(){
   resetExecutionState('execution input changed');
 }
+window.__pronousExecutionParams=executionParams;
 function shortAddress(a){a=String(a||'');return a&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):a||'Not connected'}
 function setWalletUI(address){const next=address||null;const changed=String(walletAddress||'').toLowerCase()!==String(next||'').toLowerCase();walletAddress=next;if(changed)resetExecutionState(next?'wallet changed':'wallet disconnected');const label=document.getElementById('walletStatus'),addr=document.getElementById('walletAddress'),btn=document.getElementById('connectWalletBtn'),kpi=document.getElementById('kpiExec');if(label)label.textContent=next?'WALLET CONNECTED':'WALLET NOT CONNECTED';if(addr)addr.textContent=next?shortAddress(next):'Not connected';if(btn){btn.disabled=false;btn.textContent=next?'Disconnect':'Connect Wallet'}if(kpi)kpi.textContent=next?'ARMED':'LOCKED'}
 window.addEventListener('pronous:privy-wallet-connected',e=>{const d=e.detail||{};walletProvider=d.provider||window.__pronousPrivyProvider||null;setWalletUI(d.address||window.__pronousPrivyAddress||null)});
