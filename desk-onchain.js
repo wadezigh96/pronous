@@ -307,24 +307,14 @@
     if (s.startsWith("0x")) return s;
     try { return "0x" + BigInt(s).toString(16); } catch (_) { return "0x0"; }
   }
-  const BINANCE_DEX_ROUTER = "0xb300000b72DEAEb607a12d5f54773D1C19c7028d";
-  const ALLOWED_SWAP_SELECTORS = new Set(["0x810c705b"]);
-  function validateTxForBroadcast(tx, chainId) {
-    const to = String(tx?.to || "").trim().toLowerCase();
-    const data = String(tx?.data || tx?.input || "0x").trim().toLowerCase();
-    if (Number(chainId) !== 56) throw new Error("CHAIN_ID_NOT_BSC");
-    if (to !== BINANCE_DEX_ROUTER.toLowerCase()) throw new Error("TX_TARGET_NOT_ALLOWLISTED");
-    if (!/^0x[0-9a-f]{8,}$/.test(data) || !ALLOWED_SWAP_SELECTORS.has(data.slice(0, 10))) {
-      throw new Error("TX_SELECTOR_NOT_ALLOWLISTED");
-    }
-    const nativeValue = toHex(tx?.value || "0");
-    if (nativeValue !== "0x0") throw new Error("NONZERO_NATIVE_VALUE_BLOCKED");
-    return true;
-  }
+
   async function sendTx(api, tx, from, chainId) {
     if (!api || typeof api.request !== "function") throw new Error("Active wallet API unavailable");
-    validateTxForBroadcast(tx, chainId);
-    const params = { from: from, to: BINANCE_DEX_ROUTER, data: tx.data || tx.input, value: "0x0" };
+    const policy = window.PRONOUS_TX_POLICY;
+    if (!policy) throw new Error("Transaction policy unavailable");
+    const checked = policy.validateBroadcastTx(tx, chainId);
+    if (!checked.ok) throw new Error(checked.error);
+    const params = { from: from, to: checked.to, data: checked.data, value: "0x0" };
     if (tx.gas || tx.gasLimit) params.gas = toHex(tx.gas || tx.gasLimit);
     if (tx.gasPrice) params.gasPrice = toHex(tx.gasPrice);
     return api.request("eth_sendTransaction", [params], "pronous-desk");
