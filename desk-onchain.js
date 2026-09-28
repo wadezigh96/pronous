@@ -430,6 +430,8 @@
       window.__pronousSimulation = null;
       window.__pronousSimTxHash = null;
       window.__pronousParamsHash = null;
+      if (gates) gates.endExecution(state);
+      else state.inFlight = false;
       if (typeof setExecutionStep === "function") setExecutionStep("execution", "SENT");
       const link = document.getElementById("poaAnchorTx");
       if (link) {
