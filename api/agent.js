@@ -291,15 +291,23 @@ async function findLiveAsset(ticker) {
 }
 
 
+function rpcHex(value) {
+  if (value == null || value === "") return undefined;
+  const s = String(value);
+  if (/^0x[0-9a-fA-F]+$/.test(s)) return s;
+  if (/^\d+$/.test(s)) return "0x" + BigInt(s).toString(16);
+  throw new Error("INVALID_RPC_NUMERIC_VALUE");
+}
+
 async function simulateEvmTransaction(evmTx = {}) {
   const rpcUrl = String(process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org").trim();
   const tx = {
     from: evmTx.from,
     to: evmTx.to,
     data: evmTx.data || evmTx.input,
-    value: evmTx.value,
-    gas: evmTx.gas || evmTx.gasLimit,
-    gasPrice: evmTx.gasPrice || evmTx.maxFeePerGas
+    value: rpcHex(evmTx.value),
+    gas: rpcHex(evmTx.gas || evmTx.gasLimit),
+    gasPrice: rpcHex(evmTx.gasPrice || evmTx.maxFeePerGas)
   };
   Object.keys(tx).forEach(k => {
     if (tx[k] === undefined || tx[k] === null || tx[k] === "") delete tx[k];
