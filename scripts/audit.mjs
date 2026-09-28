@@ -98,6 +98,13 @@ ok('CMC RWA quotes endpoint', cmc.includes('/v5/real-world-assets/quotes/latest'
 ok('Execution confirmation gate', execution.includes('confirmationGate') && execution.includes('READY_TO_EXECUTE'));
 ok('Pure canExecute gate exists', gates.includes('function canExecute'));
 ok('Pure reset state exists', gates.includes('function resetExecutionState'));
-ok('Pure in-flight guard exists', gates.includes('function beginExecution'));
+ok('Pure in-flight guard exists', gates.includes('function beginExecution'));\nok('Wallet source chooser', wallet.includes('Browser wallet') && wallet.includes('Email / Google (Privy)'));
+ok('Privy wallet creation policy', wallet.includes("createOnLogin: 'users-without-wallets'") && wallet.includes('showWalletUIs: true'));
+ok('Privy is not auto-bound without user preference', wallet.includes("getPreference() !== 'privy'"));
+ok('Wallet provider is not exposed globally', !/window\\.__pronousPrivyProvider|window\\.walletProvider|window\\.ethereum\\s*=/m.test(wallet));
+ok('Wallet request allowlist', wallet.includes("method !== 'eth_sendTransaction'") && wallet.includes("method !== 'eth_signTypedData_v4'"));
+ok('Provider change listeners', wallet.includes("provider.on('accountsChanged'") && wallet.includes("provider.on('chainChanged'") && wallet.includes('detachProviderListeners'));
+ok('Shared BSC switch with 4902 fallback', wallet.includes('async function ensureBsc') && wallet.includes('code === 4902') && !/async function ensureBsc\\(provider\\)/.test(readText('desk-onchain.js') || ''));
+ok('Wallet state tests present', fs.existsSync('scripts/wallet-state.test.mjs'));
 
 if (failed) process.exit(1);
