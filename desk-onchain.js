@@ -119,14 +119,10 @@
       if (ctx && ctx.parentNode) ctx.parentNode.insertBefore(box, ctx.nextSibling);
       else if (exec) exec.appendChild(box);
     }
-    if (!document.getElementById("executeOnchainBtn")) {
-      const row = document.querySelector("#execution .poa-gate-row");
-      if (row) {
-        const btn = document.createElement("button");
-        btn.id = "executeOnchainBtn";
-        btn.type = "button";
-        btn.textContent = "Execute on-chain";
-        btn.disabled = false;
+    const existingExecute = document.getElementById("executeOnchainBtn");
+    if (existingExecute && !existingExecute.__pronousBound) {
+      const btn = existingExecute;
+      btn.__pronousBound = true;
         btn.onclick = async function () {
           if (!wallet().address) {
             const status = document.getElementById("poaGateStatus");
@@ -141,8 +137,6 @@
           if (typeof window.confirmAction === "function") await window.confirmAction();
           if (window.__pronousSimulated && window.executeOnchain) await window.executeOnchain();
         };
-        row.insertBefore(btn, row.firstChild);
-      }
     }
     if (!document.getElementById("poaChainStatus")) {
       const poa = document.getElementById("poa-section");
