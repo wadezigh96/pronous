@@ -1,4 +1,4 @@
-const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
+const { guardRequest, isAddress, isAmount, safeError, requireSameOrigin } = require("../lib/http-policy");
 const crypto = require("crypto");
 const BASE = "https://web3.binance.com/build";
 
@@ -12,6 +12,8 @@ function wirePath(p) {
 
 module.exports = async function handler(req, res) {
   if (!guardRequest(req, res)) return;
+  if (req.method !== "GET") return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
+  if (!requireSameOrigin(req, res)) return;
   try {
     const url = new URL(req.url, "http://localhost");
     const token = (url.searchParams.get("token") || url.searchParams.get("tokenContractAddress") || "").trim();
@@ -27,6 +29,8 @@ module.exports = async function handler(req, res) {
     const timestamp = new Date().toISOString();
     const signedPath = wirePath(requestPath);
     const prehash = timestamp + "GET" + signedPath;
+    const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
+    if (!["HMAC_SHA256","HMAC-SHA256"].includes(algorithm)) return safeError(res, 500, "UNSUPPORTED_SIGN_ALGO");
     const signature = crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
     const r = await fetch(BASE + requestPath, {
       headers: {
@@ -34,7 +38,8 @@ module.exports = async function handler(req, res) {
         "X-OC-TIMESTAMP": timestamp,
         "X-OC-SIGN": signature,
         "X-OC-RECV-WINDOW": process.env.BINANCE_WEB3_RECV_WINDOW || "60000"
-      }
+      },
+      signal: AbortSignal.timeout(8000)
     });
     const data = await r.json();
     const raw = data.data || [];
