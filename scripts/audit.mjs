@@ -105,7 +105,7 @@ ok('Privy is not auto-bound without user preference', wallet.includes("getPrefer
 ok('Wallet provider is not exposed globally', !/window\.__pronousPrivyProvider|window\.walletProvider|window\.ethereum\s*=/m.test(wallet));
 ok('Wallet request allowlist', wallet.includes("method !== 'eth_sendTransaction'") && wallet.includes("method !== 'eth_signTypedData_v4'"));
 ok('Provider change listeners', wallet.includes("provider.on('accountsChanged'") && wallet.includes("provider.on('chainChanged'") && wallet.includes('detachProviderListeners'));
-ok('Shared BSC switch with 4902 fallback', wallet.includes('async function ensureBsc') && wallet.includes('code === 4902') && !/async function ensureBsc\\(provider\\)/.test(readText('desk-onchain.js') || ''));
+ok('Shared BSC switch with 4902 fallback', wallet.includes('async function ensureBsc') && wallet.includes('code === 4902') && !/async function ensureBsc/.test(readText('desk-onchain.js') || ''));
 ok('Wallet state tests present', fs.existsSync('scripts/wallet-state.test.mjs'));
 
 if (failed) process.exit(1);
