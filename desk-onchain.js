@@ -451,7 +451,9 @@
         await createExecutedPoa(txHash, { mode: "SWAP" });
         await refreshPoaChain();
       } catch (poaError) {
-        set("Transaksi terkirim (hash " + String(txHash) + "), pencatatan POA gagal; JANGAN kirim ulang");
+        set(window.PRONOUS_EXECUTION_RESULT?.broadcastPoaFailureMessage
+          ? window.PRONOUS_EXECUTION_RESULT.broadcastPoaFailureMessage(txHash)
+          : "Transaksi terkirim (hash " + String(txHash) + "), pencatatan POA gagal; JANGAN kirim ulang");
         console.error("PRONOUS post-broadcast POA recording failed", poaError);
       }
       try { await loadWalletBalances(toToken); } catch (_) {}
