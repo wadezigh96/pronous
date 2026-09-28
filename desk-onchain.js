@@ -48,8 +48,23 @@
     return j.result;
   }
 
-  async function getViem() {
-    return import("https://esm.sh/viem@2.21.19");
+  function encodeGetRecord(poaHash) {
+    const clean = String(poaHash || "").replace(/^0x/, "");
+    if (!/^[0-9a-fA-F]{64}$/.test(clean)) throw new Error("Invalid POA hash");
+    return "0x" + "c4f7c4a7" + clean;
+  }
+  function decodeGetRecord(raw) {
+    const hex = String(raw || "").replace(/^0x/, "");
+    if (hex.length < 64 * 4) throw new Error("Invalid POA record response");
+    const actor = "0x" + hex.slice(24, 64);
+    const status = Number(BigInt("0x" + hex.slice(64, 128)));
+    const timestamp = Number(BigInt("0x" + hex.slice(128, 192)));
+    const offset = Number(BigInt("0x" + hex.slice(192, 256))) * 2;
+    const strStart = 192 + offset;
+    const len = Number(BigInt("0x" + hex.slice(strStart, strStart + 64)));
+    const poaId = Buffer.from(hex.slice(strStart + 64, strStart + 64 + len * 2), "hex").toString("utf8");
+    const exists = BigInt("0x" + hex.slice(256, 320)) !== 0n;
+    return [actor, status, timestamp, poaId, exists];
   }
 
   function wallet() {
@@ -230,14 +245,13 @@
 
   async function readPoaOnchain(poaHash) {
     if (!poaHash) return null;
-    const viem = await getViem();
     const hash = poaHash.startsWith("0x") ? poaHash : "0x" + poaHash;
     const padded = hash.length === 66 ? hash : "0x" + pad32(hash);
-    const data = viem.encodeFunctionData({ abi: GET_RECORD_ABI, functionName: "getRecord", args: [padded] });
+    const data = encodeGetRecord(padded);
     const raw = await rpc("eth_call", [{ to: ANCHOR, data: data }, "latest"]);
     if (!raw || raw === "0x") return { exists: false };
     try {
-      const decoded = viem.decodeFunctionResult({ abi: GET_RECORD_ABI, functionName: "getRecord", data: raw });
+      const decoded = decodeGetRecord(raw);
       const actor = decoded[0], status = decoded[1], timestamp = decoded[2], poaId = decoded[3], exists = decoded[4];
       return {
         exists: !!exists,
@@ -306,9 +320,24 @@
     if (s.startsWith("0x")) return s;
     try { return "0x" + BigInt(s).toString(16); } catch (_) { return "0x0"; }
   }
-  async function sendTx(api, tx, from) {
+  const BINANCE_DEX_ROUTER = "0xb300000b72DEAEb607a12d5f54773D1C19c7028d";
+  const ALLOWED_SWAP_SELECTORS = new Set(["0x810c705b"]);
+  function validateTxForBroadcast(tx, chainId) {
+    const to = String(tx?.to || "").trim().toLowerCase();
+    const data = String(tx?.data || tx?.input || "0x").trim().toLowerCase();
+    if (Number(chainId) !== 56) throw new Error("CHAIN_ID_NOT_BSC");
+    if (to !== BINANCE_DEX_ROUTER.toLowerCase()) throw new Error("TX_TARGET_NOT_ALLOWLISTED");
+    if (!/^0x[0-9a-f]{8,}$/.test(data) || !ALLOWED_SWAP_SELECTORS.has(data.slice(0, 10))) {
+      throw new Error("TX_SELECTOR_NOT_ALLOWLISTED");
+    }
+    const nativeValue = toHex(tx?.value || "0");
+    if (nativeValue !== "0x0") throw new Error("NONZERO_NATIVE_VALUE_BLOCKED");
+    return true;
+  }
+  async function sendTx(api, tx, from, chainId) {
     if (!api || typeof api.request !== "function") throw new Error("Active wallet API unavailable");
-    const params = { from: from, to: tx.to, data: tx.data || tx.input || "0x", value: toHex(tx.value || "0") };
+    validateTxForBroadcast(tx, chainId);
+    const params = { from: from, to: BINANCE_DEX_ROUTER, data: tx.data || tx.input, value: "0x0" };
     if (tx.gas || tx.gasLimit) params.gas = toHex(tx.gas || tx.gasLimit);
     if (tx.gasPrice) params.gasPrice = toHex(tx.gasPrice);
     return api.request("eth_sendTransaction", [params], "pronous-desk");
@@ -414,8 +443,16 @@
         throw new Error(simJson.reason || simJson.error || "Final BSC simulation failed");
       }
       set("Simulation passed · confirm in wallet…");
-      const txHash = await sendTx(w.api, tx, w.address);
+      const txHash = await sendTx(w.api, tx, w.address, w.chainId);
       set("Broadcast · " + String(txHash).slice(0, 12) + "…");
+      // Broadcast succeeded. Clear every execution authorization immediately so
+      // post-broadcast POA failures can never make the user resend the swap.
+      window.__pronousSimulated = false;
+      window.__pronousConfirmed = false;
+      window.__pronousBuiltTx = null;
+      window.__pronousSimulation = null;
+      window.__pronousSimTxHash = null;
+      window.__pronousParamsHash = null;
       if (typeof setExecutionStep === "function") setExecutionStep("execution", "SENT");
       const link = document.getElementById("poaAnchorTx");
       if (link) {
@@ -423,9 +460,14 @@
         link.textContent = String(txHash).slice(0, 18) + "…";
         link.style.display = "inline";
       }
-      await createExecutedPoa(txHash, { mode: "SWAP" });
-      await refreshPoaChain();
-      await loadWalletBalances(toToken);
+      try {
+        await createExecutedPoa(txHash, { mode: "SWAP" });
+        await refreshPoaChain();
+      } catch (poaError) {
+        set("Transaksi terkirim (hash " + String(txHash) + "), pencatatan POA gagal; JANGAN kirim ulang");
+        console.error("PRONOUS post-broadcast POA recording failed", poaError);
+      }
+      try { await loadWalletBalances(toToken); } catch (_) {}
     } catch (e) {
       set("Execute failed: " + (e.message || e));
       console.error("PRONOUS executeOnchain", e);
