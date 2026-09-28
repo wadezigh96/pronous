@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import * as z from "zod/v4";
+import { cmcGlobalContext, cmcCryptoPrice, cmcUnavailable } from "./cmc.mjs";
 
 const API = process.env.PRONOUS_API_URL || "https://pronous.vercel.app";
 
@@ -142,6 +143,32 @@ function createServer() {
       return {content:[{type:"text",text:JSON.stringify(await getJSON(path),null,2)}]};
     } catch (error) {
       return {content:[{type:"text",text:JSON.stringify(localPreflight(ticker,amount,maxSpend),null,2)}]};
+    }
+  });
+
+  server.registerTool("cmc_market_context", {
+    description:"Get official CoinMarketCap global crypto market context. Keyless public API; read-only; no trading.",
+    inputSchema:z.object({symbol:z.string().regex(/^[A-Za-z0-9._-]{1,20}$/).optional()})
+  }, async ({symbol}) => {
+    try {
+      const global = await cmcGlobalContext();
+      const crypto = symbol ? await cmcCryptoPrice(symbol) : null;
+      return {content:[{type:"text",text:JSON.stringify({
+        agent:"PRONOUS",
+        source:"CoinMarketCap",
+        mode:"keyless-public-api",
+        readOnly:true,
+        global,
+        crypto,
+        execution:{broadcast:false}
+      },null,2)}]};
+    } catch (error) {
+      return {content:[{type:"text",text:JSON.stringify({
+        agent:"PRONOUS",
+        source:"CoinMarketCap",
+        ...cmcUnavailable(error),
+        execution:{broadcast:false}
+      },null,2)}]};
     }
   });
 
