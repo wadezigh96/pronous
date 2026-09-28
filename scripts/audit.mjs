@@ -109,4 +109,29 @@ ok('Provider change listeners', wallet.includes("provider.on('accountsChanged'")
 ok('Shared BSC switch with 4902 fallback', wallet.includes('async function ensureBsc') && wallet.includes('code === 4902') && !/async function ensureBsc/.test(readText('desk-onchain.js') || ''));
 ok('Wallet state tests present', fs.existsSync('scripts/wallet-state.test.mjs'));
 
+const apiFiles = dirFiles('api', '.js');
+for (const file of apiFiles) {
+  const source = readText(file);
+  if (source === null) continue;
+  ok(file + ' rate-limit/CORS guard', source.includes('guardRequest(req, res)'));
+}
+
+const sourceFiles = [...rootJs(), ...apiFiles, ...dirFiles('lib', '.js'), 'index.html'].filter(file => fs.existsSync(file));
+const allowedRuntimeHosts = new Set(['auth.privy.io','fonts.googleapis.com','fonts.gstatic.com','web3.binance.com','bsc-dataseed.binance.org','pro-api.coinmarketcap.com']);
+for (const file of sourceFiles) {
+  const source = readText(file);
+  if (source === null) continue;
+  const urls = [...source.matchAll(/(?:import\\s*\\(|<script[^>]+src=["'])(https?:\\/\\/[^"'\\)\\s]+)/gi)].map(m => m[1]);
+  for (const url of urls) {
+    let host = '';
+    try { host = new URL(url).hostname; } catch (_) {}
+    ok(file + ' runtime host allowlist', Boolean(host && (allowedRuntimeHosts.has(host) || host.endsWith('.privy.io'))), host || 'invalid URL');
+  }
+  ok(file + ' no esm.sh runtime import', !/https?:\\/\\/esm\\.sh\\//i.test(source));
+}
+const vercel = readText('vercel.json') || '';
+ok('CSP header configured', /Content-Security-Policy/.test(vercel) && /script-src 'self'/.test(vercel) && /connect-src/.test(vercel));
+ok('Security headers configured', /X-Content-Type-Options/.test(vercel) && /Referrer-Policy/.test(vercel) && /frame-ancestors 'none'/.test(vercel));
+ok('Local Privy vendor build configured', fs.existsSync('scripts/build-vendor.mjs') && fs.existsSync('vendor/privy-entry.jsx'));
+
 if (failed) process.exit(1);
