@@ -1,4 +1,4 @@
-const { guardRequest, isAddress, isAmount, safeError, requireSameOrigin } = require("../lib/http-policy");
+const { guardRequest, isAddress, safeError, requireSameOrigin } = require("../lib/http-policy");
 const crypto = require("crypto");
 const BASE = "https://web3.binance.com/build";
 
@@ -30,8 +30,8 @@ module.exports = async function handler(req, res) {
     const signedPath = wirePath(requestPath);
     const prehash = timestamp + "GET" + signedPath;
     const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
-    if (!["HMAC_SHA256","HMAC-SHA256"].includes(algorithm)) return safeError(res, 500, "UNSUPPORTED_SIGN_ALGO");
-    const signature = crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
+    if (!["HMAC_SHA256","HMAC-SHA256","ED25519"].includes(algorithm)) return safeError(res, 500, "UNSUPPORTED_SIGN_ALGO");
+    const signature = algorithm === "ED25519"\n    ? crypto.sign(null, Buffer.from(prehash, "utf8"), parseEd25519(secret)).toString("base64")\n    : crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
     const r = await fetch(BASE + requestPath, {
       headers: {
         "X-OC-APIKEY": apiKey,
