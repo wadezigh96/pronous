@@ -121,13 +121,13 @@ const allowedRuntimeHosts = new Set(['auth.privy.io','fonts.googleapis.com','fon
 for (const file of sourceFiles) {
   const source = readText(file);
   if (source === null) continue;
-  const urls = [...source.matchAll(/(?:import\\s*\\(|<script[^>]+src=["'])(https?:\\/\\/[^"'\\)\\s]+)/gi)].map(m => m[1]);
+  const urls = [...source.matchAll(/(?:import\s*\(|<script[^>]+src=["'])(https?:\/\/[^"'\)\s]+)/gi)].map(m => m[1]);
   for (const url of urls) {
     let host = '';
     try { host = new URL(url).hostname; } catch (_) {}
     ok(file + ' runtime host allowlist', Boolean(host && (allowedRuntimeHosts.has(host) || host.endsWith('.privy.io'))), host || 'invalid URL');
   }
-  ok(file + ' no esm.sh runtime import', !/https?:\\/\\/esm\\.sh\\//i.test(source));
+  ok(file + ' no esm.sh runtime import', !/https?:\/\/esm\.sh\//i.test(source));
 }
 const vercel = readText('vercel.json') || '';
 ok('CSP header configured', /Content-Security-Policy/.test(vercel) && /script-src 'self'/.test(vercel) && /connect-src/.test(vercel));
