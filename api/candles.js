@@ -1,3 +1,4 @@
+const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const crypto = require("crypto");
 const BASE = "https://web3.binance.com/build";
 
@@ -15,7 +16,9 @@ module.exports = async function handler(req, res) {
     const token = (url.searchParams.get("token") || url.searchParams.get("tokenContractAddress") || "").trim();
     const bar = (url.searchParams.get("bar") || "1h").trim();
     const limit = String(url.searchParams.get("limit") || "72");
-    if (!token) return res.status(400).json({ error: "token required" });
+    if (!isAddress(token)) return res.status(400).json({ error: "Invalid token address" });
+    if (!/^(1m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d|3d|1w)$/.test(bar)) return res.status(400).json({ error: "Invalid bar" });
+    if (!/^\\d{1,3}$/.test(limit) || Number(limit) < 1 || Number(limit) > 500) return res.status(400).json({ error: "Invalid limit" });
     const apiKey = cred(process.env.BINANCE_WEB3_API_KEY);
     const secret = cred(process.env.BINANCE_WEB3_API_SECRET);
     if (!apiKey || !secret) return res.status(200).json({ mode: "demo", candles: [] });
