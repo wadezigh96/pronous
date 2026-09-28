@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { guardRequest, safeError } = require("../lib/http-policy");
 
 const BASE = "https://web3.binance.com/build";
 const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "60000";
@@ -117,6 +118,7 @@ async function binancePost(path, body) {
 
 module.exports = async function handler(req, res) {
   setHeaders(res);
+  if (!guardRequest(req, res)) return;
   try {
     const url = new URL(req.url, "http://localhost");
     const action = url.searchParams.get("action") || "info";

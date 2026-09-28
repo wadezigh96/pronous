@@ -1,13 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+process.env.BINANCE_WEB3_API_KEY ||= "test-key";
+process.env.BINANCE_WEB3_API_SECRET ||= "test-secret";
+
 const handler = (await import("../api/trade.js")).default || (await import("../api/trade.js"));
 
 function makeRes() {
   return { statusCode: 200, headers: {}, body: undefined, setHeader(k,v){this.headers[k]=v}, status(n){this.statusCode=n;return this}, json(v){this.body=v;return this}, end(){return this} };
 }
-function req({method="GET",action="info",headers={},body=""}={}) {
-  return { method, url: "/api/trade?action="+action, headers, body, socket:{remoteAddress:"127.0.0.1"} };
+function req({method="GET",action="info",headers={},body="",query=""}={}) {
+  return { method, url: "/api/trade?action="+action+(query ? "&orderId="+encodeURIComponent(query) : ""), headers, body, socket:{remoteAddress:"127.0.0.1"} };
 }
 const originalFetch = global.fetch;
 
@@ -42,7 +45,7 @@ test("invalid input returns 400", async () => {
 
 test("upstream non-json returns generic 502 without details", async () => {
   global.fetch=async()=>({ok:false,status:500,headers:{get:()=> "text/plain"},json:async()=>{throw new Error("raw") }});
-  const res=makeRes(); await handler(req({action:"orderStatus",headers:{origin:"https://pronous.vercel.app"}}),res);
+  const res=makeRes(); await handler(req({action:"orderStatus",headers:{origin:"https://pronous.vercel.app"},query:"order_123"}),res);
   assert.equal(res.statusCode,502); assert.equal(res.body.error,"UPSTREAM_ERROR");
   assert.equal(res.body.details,undefined); assert.equal(res.body["X-OC-SIGN"],undefined);
   global.fetch=originalFetch;
@@ -50,7 +53,7 @@ test("upstream non-json returns generic 502 without details", async () => {
 
 test("timeout maps to generic upstream error", async () => {
   global.fetch=async()=>{ throw Object.assign(new Error("timeout"),{name:"TimeoutError"}) };
-  const res=makeRes(); await handler(req({action:"orderStatus",headers:{origin:"https://pronous.vercel.app"}}),res);
+  const res=makeRes(); await handler(req({action:"orderStatus",headers:{origin:"https://pronous.vercel.app"},query:"order_123"}),res);
   assert.equal(res.statusCode,502); assert.deepEqual(Object.keys(res.body),["error"]);
   global.fetch=originalFetch;
 });
