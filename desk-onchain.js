@@ -376,12 +376,12 @@
     const w = wallet();
     const state = window.__pronousExecutionState || (window.__pronousExecutionState = { inFlight: false });
     const gates = window.PRONOUS_EXECUTION_GATES;
+    if (!gates) { set("Execution security module unavailable. Execution blocked."); return; }
     if (!w.address || !w.provider || !w.provider.request) { set("Connect wallet before on-chain execute."); return; }
     if (!window.__pronousSimulated) { set("Run chain simulation before execute."); return; }
     if (!window.__pronousConfirmed) { set("Confirm action before wallet signing."); return; }
     if (!window.__pronousBuiltTx || !window.__pronousSimTxHash) { set("Simulated transaction is missing. Run simulation again."); return; }
-    const currentBinding = gates && gates.canonicalJson
-      ? await (async () => {
+    const currentBinding = await (async () => {
           const json = gates.canonicalJson({ params: window.__pronousExecutionParams ? window.__pronousExecutionParams() : {
             ticker: ((document.getElementById("ticker") && document.getElementById("ticker").value) || "NVDA").trim().toUpperCase(),
             amount: ((document.getElementById("amount") && document.getElementById("amount").value) || "").trim(),
@@ -391,8 +391,7 @@
           const bytes = new TextEncoder().encode(json);
           const digest = await crypto.subtle.digest("SHA-256", bytes);
           return Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, "0")).join("");
-        })()
-      : window.__pronousSimTxHash;
+        })();
     if (currentBinding !== window.__pronousSimTxHash) {
       set("Transaction or execution inputs changed. Run simulation again.");
       window.__pronousSimulated = false;
@@ -400,7 +399,7 @@
       window.__pronousBuiltTx = null;
       return;
     }
-    if (gates && !gates.canExecute({
+    if (!gates.canExecute({
       wallet: w.address,
       simulated: window.__pronousSimulated,
       confirmed: window.__pronousConfirmed,
@@ -410,7 +409,7 @@
       set("Execution gate blocked. Re-run simulation and confirmation.");
       return;
     }
-    if (gates && !gates.beginExecution(state)) {
+    if (!gates.beginExecution(state)) {
       set("Execution already in progress.");
       return;
     }
