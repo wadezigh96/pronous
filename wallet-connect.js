@@ -113,8 +113,9 @@ function attachProviderListeners(provider, source) {
       if (!result.state) { clearWallet(source, 'account disconnected'); return; }
       next.address = result.state.address;
     }
+    const previous = activeWallet;
     activeWallet = next;
-    emitWalletChanged(next, 'account changed');
+    emitWalletChanged(next, 'account changed', previous);
     setStatus(source === 'privy' ? 'PRIVY WALLET CONNECTED' : 'BROWSER WALLET CONNECTED');
   };
   const chainChanged = (chainId) => {
@@ -125,8 +126,9 @@ function attachProviderListeners(provider, source) {
       if (!result.changed) return;
       next.chainId = result.state?.chainId ?? null;
     }
+    const previous = activeWallet;
     activeWallet = next;
-    emitWalletChanged(next, 'chain changed');
+    emitWalletChanged(next, 'chain changed', previous);
     setStatus('WALLET CHAIN CHANGED · ' + String(next.chainId || 'unknown'));
   };
   provider.on('accountsChanged', accountsChanged);
