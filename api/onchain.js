@@ -61,6 +61,6 @@ module.exports = async function handler(req, res) {
       pools: pick(pools)
     });
   } catch (e) {
-    return res.status(500).json({ error: e.message || "On-chain lookup failed" });
+    return safeError(res, 500, "ONCHAIN_REQUEST_FAILED");
   }
 };
