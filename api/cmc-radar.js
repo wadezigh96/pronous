@@ -1,3 +1,4 @@
+const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const CMC_BASE = "https://pro-api.coinmarketcap.com";
 
 async function fetchCMC(path, params) {
