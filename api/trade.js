@@ -1,3 +1,4 @@
+const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const crypto = require("crypto");
 
 const BASE = "https://web3.binance.com/build";
@@ -115,7 +116,8 @@ module.exports = async function handler(req, res) {
         approveAmount: url.searchParams.get("approveAmount") || url.searchParams.get("amount"),
         vendor: url.searchParams.get("vendor") || undefined
       };
-      if (!params.tokenContractAddress) return res.status(400).json({ error: "tokenContractAddress required" });
+      if (!isAddress(params.tokenContractAddress)) return res.status(400).json({ error: "Invalid tokenContractAddress" });
+      if (!isAmount(params.approveAmount)) return res.status(400).json({ error: "Invalid approveAmount" });
       const data = await binanceGet("/api/v1/dex/aggregator/approve-transaction", params);
       return res.status(200).json({ mode: "live-approve", network: "BSC", data, broadcast: false });
     }
@@ -129,7 +131,7 @@ module.exports = async function handler(req, res) {
       if (!body.quoteId) body.quoteId = url.searchParams.get("quoteId");
       if (!body.vendor) body.vendor = url.searchParams.get("vendor");
       if (!body.requestId) body.requestId = url.searchParams.get("requestId") || crypto.randomUUID();
-      if (!body.userSignature || !body.quoteId) {
+      if (!body.userSignature || !body.quoteId || String(body.userSignature).length > 2000 || String(body.quoteId).length > 200) {
         return res.status(400).json({ error: "userSignature and quoteId required" });
       }
       const data = await binancePost("/api/v1/dex/aggregator/order/submit", body);
@@ -138,14 +140,14 @@ module.exports = async function handler(req, res) {
 
     if (action === "orderStatus") {
       const orderId = url.searchParams.get("orderId");
-      if (!orderId) return res.status(400).json({ error: "orderId required" });
+      if (!orderId || !/^[A-Za-z0-9._:-]{1,200}$/.test(orderId)) return res.status(400).json({ error: "Invalid orderId" });
       const data = await binanceGet("/api/v1/dex/aggregator/order/" + encodeURIComponent(orderId), {});
       return res.status(200).json({ mode: "live-rfq-status", network: "BSC", data });
     }
 
     if (action === "history") {
       const txHash = url.searchParams.get("txHash");
-      if (!txHash) return res.status(400).json({ error: "txHash required" });
+      if (!/^0x[a-fA-F0-9]{64}$/.test(String(txHash || ""))) return res.status(400).json({ error: "Invalid txHash" });
       const data = await binanceGet("/api/v1/dex/aggregator/history", {
         binanceChainId: "56",
         txHash
@@ -155,9 +157,6 @@ module.exports = async function handler(req, res) {
 
     return res.status(400).json({ error: "Unknown trade action" });
   } catch (e) {
-    return res.status(e.status || 502).json({
-      error: e.message || "Trade proxy failed",
-      details: e.data || undefined
-    });
+    return safeError(res, Number(e.status) >= 400 ? Number(e.status) : 502, "TRADE_REQUEST_FAILED");
   }
 };
