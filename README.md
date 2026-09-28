@@ -153,7 +153,7 @@ Live API checks:
 pronous/
 ├── index.html          # Product dashboard
 ├── api/                # agent.js · skills · ask
-├── lib/                # market · policy · execution
+├── lib/                # market · policy · execution · execution-gates
 ├── agent/              # Agent Studio · Agentic Wallet docs
 ├── contracts/          # PoaAnchor.sol
 └── docs/               # PRODUCT · ARCHITECTURE · SUBMISSION · POA
@@ -193,7 +193,7 @@ Deploy to Vercel (or any serverless JS host). Never commit secrets.
 
 ## Status
 
-**Active build.** Market intelligence live · execution planning guarded · server-side broadcast off · POA anchor live on BSC.
+**Active build.** Market intelligence live · client-wallet execution is live behind preflight → quote/build → chain simulation → explicit confirmation → final chain simulation gates. Server-side broadcast remains off; the user's wallet is the signing/broadcast boundary. POA anchor is live on BSC.
 
 ## License
 
