@@ -1,0 +1,71 @@
+/* Responsive board grid — loaded last. Visual only. */
+html body.board-ui .board-grid{
+  display:grid!important;
+  width:100%!important;
+  gap:12px!important;
+  align-items:stretch!important;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,.95fr)!important;
+  grid-template-rows:auto!important;
+}
+html body.board-ui #tape{grid-column:1/2!important;grid-row:1/2!important;min-height:0!important;margin:0!important}
+html body.board-ui #agent{grid-column:2/3!important;grid-row:1/2!important;min-height:0!important;margin:0!important}
+html body.board-ui #market{grid-column:3/4!important;grid-row:1/2!important;min-height:0!important;margin:0!important}
+html body.board-ui #overview{grid-column:1/2!important;grid-row:2/3!important;min-height:0!important;margin:0!important}
+html body.board-ui #studio-section{grid-column:2/3!important;grid-row:2/3!important;min-height:0!important;margin:0!important}
+html body.board-ui #cmcRadarCard{grid-column:3/4!important;grid-row:2/3!important;min-height:0!important;margin:0!important}
+html body.board-ui #onchain-section{grid-column:1/3!important;grid-row:3/4!important;min-height:0!important;margin:0!important}
+html body.board-ui #skills-section{grid-column:3/4!important;grid-row:3/4!important;min-height:0!important;margin:0!important}
+html body.board-ui #execution{grid-column:1/3!important;grid-row:4/5!important;min-height:0!important;margin:0!important}
+html body.board-ui #poa-section{grid-column:3/4!important;grid-row:4/5!important;min-height:0!important;margin:0!important}
+html body.board-ui .signal-row.is-selected,
+html body.board-ui tr.is-selected{background:rgba(245,190,55,.08)!important;outline:1px solid rgba(245,190,55,.22)}
+html body.board-ui .board-card{min-width:0!important;overflow:hidden!important}
+html body.board-ui #gapChart{width:100%!important;max-width:100%!important;height:220px!important}
+html body.board-ui .market-table-wrap,
+html body.board-ui #cmcRadar,
+html body.board-ui #chain{max-height:280px!important;overflow:auto!important}
+
+@media(max-width:1280px){
+  html body.board-ui .app{grid-template-columns:200px 1fr!important}
+}
+
+@media(max-width:1100px){
+  html body.board-ui .board-grid{grid-template-columns:1fr 1fr!important}
+  html body.board-ui #tape{grid-column:1/2!important;grid-row:1/2!important}
+  html body.board-ui #agent{grid-column:2/3!important;grid-row:1/2!important}
+  html body.board-ui #market{grid-column:1/3!important;grid-row:2/3!important}
+  html body.board-ui #overview{grid-column:1/2!important;grid-row:3/4!important}
+  html body.board-ui #studio-section{grid-column:2/3!important;grid-row:3/4!important}
+  html body.board-ui #cmcRadarCard{grid-column:1/3!important;grid-row:4/5!important}
+  html body.board-ui #onchain-section{grid-column:1/3!important;grid-row:5/6!important}
+  html body.board-ui #skills-section{grid-column:1/3!important;grid-row:6/7!important}
+  html body.board-ui #execution{grid-column:1/3!important;grid-row:7/8!important}
+  html body.board-ui #poa-section{grid-column:1/3!important;grid-row:8/9!important}
+}
+
+@media(max-width:900px){
+  html body.board-ui .app{display:block!important}
+  html body.board-ui .side{display:none!important}
+  html body.board-ui .board-grid{grid-template-columns:1fr!important}
+  html body.board-ui #tape,
+  html body.board-ui #agent,
+  html body.board-ui #market,
+  html body.board-ui #overview,
+  html body.board-ui #studio-section,
+  html body.board-ui #cmcRadarCard,
+  html body.board-ui #onchain-section,
+  html body.board-ui #skills-section,
+  html body.board-ui #execution,
+  html body.board-ui #poa-section{grid-column:1/-1!important;grid-row:auto!important;min-height:0!important}
+  html body.board-ui .sig-spark{display:none!important}
+  html body.board-ui .topbar{flex-wrap:wrap!important;height:auto!important}
+  html body.board-ui .wallet-source,
+  html body.board-ui .wallet-address{display:none!important}
+}
+
+@media(max-width:560px){
+  html body.board-ui .wrap,
+  html body.board-ui .board-wrap{padding:0 10px 88px!important}
+  html body.board-ui .signal-row{grid-template-columns:1fr auto!important}
+  html body.board-ui .sig-badge{display:none!important}
+}
