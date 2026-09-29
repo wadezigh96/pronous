@@ -1,8 +1,6 @@
-const crypto = require("crypto");
 const { guardRequest, safeError } = require("../lib/http-policy");
+const { signedGet, signedPost } = require("../lib/binance-web3");
 
-const BASE = "https://web3.binance.com/build";
-const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "60000";
 const ALLOWED_ORIGIN = String(process.env.ALLOWED_ORIGIN || "https://pronous.vercel.app").replace(/\/$/, "");
 const VENDORS = new Set(["LiquidMesh"]);
 const ID_RE = /^[A-Za-z0-9_-]{6,80}$/;
@@ -11,10 +9,9 @@ const SIG_RE = /^0x[0-9a-fA-F]{2,4096}$/;
 const RATE_WINDOW = 60_000;
 const RATE_READ = 60;
 const RATE_SUBMIT = 10;
+const MAX_BUCKETS = 2048;
 const buckets = new Map();
 
-function cred(v) { return String(v || "").replace(/^["']|["']$/g, "").replace(/\\n/g, "\n").trim(); }
-function wirePath(p) { return p && p.startsWith("/build") ? p : "/build" + (p || ""); }
 function clientIp(req) { return String(req.headers?.["x-forwarded-for"] || "").split(",")[0].trim() || String(req.socket?.remoteAddress || "unknown"); }
 function setHeaders(res) { res.setHeader("Cache-Control", "no-store"); res.setHeader("X-Content-Type-Options", "nosniff"); }
 function rejectMethod(req, res, method) { if (req.method !== method) { res.status(405).json({ error: "METHOD_NOT_ALLOWED" }); return true; } return false; }
@@ -22,8 +19,17 @@ function sameOrigin(req) {
   const origin = String(req.headers?.origin || "").replace(/\/$/, "");
   return origin === ALLOWED_ORIGIN;
 }
+function pruneRateBuckets(now) {
+  if (buckets.size <= MAX_BUCKETS) return;
+  for (const [key, bucket] of buckets) {
+    if (now - bucket.started >= RATE_WINDOW) buckets.delete(key);
+    if (buckets.size <= MAX_BUCKETS) break;
+  }
+  while (buckets.size > MAX_BUCKETS) buckets.delete(buckets.keys().next().value);
+}
 function rateLimit(req, res, submit) {
-  const now = Date.now(), key = (submit ? "submit:" : "read:") + clientIp(req);
+  const now = Date.now(); pruneRateBuckets(now);
+  const key = (submit ? "submit:" : "read:") + clientIp(req);
   let b = buckets.get(key);
   if (!b || now - b.started >= RATE_WINDOW) b = { started: now, count: 0 };
   b.count += 1; buckets.set(key, b);
@@ -32,36 +38,15 @@ function rateLimit(req, res, submit) {
 }
 function requireOrigin(req, res) { if (sameOrigin(req)) return true; res.status(403).json({ error: "FORBIDDEN_ORIGIN" }); return false; }
 function parseJsonBody(req) { if (typeof req.body === "object" && req.body !== null) return req.body; return JSON.parse(String(req.body || "")); }
-function parseResponseJson(r) { const type = String(r.headers?.get?.("content-type") || "").toLowerCase(); if (!type.includes("application/json")) { const e = new Error("UPSTREAM_NON_JSON"); e.status = 502; throw e; } return r.json(); }
-function errorWithCode(code, status = 502) { const e = new Error(code); e.code = code; e.status = status; return e; }
-function parseEd25519(secret) {
-  const normalized = cred(secret);
-  if (/-----BEGIN PRIVATE KEY-----/.test(normalized)) return crypto.createPrivateKey({ key: normalized, format: "pem", type: "pkcs8" });
-  const compact = normalized.replace(/\s+/g, ""); const b64 = compact.replace(/-/g, "+").replace(/_/g, "/");
-  const der = Buffer.from(b64 + "=".repeat((4 - (b64.length % 4)) % 4), "base64");
-  try { return crypto.createPrivateKey({ key: der, format: "der", type: "pkcs8" }); }
-  catch (_) { if (der.length === 32) return crypto.createPrivateKey({ key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), der]), format: "der", type: "pkcs8" }); throw _; }
-}
-function signedHeaders(method, requestPath, body = "") {
-  const apiKey = cred(process.env.BINANCE_WEB3_API_KEY), secret = cred(process.env.BINANCE_WEB3_API_SECRET);
-  if (!apiKey || !secret) throw errorWithCode("LIVE_API_NOT_CONFIGURED", 503);
-  const timestamp = new Date().toISOString();
-  const algo = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
-  const prehash = timestamp + method.toUpperCase() + wirePath(requestPath) + body;
-  const signature = algo === "ED25519" ? crypto.sign(null, Buffer.from(prehash, "utf8"), parseEd25519(secret)).toString("base64") : crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
-  return { "X-OC-APIKEY": apiKey, "X-OC-TIMESTAMP": timestamp, "X-OC-SIGN": signature, "X-OC-RECV-WINDOW": RECV_WINDOW, "X-OC-NONCE": crypto.randomBytes(16).toString("hex") };
-}
 function validateVendor(v) { return typeof v === "string" && VENDORS.has(v); }
 
 async function binanceGet(path, params) {
-  const requestPath = path + (Object.keys(params || {}).length ? "?" + Object.entries(params).map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(String(v))).join("&") : "");
-  const r = await fetch(BASE + requestPath, { headers: signedHeaders("GET", requestPath, ""), signal: AbortSignal.timeout(8000) });
-  const data = await parseResponseJson(r); if (!r.ok || (data.code !== undefined && data.code !== 0)) throw errorWithCode("UPSTREAM_ERROR", 502); return data;
+  try { return await signedGet(path, params); }
+  catch (e) { if (e?.message === "LIVE_API_NOT_CONFIGURED") throw e; throw Object.assign(new Error("UPSTREAM_ERROR"), { status: e?.status || 502, code: "UPSTREAM_ERROR" }); }
 }
 async function binancePost(path, body) {
-  const requestBody = JSON.stringify(body), headers = signedHeaders("POST", path, requestBody); headers["Content-Type"] = "application/json";
-  const r = await fetch(BASE + path, { method: "POST", headers, body: requestBody, signal: AbortSignal.timeout(8000) });
-  const data = await parseResponseJson(r); if (!r.ok || (data.code !== undefined && data.code !== 0)) throw errorWithCode("UPSTREAM_ERROR", 502); return data;
+  try { return await signedPost(path, body); }
+  catch (e) { if (e?.message === "LIVE_API_NOT_CONFIGURED") throw e; throw Object.assign(new Error("UPSTREAM_ERROR"), { status: e?.status || 502, code: "UPSTREAM_ERROR" }); }
 }
 
 module.exports = async function handler(req, res) {
