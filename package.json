@@ -21,7 +21,7 @@
     "build": "node build-vendor.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24 <27"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.1.0",
