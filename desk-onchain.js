@@ -532,7 +532,7 @@
       const toToken = asset && asset.tokenContractAddress;
       if (!tx || !tx.to) throw new Error("Simulated transaction is unavailable. Run simulation again.");
       set("Final chain simulation…");
-      const simUrl = "/api/agent?action=simulateTx&ticker=" + encodeURIComponent(t) + "&evmTx=" + encodeURIComponent(JSON.stringify(tx));
+      const simUrl = "/api/agent?action=simulateTx&ticker=" + encodeURIComponent(t) + "&userWalletAddress=" + encodeURIComponent(w.address) + "&evmTx=" + encodeURIComponent(JSON.stringify(tx));
       const simRes = await fetch(simUrl);
       const simJson = await simRes.json();
       if (!simRes.ok || simJson.status !== "PASSED" || !simJson.simulation || simJson.simulation.status !== "PASSED") {

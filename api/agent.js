@@ -258,6 +258,18 @@ module.exports = async function handler(req,res) {
       if(!isAmount(input.amount) || !isAmount(maxSpend)) return res.status(400).json({error:"Invalid amount or maxSpend"});
       const spend=validateSpendCap(input.amount, maxSpend);
       if(!spend.ok) return res.status(400).json({error:spend.error});
+
+      const preflight=buildPreflight(asset,{
+        amount:input.amount,
+        maxSpend
+      });
+      if(preflight.status!=="READY_FOR_SIMULATION"){
+        return res.status(409).json({
+          error:"PRE_FLIGHT_BLOCKED",
+          preflight
+        });
+      }
+
       if(input.fromTokenAddress && !isAddress(input.fromTokenAddress)) return res.status(400).json({error:"Invalid fromTokenAddress"});
       if(input.toTokenAddress && !isAddress(input.toTokenAddress)) return res.status(400).json({error:"Invalid toTokenAddress"});
       if(input.userWalletAddress && !isAddress(input.userWalletAddress)) return res.status(400).json({error:"Invalid userWalletAddress"});
@@ -301,11 +313,21 @@ module.exports = async function handler(req,res) {
 
     if(action==="simulateTx") {
       const raw=url.searchParams.get("evmTx");
+      const userWalletAddress=String(url.searchParams.get("userWalletAddress")||"").trim();
+      if(!isAddress(userWalletAddress)) return res.status(400).json({error:"userWalletAddress is required for simulation"});
       if(!raw) return res.status(400).json({error:"evmTx JSON query parameter is required"});
       let evmTx;
       try { evmTx=JSON.parse(raw); } catch (_) { return res.status(400).json({error:"Invalid evmTx JSON"}); }
+      if(!evmTx || typeof evmTx!=="object" || Array.isArray(evmTx))
+        return res.status(400).json({error:"Invalid simulation transaction"});
+      if(evmTx.from && !isAddress(evmTx.from))
+        return res.status(400).json({error:"Simulation transaction has an invalid from address"});
+      if(evmTx.from && evmTx.from.toLowerCase()!==userWalletAddress.toLowerCase())
+        return res.status(403).json({error:"Simulation wallet mismatch"});
+      const simulationTx={...evmTx,from:userWalletAddress};
+
       try {
-        const simulation=await simulateEvmTransaction(evmTx);
+        const simulation=await simulateEvmTransaction(simulationTx);
         return res.status(200).json({network:"BSC",chainId:56,ticker,evmTx,simulation});
       } catch(e) {
         return res.status(422).json({network:"BSC",chainId:56,ticker,broadcast:false,status:"FAILED",reason:e.message,code:e.rpcCode||null});
