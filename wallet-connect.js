@@ -143,6 +143,24 @@ function attachProviderListeners(provider, source) {
     }
   };
 }
+async function syncActiveWalletState() {
+  if (!activeProvider?.request || !activeWallet?.source) return null;
+  const accounts = await activeProvider.request({ method: 'eth_accounts' }).catch(() => []);
+  const address = Array.isArray(accounts) && accounts[0] ? accounts[0] : null;
+  if (!address) return null;
+  const chainRaw = await activeProvider.request({ method: 'eth_chainId' }).catch(() => null);
+  const chainId = normalizeChainId(chainRaw);
+  if (activeWallet && activeWallet.source) {
+    const previous = activeWallet;
+    const next = { ...activeWallet, address, chainId };
+    activeWallet = next;
+    if (previous.address !== next.address || normalizeChainId(previous.chainId) !== chainId) {
+      emitWalletChanged(next, 'wallet state synchronized', previous);
+      setStatus(next.source === 'privy' ? 'PRIVY WALLET CONNECTED' : 'BROWSER WALLET CONNECTED');
+    }
+  }
+  return activeWallet;
+}
 function exposeWalletApi() {
   if (window.PRONOUS_WALLET) return;
   window.PRONOUS_WALLET = Object.freeze({
@@ -150,6 +168,14 @@ function exposeWalletApi() {
     getChainId: () => activeWallet?.chainId || null,
     getSource: () => activeWallet?.source || null,
     isConnected: () => Boolean(activeWallet?.address && activeProvider),
+    sync: async () => {
+      const state = await syncActiveWalletState();
+      return state ? {
+        source: state.source,
+        address: state.address,
+        chainId: normalizeChainId(state.chainId)
+      } : null;
+    },
     request: async (method, params = [], caller = '') => {
       if (!activeProvider?.request || !activeWallet?.address) throw new Error('No active wallet');
       if (caller !== 'pronous-desk') throw new Error('Wallet request caller rejected');
