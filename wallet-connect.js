@@ -305,9 +305,26 @@ async function disconnectActive() {
   else clearWallet(source, 'wallet disconnected');
   clearPreference();
 }
+async function loadPrivyBundle() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const probe = await fetch('/vendor/privy-bundle.js', { method: 'HEAD', cache: 'no-store', signal: ctrl.signal });
+    if (!probe.ok) throw new Error('Privy vendor bundle not deployed');
+  } catch (error) {
+    if (error && error.name === 'AbortError') throw new Error('Privy vendor probe timeout');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+  return Promise.race([
+    import('/vendor/privy-bundle.js'),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Privy import timeout')), 8000))
+  ]);
+}
 async function bootPrivy() {
   setStatus('PRIVY LOADING');
-  const ReactMod = await import('/vendor/privy-bundle.js');
+  const ReactMod = await loadPrivyBundle();
   const RD = ReactMod;
   const PrivyMod = ReactMod;
   const React = ReactMod.default || ReactMod;
@@ -432,6 +449,7 @@ window.addEventListener('pronous:privy-disconnect-request', () => disconnectActi
 exposeWalletApi();
 bootPrivy().catch(err => {
   bridgeError = err?.message || String(err);
-  setStatus('PRIVY UNAVAILABLE: ' + bridgeError);
-  console.error('PRONOUS Privy boot failed:', err);
+  setStatus('WALLET NOT CONNECTED');
+  setButton('Connect Wallet', false);
+  console.warn('PRONOUS Privy optional boot skipped:', err);
 });
