@@ -65,16 +65,10 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <button id="connectWalletBtn" class="secondary connect-btn" type="button" onclick="connectWallet()">Connect Wallet</button></div></div></div>
 <div class="board-grid">
 <section class="card board-card signal-card" id="tape">
-<div class="card-head"><div class="card-title-row"><h2>Market Signal</h2></div><small>Live market sentiment &amp; AI analysis</small></div>
+<div class="card-head"><div class="card-title-row"><h2>Market Signal</h2></div><small>Live token/reference divergence &amp; market-state guard</small></div>
 <div class="signal-tabs"><button class="sig-tab active" type="button">All Assets</button><button class="sig-tab" type="button">Crypto</button><button class="sig-tab" type="button">Stocks</button><button class="sig-tab" type="button">RWA</button></div>
-<div class="signal-list" id="signalList">
-<div class="signal-row"><div class="sig-asset"><span class="sig-logo nvda">N</span><div><b>NVDA</b><span>NVIDIA</span></div></div><div class="sig-price">$181.24 <span class="pos">+2.34%</span></div><div class="sig-spark pos">▁▂▃▅▆▇</div><span class="sig-badge bullish">Bullish</span></div>
-<div class="signal-row"><div class="sig-asset"><span class="sig-logo aapl">A</span><div><b>AAPL</b><span>Apple</span></div></div><div class="sig-price">$228.17 <span class="pos">+1.12%</span></div><div class="sig-spark pos">▂▃▄▅▆▇</div><span class="sig-badge bullish">Bullish</span></div>
-<div class="signal-row"><div class="sig-asset"><span class="sig-logo tsla">T</span><div><b>TSLA</b><span>Tesla</span></div></div><div class="sig-price">$248.76 <span class="neg">-0.83%</span></div><div class="sig-spark neg">▇▆▅▄▃▂</div><span class="sig-badge neutral">Neutral</span></div>
-<div class="signal-row"><div class="sig-asset"><span class="sig-logo btc">₿</span><div><b>BTC</b><span>Bitcoin</span></div></div><div class="sig-price">$67,432.18 <span class="pos">+1.06%</span></div><div class="sig-spark pos">▂▃▄▅▆▇</div><span class="sig-badge bullish">Bullish</span></div>
-<div class="signal-row"><div class="sig-asset"><span class="sig-logo eth">Ξ</span><div><b>ETH</b><span>Ethereum</span></div></div><div class="sig-price">$3,245.67 <span class="pos">+0.82%</span></div><div class="sig-spark pos">▂▃▄▅▆▇</div><span class="sig-badge bullish">Bullish</span></div>
-</div>
-<div class="card-foot muted small">AI scanning 1,248 assets · Last update <span id="signalUpdated">—</span></div>
+<div class="signal-list" id="signalList"><div class="signal-row"><div class="sig-asset"><span class="sig-logo">•</span><div><b>LIVE FEED</b><span>Waiting for market assets…</span></div></div><div class="sig-price">—</div><div class="sig-spark">—</div><span class="sig-badge neutral">Loading</span></div></div>
+<div class="card-foot muted small">Live Binance Web3 asset feed · Last update <span id="signalUpdated">—</span></div>
 </section>
 <section class="card board-card scan-card" id="agent">
 <div class="card-head"><div class="card-title-row"><h2>Scan &amp; Plan</h2></div><small>AI opportunity scanner</small></div>
@@ -196,18 +190,18 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <span id="poaGateStatus" class="muted small">Connect wallet, then simulate before confirmation.</span></div>
 </section>
 <section class="card board-card poa-card" id="poa-section">
-<div class="card-head"><div class="card-title-row"><h2>Proof of Action</h2></div><span class="tag verified-tag">Verified</span></div>
-<div class="poa-detail"><div class="poa-hash-row"><code>0x7a3c9e2f6bBc5d4a1e…9f2d</code></div>
-<div class="poa-meta"><div><span class="muted small">Block</span><b>#38,542,761</b></div><div><span class="muted small">Time</span><b>2m ago</b></div></div>
-<div class="poa-checks"><div class="check ok">Signature Verified</div><div class="check ok">Data Integrity</div><div class="check ok">On-chain Confirmed</div></div>
-<a class="view-bscscan muted small" href="https://bscscan.com" target="_blank" rel="noopener">View on BscScan →</a></div>
+<div class="card-head"><div class="card-title-row"><h2>Proof of Action</h2></div><span class="tag verified-tag">AWAITING EVIDENCE</span></div>
+<div class="poa-detail"><div class="poa-hash-row"><code id="poaStaticHash">No session proof</code></div>
+<div class="poa-meta"><div><span class="muted small">Block</span><b>—</b></div><div><span class="muted small">Time</span><b>—</b></div></div>
+<div class="poa-checks"><div class="check">Signature pending</div><div class="check">Integrity pending</div><div class="check">On-chain anchor pending</div></div>
+<a class="view-bscscan muted small" href="https://bscscan.com" target="_blank" rel="noopener">Open BscScan →</a></div>
 <div class="poa-banner"><button class="secondary" type="button" onclick="createCurrentPOA()">Create POA</button></div>
 <div id="poaCurrent" class="result">No POA generated for this session.</div>
 <div class="row"><input id="poaAnchorInput" value="0xD729eFf0E050195D464cC9597d7A5Cc7194911B5">
 <button class="secondary" type="button" onclick="savePoaAnchorFromInput()">Save</button></div>
 <div class="row"><button type="button" onclick="anchorCurrentPOA()">Anchor POA on-chain</button>
 <a id="poaAnchorTx" href="#" target="_blank" rel="noopener" style="display:none"></a></div>
-<div id="poaAnchorStatus" class="muted small">Contract live on BSC.</div>
+<div id="poaAnchorStatus" class="muted small">Anchor available after a valid session proof.</div>
 <div class="poa-ledger-head"><span class="muted small">LOCAL POA LEDGER</span>
 <button class="secondary" type="button" onclick="clearPOALedger()">Clear</button></div>
 <div id="poaLedger" class="poa-ledger">No evidence yet.</div>
