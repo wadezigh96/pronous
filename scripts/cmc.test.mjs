@@ -2,16 +2,67 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { cmcCryptoPrice, cmcGlobalContext, cmcUnavailable } from "../mcp/cmc.mjs";
 
-test("CMC adapter refuses requests without an API key", async () => {
+function mockFetch(responseBody, status = 200) {
+  const previous = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      async text() { return JSON.stringify(responseBody); }
+    };
+  };
+  return { calls, restore: () => { globalThis.fetch = previous; } };
+}
+
+test("CMC keyless mode uses public-api without an API key", async () => {
   const previous = process.env.CMC_API_KEY;
   delete process.env.CMC_API_KEY;
-  await assert.rejects(() => cmcGlobalContext(), /CMC_API_KEY_NOT_CONFIGURED/);
-  if (previous !== undefined) process.env.CMC_API_KEY = previous;
+  const mock = mockFetch({
+    status: { timestamp: "2026-09-29T00:00:00Z" },
+    data: { quote: { USD: { total_market_cap: 123, total_volume_24h: 45, btc_dominance: 50, eth_dominance: 10 } } }
+  });
+  try {
+    const result = await cmcGlobalContext();
+    assert.equal(result.keyless, true);
+    assert.equal(result.authenticated, false);
+    assert.match(mock.calls[0].url, /pro-api\.coinmarketcap\.com\/public-api\/v1\/global-metrics\/quotes\/latest/);
+    assert.equal(mock.calls[0].options.headers["X-CMC_PRO_API_KEY"], undefined);
+  } finally {
+    mock.restore();
+    if (previous !== undefined) process.env.CMC_API_KEY = previous;
+  }
+});
+
+test("CMC authenticated mode sends the API key only as a header", async () => {
+  const previous = process.env.CMC_API_KEY;
+  process.env.CMC_API_KEY = "test-only-not-a-real-key";
+  const mock = mockFetch({
+    data: [{ symbol: "BTC", name: "Bitcoin", quotes: [{ price: 100, market_cap: 200, volume_24h: 3, percent_change_24h: 1, last_updated: "2026-09-29T00:00:00Z" }] }]
+  });
+  try {
+    const result = await cmcCryptoPrice("btc");
+    assert.equal(result.authenticated, true);
+    assert.equal(result.keyless, false);
+    assert.equal(mock.calls[0].options.headers["X-CMC_PRO_API_KEY"], "test-only-not-a-real-key");
+    assert.equal(mock.calls[0].url.includes("test-only-not-a-real-key"), false);
+  } finally {
+    mock.restore();
+    if (previous !== undefined) process.env.CMC_API_KEY = previous;
+    else delete process.env.CMC_API_KEY;
+  }
 });
 
 test("CMC symbol validation rejects malformed symbols", async () => {
+  const previous = process.env.CMC_API_KEY;
   process.env.CMC_API_KEY = "test-only-not-a-real-key";
-  await assert.rejects(() => cmcCryptoPrice("bad symbol with spaces"), /INVALID_CMC_SYMBOL/);
+  try {
+    await assert.rejects(() => cmcCryptoPrice("bad symbol with spaces"), /INVALID_CMC_SYMBOL/);
+  } finally {
+    if (previous !== undefined) process.env.CMC_API_KEY = previous;
+    else delete process.env.CMC_API_KEY;
+  }
 });
 
 test("CMC unavailable response never exposes the API key", () => {
