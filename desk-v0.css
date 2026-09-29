@@ -1,0 +1,75 @@
+/* v0 Financial Dashboard layout (Kokonut-style)
+   Visual only. Gold/black palette preserved.
+   No ID, handler, wallet, preflight, sim, confirm, or POA changes. */
+.fin-dash{background:#07080b}
+.fin-dash:before{opacity:.35}
+.fin-dash .app{grid-template-columns:248px 1fr;background:#07080b}
+.fin-dash .side{width:auto;background:#0b0c10 !important;border-right:1px solid rgba(245,190,55,.10) !important;padding:20px 14px 24px !important}
+.fin-dash .side:after{display:none}
+.fin-dash .side-brand{padding:8px 12px 28px !important;letter-spacing:.14em !important;font-size:15px !important;text-shadow:none !important}
+.fin-dash .navgroup{margin-bottom:22px}
+.fin-dash .navlabel{padding:0 12px 8px;color:#6d675c;letter-spacing:.16em}
+.fin-dash .navitem{border:0 !important;border-radius:10px !important;padding:9px 12px !important;margin:2px 0 !important;color:#b7b09f}
+.fin-dash .navitem:hover{background:rgba(245,190,55,.06) !important}
+.fin-dash .navitem.active{background:rgba(245,190,55,.10) !important;color:#f5c542 !important;box-shadow:none !important}
+.fin-dash .side-foot{border-top:1px solid rgba(245,190,55,.10);padding-top:14px}
+.fin-dash .main{background:#08090c;min-width:0}
+.fin-dash .wrap{max-width:1280px !important;padding:0 28px 72px !important}
+.fin-dash .topbar{height:64px !important;background:transparent !important;border-bottom:1px solid rgba(245,190,55,.10) !important;backdrop-filter:none !important;gap:12px !important}
+.fin-dash .topbar-crumb{font:600 12px Inter,system-ui,sans-serif;color:#8a8374;margin-right:8px}
+.fin-dash .topbar-crumb:after{content:"\203A";margin-left:8px;color:#5c574c}
+.fin-dash .topbar-title{font-size:13px !important;letter-spacing:0 !important;font-weight:700 !important;text-transform:none}
+.fin-dash .topbar-search{max-width:280px;background:rgba(16,16,18,.8);border-color:rgba(245,190,55,.12)}
+.fin-dash .health{animation:none;background:rgba(245,190,55,.08);border-color:rgba(245,190,55,.18) !important}
+.fin-dash .ticker-wrap{display:none}
+.fin-dash .hero{padding:18px 0 4px !important}
+.fin-dash .dashboard-head{padding:10px 0 4px !important;align-items:center}
+.fin-dash .dashboard-head h1{font-size:28px !important;letter-spacing:-.03em;text-shadow:none;line-height:1.15}
+.fin-dash .dashboard-head p{margin:6px 0 0;max-width:520px}
+.fin-dash .eyebrow{letter-spacing:.14em}
+.fin-dash .kpis{gap:12px !important;margin:14px 0 18px !important}
+.fin-dash .kpi{min-height:112px !important;padding:16px 18px !important;border-radius:16px !important;background:#101114 !important;border:1px solid rgba(245,190,55,.12) !important;box-shadow:none}
+.fin-dash .kpi:after{display:none}
+.fin-dash .kpi-label{font-size:11px !important;letter-spacing:.02em;text-transform:none;color:#8a8374 !important;font-family:Inter,system-ui,sans-serif !important;font-weight:500}
+.fin-dash .kpi-value{font-size:26px !important;letter-spacing:-.03em;margin-top:10px}
+.fin-dash .kpi-note{margin-top:8px;color:#6f6a60 !important}
+.fin-dash .card{background:#101114 !important;border:1px solid rgba(245,190,55,.12) !important;border-radius:16px !important;box-shadow:none !important;padding:18px 18px 16px !important}
+.fin-dash .card:before{display:none}
+.fin-dash .card:hover{border-color:rgba(245,190,55,.20);box-shadow:none}
+.fin-dash .terminal-head{margin-bottom:14px}
+.fin-dash .terminal-head h2{font-size:16px !important;font-weight:700 !important;letter-spacing:-.01em}
+.fin-dash .terminal-head small{background:rgba(245,190,55,.08);border:1px solid rgba(245,190,55,.14);border-radius:999px;padding:3px 8px;color:#c8c1ad}
+.fin-dash .result{background:#0c0d10;border:1px solid rgba(245,190,55,.10);border-radius:12px;padding:14px;margin-top:12px !important;color:#d8d2c4}
+.fin-dash .chart-box{background:#0c0d10 !important;border:1px solid rgba(245,190,55,.10) !important;border-radius:12px !important;box-shadow:none !important}
+.fin-dash .fd-split{grid-template-columns:1fr 1fr;gap:14px !important;margin:14px 0}
+.fin-dash .fd-split > .card{display:flex;flex-direction:column}
+.fin-dash .fd-split .row{margin-top:4px}
+.fin-dash .fd-split button{border-radius:10px !important}
+.fin-dash .studio-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:16px;align-items:center;margin-top:8px}
+.fin-dash .studio-actions{display:grid;gap:8px}
+.fin-dash .studio-pills{display:flex;flex-wrap:wrap;gap:6px}
+.fin-dash .market{font-family:Inter,system-ui,sans-serif}
+.fin-dash .market th{font-size:11px;font-weight:600;letter-spacing:.04em;color:#8a8374;border-bottom:1px solid rgba(245,190,55,.12)}
+.fin-dash .market td{border-bottom:1px solid rgba(245,190,55,.08);padding:12px 10px !important}
+.fin-dash .market tbody tr:last-child td{border-bottom:0}
+.fin-dash .poa-row{grid-template-columns:1fr auto auto;border-radius:12px;background:#0c0d10;border-color:rgba(245,190,55,.10)}
+.fin-dash .poa-banner{background:#0c0d10 !important;border-color:rgba(245,190,55,.14) !important}
+.fin-dash .exec-pipeline{gap:8px}
+.fin-dash .exec-step{min-height:78px !important;border-radius:12px !important;background:#0c0d10 !important;border:1px solid rgba(245,190,55,.10) !important}
+.fin-dash .exec-step.active{background:rgba(245,190,55,.07) !important;border-color:rgba(245,190,55,.32) !important;box-shadow:none !important}
+.fin-dash button{box-shadow:none}
+.fin-dash button:hover{transform:none;box-shadow:none}
+.fin-dash button.secondary{background:#16171b !important;color:#e8e2d4 !important;border-color:rgba(245,190,55,.16) !important}
+.fin-dash .feature{gap:12px}
+.fin-dash .feature div{background:#0c0d10 !important;border-color:rgba(245,190,55,.10) !important}
+@media(max-width:1100px){
+  .fin-dash .app{grid-template-columns:220px 1fr}
+  .fin-dash .studio-grid{grid-template-columns:1fr}
+}
+@media(max-width:900px){
+  .fin-dash .app{display:block}
+  .fin-dash .fd-split{grid-template-columns:1fr}
+  .fin-dash .ticker-wrap{display:none}
+  .fin-dash .dashboard-head h1{font-size:24px !important}
+  .fin-dash .topbar-crumb{display:none}
+}
