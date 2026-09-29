@@ -73,3 +73,177 @@ input{border-radius:12px !important;background:rgba(8,9,12,.85) !important;borde
 .wallet-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
 .wallet-cancel{margin-top:9px}
 @media(max-width:600px){.topbar{height:auto;min-height:68px;padding:10px 0;flex-wrap:wrap;gap:8px}.wallet-bar{width:100%;justify-content:flex-start}.wallet-choice-grid{grid-template-columns:1fr}}
+
+
+/* INSTITUTIONAL TERMINAL PASS — visual-only refinement */
+:root{
+  --bg:#07090c;--surface:#0d1116;--surface2:#11161d;
+  --line:rgba(181,160,96,.16);--line2:rgba(181,160,96,.27);
+  --text:#e9e7e0;--dim:#b8b5ab;--muted:#737872;
+  --cyan:#d9b84c;--teal:#d9b84c;--violet:#b9a36a;--coral:#e16a61;
+  --gold:#d9b84c;--ux-radius:10px;--ux-radius-sm:8px;
+  --glass:rgba(13,17,22,.96);--glass-border:rgba(181,160,96,.15);
+  --shadow-card:0 8px 24px rgba(0,0,0,.22);
+}
+body{background:#07090c !important}
+body:before{display:none !important}
+.app{grid-template-columns:208px 1fr}
+.side{padding:22px 12px !important;background:#080b0f !important;border-right:1px solid rgba(181,160,96,.13) !important;backdrop-filter:none !important}
+.side:after{display:none !important}
+.side-brand{font-size:15px !important;letter-spacing:.18em !important;padding:4px 10px 28px !important;text-shadow:none !important}
+.navlabel{color:#666b68 !important;font-size:8px !important;letter-spacing:.16em !important}
+.navitem{color:#949892 !important;border-radius:7px !important;padding:9px 11px !important;margin:2px 0 !important}
+.navitem:hover{background:#0f1419 !important;border-color:rgba(181,160,96,.10) !important}
+.navitem.active{color:#e0c15c !important;background:#11130f !important;border-color:rgba(181,160,96,.16) !important;box-shadow:inset 2px 0 #d9b84c !important}
+.wrap{max-width:1420px !important;padding:0 30px 56px !important}
+.topbar{height:64px !important;background:#07090c !important;backdrop-filter:none !important;border-bottom:1px solid rgba(181,160,96,.12) !important;gap:14px !important}
+.topbar-title{font-size:11px !important;letter-spacing:.1em}
+.topbar-sub{color:#666b68 !important;font-size:9px !important}
+.health{color:#b9a36a !important;background:#0b100e;border:1px solid rgba(181,160,96,.18) !important;padding:6px 9px !important;animation:none !important}
+.ticker-wrap{background:#080b0f !important;border-bottom:1px solid rgba(181,160,96,.10) !important}
+.ticker{padding:8px 0 !important;color:#858983 !important;gap:26px !important;font-size:9px !important}
+.card{background:#0d1116 !important;border:1px solid rgba(181,160,96,.14) !important;border-radius:10px !important;box-shadow:var(--shadow-card) !important;backdrop-filter:none !important;padding:18px !important;transition:border-color .16s ease,box-shadow .16s ease !important}
+.card:before{display:none !important}
+.card:hover{border-color:rgba(181,160,96,.22) !important;box-shadow:0 10px 28px rgba(0,0,0,.25) !important}
+.kpis{gap:9px !important;margin:16px 0 18px !important}
+.kpi{min-height:104px !important;padding:16px !important;background:#0c1015 !important;border:1px solid rgba(181,160,96,.12) !important;border-radius:8px !important;box-shadow:none !important}
+.kpi:after{display:none !important}
+.kpi-label{color:#777b76 !important;font-size:9px !important;letter-spacing:.08em !important}
+.kpi-value{color:#e8e5dc !important;font-size:23px !important;margin-top:8px !important}
+.kpi-note{color:#666b68 !important;font-size:10px !important}
+.dashboard-head{padding:28px 0 8px !important;align-items:end !important}
+.dashboard-head h1{font-size:40px !important;line-height:1.02 !important;letter-spacing:-.035em !important;text-shadow:none !important}
+.dashboard-head p{color:#7c817b !important;max-width:520px !important;font-size:13px !important}
+.eyebrow{color:#c8aa55 !important;font-size:9px !important;letter-spacing:.15em !important}
+button{border-radius:7px !important;background:#d9b84c !important;border:1px solid #d9b84c !important;color:#10110d !important;box-shadow:none !important;font-size:11px !important;font-weight:700 !important;transition:background .15s ease,border-color .15s ease,transform .15s ease !important}
+button:hover{transform:none !important;background:#e2c45e !important;box-shadow:none !important}
+button.secondary{background:#0d1217 !important;color:#aaa99f !important;border-color:rgba(181,160,96,.20) !important}
+button.secondary:hover{background:#12181e !important;border-color:rgba(181,160,96,.34) !important}
+input{border-radius:7px !important;background:#090d12 !important;border:1px solid rgba(181,160,96,.17) !important;color:#e5e3dc !important;box-shadow:none !important;padding:10px 11px !important}
+input:focus{border-color:rgba(217,184,76,.58) !important;box-shadow:0 0 0 2px rgba(217,184,76,.07) !important}
+.terminal-head{margin-bottom:10px !important}
+.terminal-head h2{font-size:13px !important;font-weight:700 !important;letter-spacing:.01em !important}
+.terminal-head small{color:#666b68 !important;font-size:8px !important;letter-spacing:.14em !important}
+.result{background:#090d12 !important;border:1px solid rgba(181,160,96,.09) !important;border-radius:7px !important;color:#bfc2bc !important;padding:11px 12px !important;font-size:11px !important}
+.chart-box{background:#090d12 !important;border:1px solid rgba(181,160,96,.10) !important;border-radius:8px !important;box-shadow:none !important;padding:11px !important}
+.chart-meta{color:#666b68 !important;font-size:8px !important}
+.market th{color:#666b68 !important;font-size:8px !important;letter-spacing:.1em !important}
+.market td{color:#bfc2bc !important;padding:10px 8px !important}
+.market tbody tr:hover{background:#11161b !important}
+.tag{color:#a9a79d !important;background:#10140f !important;border:1px solid rgba(181,160,96,.17) !important;border-radius:999px !important;padding:5px 8px !important;font-size:9px !important}
+.pos,.live{color:#d8bd5e !important;text-shadow:none !important}.neg{color:#d9786e !important}.demo{color:#cdb466 !important}
+.exec-pipeline{gap:5px !important;margin-top:12px !important}
+.exec-step{min-height:72px !important;border-radius:8px !important;background:#0a0e13 !important;border:1px solid rgba(181,160,96,.10) !important;box-shadow:none !important}
+.exec-step.active{background:#11130f !important;border-color:rgba(217,184,76,.35) !important;box-shadow:inset 2px 0 #d9b84c !important}
+.exec-step b{color:#cdb466 !important}.exec-step em{color:#626762 !important}
+.feature div{border-radius:8px !important;background:#0b1015 !important;border:1px solid rgba(181,160,96,.10) !important;box-shadow:none !important}
+.feature div:hover{transform:none !important;border-color:rgba(181,160,96,.22) !important}
+.poa-banner{border-radius:8px !important;background:#11130f !important;border:1px solid rgba(181,160,96,.17) !important}
+.poa-live-dot{background:#d9b84c !important;box-shadow:none !important;animation:none !important}
+.drawer-panel{background:#0b0f14 !important;border-left:1px solid rgba(181,160,96,.18) !important;border-radius:0 !important;box-shadow:-18px 0 45px rgba(0,0,0,.35) !important}
+.drawer-title{font-size:32px !important;text-shadow:none !important}
+.drawer-gap{background:#10130f !important;border-color:rgba(181,160,96,.16) !important}
+.mobile-nav{background:rgba(8,11,15,.98) !important;border:1px solid rgba(181,160,96,.18) !important;border-radius:10px !important;box-shadow:0 8px 28px rgba(0,0,0,.35) !important;backdrop-filter:none !important}
+.mobile-nav a{font-size:8px !important;color:#777c77 !important}.mobile-nav a:active{color:#d9b84c !important}
+.wallet-status{background:#0d1217 !important;padding:7px 10px !important}.wallet-source{color:#cdb466 !important}.wallet-address{color:#676c68 !important}
+.wallet-chooser-backdrop{background:rgba(0,0,0,.78) !important;backdrop-filter:blur(2px) !important}
+.wallet-chooser-panel{background:#0d1116 !important;border:1px solid rgba(181,160,96,.22) !important;border-radius:10px !important;box-shadow:0 20px 60px rgba(0,0,0,.55) !important}
+@media(max-width:900px){.wrap{padding:0 14px 92px !important}.dashboard-head{padding:24px 0 6px !important}.dashboard-head h1{font-size:32px !important}.card{padding:16px !important;border-radius:9px !important}.kpi{min-height:96px !important;padding:14px !important}}
+@media(max-width:560px){.dashboard-head h1{font-size:30px !important}.kpi-value{font-size:20px !important}.card{padding:14px !important}}
+
+
+/* FINANCIAL DASHBOARD LAYOUT PASS — structure inspired by the referenced v0 dashboard; PRONOUS palette preserved */
+.wrap{display:grid !important;grid-template-columns:repeat(12,minmax(0,1fr)) !important;column-gap:14px !important;row-gap:14px !important;align-items:start !important}
+.topbar,.ticker-wrap,.hero,.kpis{grid-column:1/-1 !important}
+.topbar{position:sticky !important;top:0 !important;z-index:30 !important}
+.hero{margin-top:2px !important}
+.kpis{display:grid !important;grid-template-columns:repeat(4,minmax(0,1fr)) !important}
+#tape{grid-column:1/9 !important;margin:0 !important}
+#agent{grid-column:9/-1 !important;display:grid !important;grid-template-columns:1fr !important;margin:0 !important}
+#agent .card{min-height:0 !important}
+#market{grid-column:1/9 !important;margin:0 !important}
+#radar-section{grid-column:9/-1 !important;display:grid !important;grid-template-columns:1fr !important;margin:0 !important}
+#radar-section .card{min-height:0 !important}
+#onchain-section{grid-column:1/9 !important;margin:0 !important}
+#skills-section{grid-column:9/-1 !important;margin:0 !important}
+#execution{grid-column:1/-1 !important;margin:0 !important}
+#poa-section{grid-column:1/-1 !important;margin:0 !important}
+#studio-section{grid-column:1/-1 !important;margin:0 !important}
+.market-card{overflow:hidden !important}
+.market-watch-body{border-top:1px solid rgba(181,160,96,.10) !important;margin-top:12px !important;padding-top:12px !important}
+.market-wrap{max-height:430px !important;overflow:auto !important}
+.market thead{position:sticky !important;top:0 !important;background:#090d12 !important;z-index:2 !important}
+.market tbody tr{cursor:pointer !important;transition:background .12s ease !important}
+.market tbody tr:hover{background:#12171d !important}
+#tape .chart-box{min-height:250px !important}
+#tape #gapChart{height:250px !important}
+#agent .row{align-items:stretch !important}
+#agent .result{min-height:104px !important;max-height:220px !important;overflow:auto !important}
+#radar-section .result{min-height:150px !important}
+#onchain-section .result{max-height:360px !important;overflow:auto !important}
+#skills-section .feature{display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important}
+#skills-section .feature div{min-height:62px !important}
+#execution .exec-pipeline{display:grid !important;grid-template-columns:repeat(5,minmax(0,1fr)) !important}
+#poa-section .poa-banner{display:grid !important;grid-template-columns:auto 1fr auto !important;align-items:center !important;gap:12px !important}
+@media(max-width:1100px){.wrap{grid-template-columns:repeat(8,minmax(0,1fr)) !important}#tape,#market,#onchain-section{grid-column:1/6 !important}#agent,#radar-section,#skills-section{grid-column:6/-1 !important}.kpis{grid-template-columns:repeat(2,minmax(0,1fr)) !important}#studio-section,#execution,#poa-section{grid-column:1/-1 !important}}
+@media(max-width:760px){.wrap{display:block !important;padding-bottom:92px !important}.topbar,.ticker-wrap{position:relative !important}.hero,.kpis,#tape,#agent,#market,#radar-section,#onchain-section,#skills-section,#studio-section,#execution,#poa-section{margin-bottom:12px !important}.kpis{display:grid !important;grid-template-columns:1fr 1fr !important}.kpis .kpi{min-width:0 !important}#skills-section .feature{grid-template-columns:1fr !important}#execution .exec-pipeline{grid-template-columns:1fr !important}#poa-section .poa-banner{grid-template-columns:auto 1fr !important}.poa-banner button{grid-column:1/-1 !important;width:100%}}
+@media(max-width:480px){.kpis{grid-template-columns:1fr !important}.dashboard-head h1{font-size:28px !important}.topbar-search{order:5 !important;width:100%}}
+
+
+/* FINANCIAL DASHBOARD DETAIL PASS — hierarchy, density, and interaction polish; palette unchanged */
+.dashboard-head{display:flex !important;gap:18px !important}
+.dashboard-head>div:first-child{min-width:0 !important}
+.dashboard-head .head-actions{display:flex !important;gap:8px !important;align-items:center !important}
+.dashboard-head .head-actions>*{width:auto !important}
+.kpi{display:flex !important;flex-direction:column !important;justify-content:center !important}
+.kpi-value{line-height:1.1 !important}
+.kpi-note{line-height:1.35 !important}
+#tape,#agent,#market,#radar-section,#onchain-section,#skills-section,#execution,#poa-section,#studio-section{align-self:start !important}
+#tape .terminal-head,#market .terminal-head,#execution .terminal-head,#poa-section .terminal-head,#studio-section .terminal-head{padding-bottom:2px !important}
+#tape .terminal-head:after,#market .terminal-head:after,#execution .terminal-head:after,#poa-section .terminal-head:after,#studio-section .terminal-head:after{content:"" !important;display:block !important;flex:1 !important;height:1px !important;background:rgba(181,160,96,.08) !important;margin-left:12px !important}
+#tape .terminal-head,#market .terminal-head,#execution .terminal-head,#poa-section .terminal-head,#studio-section .terminal-head{position:relative !important}
+#tape .chart-box{margin-top:8px !important}
+#tape #gapChart{min-height:220px !important}
+.market-wrap{scrollbar-width:thin !important;scrollbar-color:rgba(181,160,96,.28) transparent !important}
+.market-wrap::-webkit-scrollbar{width:7px;height:7px}.market-wrap::-webkit-scrollbar-thumb{background:rgba(181,160,96,.24);border-radius:999px}.market-wrap::-webkit-scrollbar-track{background:transparent}
+.market tbody tr:focus-within,.market tbody tr:focus{outline:1px solid rgba(217,184,76,.32) !important;outline-offset:-1px !important;background:#11161b !important}
+.radar-gap-row{border-radius:6px !important;padding:9px 7px !important;margin:1px 0 !important;transition:background .12s ease,border-color .12s ease !important}
+.radar-gap-row:hover,.radar-gap-row:focus{background:#11161b !important}
+#agent .card,#radar-section .card{height:100% !important}
+#agent .row{gap:7px !important}
+#agent .row button{min-height:38px !important}
+#skills-section .feature{margin-top:10px !important}
+#skills-section .feature div{display:flex !important;flex-direction:column !important;justify-content:center !important}
+#execution .exec-pipeline{margin-top:10px !important}
+#execution .exec-step{position:relative !important;overflow:hidden !important}
+#execution .exec-step.active:after{content:"" !important;position:absolute !important;left:0 !important;right:0 !important;bottom:0 !important;height:2px !important;background:#d9b84c !important}
+#poa-section .poa-banner{min-height:58px !important}
+#poa-section .poa-banner button{white-space:nowrap !important}
+.asset-drawer.open .drawer-panel{animation:drawerIn .16s ease-out both !important}
+@keyframes drawerIn{from{transform:translateX(18px);opacity:.7}to{transform:translateX(0);opacity:1}}
+@media(max-width:1100px){.dashboard-head{align-items:flex-start !important}.dashboard-head .head-actions{display:none !important}#tape,#market,#onchain-section{min-width:0 !important}#agent,#radar-section,#skills-section{min-width:0 !important}}
+@media(max-width:760px){.dashboard-head{display:block !important}.dashboard-head .head-actions{display:none !important}.topbar{position:relative !important}.card{min-width:0 !important}.market-wrap{max-height:360px !important}#tape #gapChart{min-height:200px !important}.poa-banner{gap:9px !important}}
+
+
+/* DENSITY PASS — compact institutional dashboard without changing palette or behavior */
+@media(min-width:761px){
+  .wrap{row-gap:10px !important;padding-bottom:36px !important}
+  .dashboard-head{padding:20px 0 4px !important}
+  .kpis{gap:8px !important;margin:10px 0 12px !important}
+  .kpi{min-height:88px !important;padding:13px !important}
+  .kpi-value{font-size:21px !important;margin-top:5px !important}
+  .card{padding:14px !important}
+  #tape .chart-box{min-height:0 !important}
+  #tape #gapChart{height:180px !important;min-height:180px !important}
+  #tape .chart-box canvas{height:180px !important}
+  #agent .result{min-height:72px !important;max-height:160px !important}
+  #radar-section .result{min-height:100px !important}
+  #onchain-section .result{max-height:250px !important}
+  .market-wrap{max-height:320px !important}
+  #skills-section .feature{margin-top:7px !important;gap:6px !important}
+  #skills-section .feature div{min-height:52px !important;padding:11px !important}
+  #execution .exec-pipeline{margin-top:7px !important}
+  #execution .exec-step{min-height:60px !important;padding:8px !important}
+  #poa-section .poa-banner{min-height:48px !important;padding:9px !important}
+  #studio-section .feature{margin-top:7px !important}
+}

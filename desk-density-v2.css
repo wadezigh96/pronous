@@ -1,0 +1,121 @@
+/* INSTITUTIONAL DENSITY V3 — compact dashboard composition.
+   Visual/layout only: no DOM, JS, API, wallet, POA, execution, or data behavior changes. */
+
+@media (min-width: 1101px) {
+  .wrap {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.28fr) minmax(320px, .82fr) !important;
+    grid-template-areas:
+      "topbar topbar"
+      "ticker ticker"
+      "overview overview"
+      "kpis kpis"
+      "tape market"
+      "agent market"
+      "studio radar"
+      "onchain skills"
+      "execution execution"
+      "poa poa" !important;
+    column-gap: 14px !important;
+    row-gap: 12px !important;
+    align-items: start !important;
+  }
+
+  .wrap > .topbar { grid-area: topbar !important; width: 100% !important; }
+  .wrap > .ticker-wrap { grid-area: ticker !important; width: 100% !important; }
+  .wrap > #overview { grid-area: overview !important; width: 100% !important; }
+  .wrap > .kpis { grid-area: kpis !important; width: 100% !important; }
+  .wrap > #tape { grid-area: tape !important; width: 100% !important; margin: 0 !important; }
+  .wrap > #agent { grid-area: agent !important; width: 100% !important; margin: 0 !important; align-self: stretch !important; }
+  .wrap > #studio-section { grid-area: studio !important; width: 100% !important; margin: 0 !important; }
+  .wrap > #market { grid-area: market !important; width: 100% !important; margin: 0 !important; min-width: 0 !important; }
+  .wrap > #radar-section { grid-area: radar !important; width: 100% !important; margin: 0 !important; }
+  .wrap > #onchain-section { grid-area: onchain !important; width: 100% !important; margin: 0 !important; }
+  .wrap > #skills-section { grid-area: skills !important; width: 100% !important; margin: 0 !important; }
+  .wrap > #execution { grid-area: execution !important; width: 100% !important; margin: 0 !important; }
+  .wrap > #poa-section { grid-area: poa !important; width: 100% !important; margin: 0 !important; }
+
+  /* Keep the right rail useful without letting a long market list create a blank column. */
+  .wrap > #market {
+    max-height: 438px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .wrap > #market .market-watch-body {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .wrap > #market .market-watch-body.open {
+    max-height: 354px !important;
+    overflow: auto !important;
+    scrollbar-width: thin !important;
+  }
+  .wrap > #market .market-head { flex: 0 0 auto !important; }
+  .wrap > #market #marketTable { max-height: 285px !important; overflow: auto !important; }
+
+  /* Compact signal cards so the first two rows feel like one live workspace. */
+  .wrap > #tape { min-height: 214px !important; }
+  .wrap > #tape .gap-chart { margin-top: 8px !important; }
+  .wrap > #tape .gap-chart canvas { height: 156px !important; }
+  .wrap > #agent { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+  .wrap > #agent > .card { height: 100% !important; min-height: 214px !important; }
+  .wrap > #agent .result { min-height: 54px !important; max-height: 94px !important; overflow: auto !important; }
+
+  .wrap > #studio-section { min-height: 150px !important; }
+  .wrap > #radar-section { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+  .wrap > #radar-section > .card { min-height: 150px !important; }
+  .wrap > #onchain-section { min-height: 190px !important; }
+  .wrap > #onchain-section .result { max-height: 170px !important; overflow: auto !important; }
+  .wrap > #skills-section { min-height: 190px !important; }
+  .wrap > #skills-section .feature { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px !important; }
+  .wrap > #skills-section .feature div { padding: 10px !important; }
+
+  /* Institutional card rhythm. */
+  .wrap > section.card,
+  .wrap > div.grid { min-height: 0 !important; }
+  .card { border-radius: 15px !important; }
+  .terminal-head { margin-bottom: 8px !important; }
+  .result { line-height: 1.45 !important; }
+  .dashboard-head { padding-top: 18px !important; }
+  .dashboard-head h1 { font-size: 32px !important; }
+  .kpis { margin: 12px 0 2px !important; }
+  .kpi { min-height: 92px !important; padding: 13px 15px !important; }
+  .ticker-wrap { display: none !important; }
+  .wrap > .topbar { position: sticky !important; top: 0 !important; z-index: 12 !important; background: rgba(5,6,8,.92) !important; backdrop-filter: blur(14px) !important; }
+
+  /* Small live-market cues without touching data logic. */
+  .health { box-shadow: 0 0 0 1px rgba(245,190,55,.05), 0 0 18px rgba(245,190,55,.06) !important; }
+  .market-watch-head, .terminal-head { gap: 10px !important; }
+  .tag, .terminal-head small { white-space: nowrap !important; }
+}
+
+@media (max-width: 1100px) {
+  .wrap { display: block !important; }
+  .wrap > #market { max-height: none !important; overflow: visible !important; }
+  .wrap > #market .market-watch-body.open { max-height: none !important; overflow: visible !important; }
+}
+
+@media (max-width: 900px) {
+  .wrap { display: block !important; padding-bottom: 92px !important; }
+  .wrap > #agent { display: grid !important; grid-template-columns: 1fr !important; gap: 10px !important; }
+  .wrap > #agent > .card { min-height: 0 !important; }
+  .wrap > #tape .gap-chart canvas { height: 150px !important; }
+  .wrap > #market { max-height: none !important; }
+  .wrap > #market .market-watch-body.open { max-height: 420px !important; overflow: auto !important; }
+  .wrap > #market #marketTable { max-height: 340px !important; }
+  .wrap > #radar-section { display: grid !important; grid-template-columns: 1fr !important; }
+  .wrap > #skills-section .feature { grid-template-columns: 1fr 1fr !important; }
+  .topbar { min-height: 64px !important; height: auto !important; padding: 8px 0 !important; gap: 8px !important; flex-wrap: wrap !important; }
+  .topbar-search { order: 3 !important; flex: 1 1 100% !important; max-width: none !important; }
+  .wallet-bar .wallet-address, .wallet-bar .wallet-source { display: none !important; }
+}
+
+@media (max-width: 560px) {
+  .wrap > #skills-section .feature { grid-template-columns: 1fr !important; }
+  .kpis { grid-template-columns: 1fr 1fr !important; }
+  .kpi-value { font-size: 18px !important; }
+  .dashboard-head h1 { font-size: 27px !important; }
+  .wallet-bar { margin-left: auto !important; }
+  .wallet-status { display: none !important; }
+}

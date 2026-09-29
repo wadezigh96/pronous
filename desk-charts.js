@@ -49,35 +49,8 @@ function drawGapChart(){
   });
   ctx.strokeStyle='rgba(245,197,66,.55)';ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();
 }
-async function loadAssetChart(asset){
-  const src=document.getElementById('assetChartSrc');
-  const canvas=document.getElementById('assetChart');
-  if(!canvas) return;
-  try{
-    const token=asset.tokenContractAddress||'';
-    const urls=[
-      token?'/api/candles?token='+encodeURIComponent(token)+'&bar=1h&limit=72':null,
-      '/api/agent?action=candles&ticker='+encodeURIComponent(asset.ticker||'')+'&bar=1h&limit=72'
-    ].filter(Boolean);
-    let candles=[]; let source='SNAPSHOT';
-    for (const url of urls){
-      const r=await fetch(url); const j=await r.json();
-      candles=(j.candles||[]).filter(c=>Number.isFinite(Number(c.close)));
-      if(candles.length){ source=j.source||'LIVE'; break; }
-    }
-    if(src) src.textContent=source;
-    if(candles.length){
-      const up=Number(candles[candles.length-1].close)>=Number(candles[0].close);
-      drawLineChart(canvas, candles.map(c=>({y:Number(c.close)})), up?'#2fbf8f':'#e8604c');
-    } else {
-      const tokenPx=Number(asset.tokenPrice), ref=Number(asset.referencePrice);
-      drawLineChart(canvas, Number.isFinite(tokenPx)&&Number.isFinite(ref)?[{y:ref},{y:tokenPx}]:[{y:0},{y:1}], '#f0b90b');
-    }
-  }catch(e){
-    if(src) src.textContent='UNAVAILABLE';
-  }
-}
-
+function drawCandleChart(canvas,candles){if(!canvas||!candles.length)return;const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#070a10';ctx.fillRect(0,0,w,h);const vals=candles.flatMap(c=>[Number(c.high),Number(c.low)]).filter(Number.isFinite);if(!vals.length)return;const min=Math.min(...vals),max=Math.max(...vals),pad=(max-min)*.08||1,lo=min-pad,hi=max+pad;ctx.strokeStyle='rgba(120,130,145,.16)';ctx.lineWidth=1;for(let i=1;i<5;i++){const y=18+(i/5)*(h-38);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}const left=10,right=10,top=12,bottom=26,plotW=w-left-right,plotH=h-top-bottom;const step=plotW/candles.length;const bodyW=Math.max(2,Math.min(10,step*.62));candles.forEach((c,i)=>{const o=Number(c.open),cl=Number(c.close),hi=Number(c.high),loV=Number(c.low);if(![o,cl,hi,loV].every(Number.isFinite))return;const x=left+i*step+step/2;const y=v=>top+(hi===loV?plotH/2:((hi-v)/(hi-lo)) * plotH);const up=cl>=o;ctx.strokeStyle=up?'#2fbf8f':'#e8604c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y(hi));ctx.lineTo(x,y(loV));ctx.stroke();const yo=y(o),yc=y(cl),bodyTop=Math.min(yo,yc),bodyH=Math.max(1,Math.abs(yc-yo));ctx.fillRect(x-bodyW/2,bodyTop,bodyW,bodyH)});const last=candles[candles.length-1];ctx.fillStyle='#d8d1c0';ctx.font='10px IBM Plex Mono,monospace';ctx.textAlign='right';ctx.fillText(Number(last.close).toFixed(4),w-8,12);}
+async function loadAssetChart(asset,bar='1h'){const src=document.getElementById('assetChartSrc'),canvas=document.getElementById('assetChart');if(!canvas||!asset)return;try{const token=asset.tokenContractAddress||'';const urls=[token?'/api/candles?token='+encodeURIComponent(token)+'&bar='+encodeURIComponent(bar)+'&limit=72':null,'/api/agent?action=candles&ticker='+encodeURIComponent(asset.ticker||'')+'&bar='+encodeURIComponent(bar)+'&limit=72'].filter(Boolean);let candles=[],source='SNAPSHOT';for(const url of urls){const r=await fetch(url);const j=await r.json();candles=(j.candles||[]).filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v))));if(candles.length){source=(j.source||'LIVE')+' · '+bar.toUpperCase();break}}if(src)src.textContent=source;if(candles.length){drawCandleChart(canvas,candles)}else{const tokenPx=Number(asset.tokenPrice),ref=Number(asset.referencePrice);drawLineChart(canvas,Number.isFinite(tokenPx)&&Number.isFinite(ref)?[{y:ref},{y:tokenPx}]:[{y:0},{y:1}],'#f0b90b')}}catch(e){if(src)src.textContent='UNAVAILABLE'}}
 function hookLiveDeskDom(){
   const tape=document.querySelector('.ticker-wrap .ticker');
   if(tape && !tape.id) tape.id='liveGapTape';

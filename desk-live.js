@@ -1,7 +1,7 @@
 (function () {
   function fmtPx(v) {
     const n = Number(v);
-    if (!Number.isFinite(n)) return "\u2014";
+    if (!Number.isFinite(n)) return "—";
     return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(3) : n.toPrecision(4);
   }
 
@@ -29,14 +29,16 @@
         return;
       }
       el.innerHTML =
-        '<div class="muted small" style="margin-bottom:8px">LIVE \u00b7 token vs reference \u00b7 ' +
+        '<div class="muted small" style="margin-bottom:8px">LIVE · token vs reference · ' +
         top.length + " of " + rows.length + " gaps</div>" +
         top.map((x) => {
           const gap = Number(x.spreadPct);
           return (
-            '<div class="radar-gap-row" onclick="openAsset(' +
+            '<div class="radar-gap-row" role="button" tabindex="0" onclick="openAsset(' +
             JSON.stringify(x.ticker) + "," + JSON.stringify(x.platformId || "") +
-            ')"><div><b>' + esc(x.ticker) +
+            ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openAsset(' +
+            JSON.stringify(x.ticker) + "," + JSON.stringify(x.platformId || "") +
+            ')}"><div><b>' + esc(x.ticker) +
             '</b> <span class="muted small">' + esc(x.platformId || "") +
             '</span></div><div class="muted small">' + fmtPx(x.tokenPrice) + " / " + fmtPx(x.referencePrice) +
             '</div><div class="' + (gap >= 0 ? "pos" : "neg") + '">' +
@@ -58,7 +60,7 @@
       const silent = opts && opts.silent;
       const box = document.getElementById("marketTable");
       const existing = window.marketAssets || [];
-      if (box && !existing.length) box.textContent = "Loading live RWA gaps\u2026";
+      if (box && !existing.length) box.textContent = "Loading live RWA gaps…";
       try {
         const r = await fetch("/api/agent?action=assets", { cache: "no-store" });
         const j = await r.json();
@@ -71,13 +73,13 @@
           mode.className = "tag " + (j.mode === "live-data" ? "live" : "demo");
         }
         const kpiMode = document.getElementById("kpiMode");
-        if (kpiMode) kpiMode.textContent = (j.mode || "\u2014").replace("live-data", "LIVE");
+        if (kpiMode) kpiMode.textContent = (j.mode || "—").replace("live-data", "LIVE");
         const kpiAssets = document.getElementById("kpiAssets");
         if (kpiAssets) kpiAssets.textContent = String((j.summary && j.summary.total) || marketAssets.length);
         const updated = document.getElementById("marketUpdated");
         if (updated) {
           updated.textContent = "Updated " + new Date(j.updatedAt || Date.now()).toLocaleTimeString() +
-            " \u00b7 " + ((j.summary && j.summary.actionable) || 0) + " actionable gaps";
+            " · " + ((j.summary && j.summary.actionable) || 0) + " actionable gaps";
         }
         const pulse = document.getElementById("radarPulse");
         if (pulse) pulse.textContent = "LIVE " + new Date().toLocaleTimeString();
@@ -99,9 +101,33 @@
       style.id = "desk-live-style";
       style.textContent =
         ".radar-gap-row{display:grid;grid-template-columns:1.2fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(245,197,66,.1);cursor:pointer}" +
-        ".radar-gap-row:hover{background:rgba(245,197,66,.05)}.radar-gap-row:last-child{border-bottom:0}" +
+        ".radar-gap-row:hover,.radar-gap-row:focus{background:rgba(245,197,66,.05)}.radar-gap-row:last-child{border-bottom:0}" +
+        ".market tbody tr[tabindex]{cursor:pointer}.market tbody tr[tabindex]:focus{outline:1px solid rgba(217,184,76,.32);outline-offset:-1px;background:#11161b}" +
         "#liveGapTape em{font-style:normal;margin-left:4px}#radarPulse{width:auto}";
       document.head.appendChild(style);
+    }
+
+    function bindMarketKeyboard() {
+      document.querySelectorAll(".market tbody tr").forEach((row) => {
+        if (row.dataset.pronousKeyboardBound === "1") return;
+        row.dataset.pronousKeyboardBound = "1";
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        row.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          row.click();
+        });
+      });
+    }
+
+    const originalRenderMarket = window.renderMarket;
+    if (typeof originalRenderMarket === "function") {
+      window.renderMarket = function accessibleRenderMarket() {
+        originalRenderMarket();
+        bindMarketKeyboard();
+      };
+      bindMarketKeyboard();
     }
 
     if (window.marketAssets && window.marketAssets.length) renderRadar();
