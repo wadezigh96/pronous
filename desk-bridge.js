@@ -140,8 +140,9 @@
         const px = Number(a.tokenPrice ?? a.referencePrice);
         const gap = Number(a.spreadPct);
         const pos = Number.isFinite(gap) ? gap >= 0 : true;
-        const badge = !Number.isFinite(gap) ? "neutral" : Math.abs(gap) < 0.15 ? "neutral" : pos ? "bullish" : "neutral";
-        const badgeLabel = badge === "bullish" ? "Bullish" : "Neutral";
+        const actionable = a.actionable !== false && a.dataQuality !== 'unreliable';
+        const badge = !actionable ? "neutral" : !Number.isFinite(gap) ? "neutral" : Math.abs(gap) < 0.15 ? "neutral" : pos ? "bullish" : "discount";
+        const badgeLabel = !actionable ? "Guarded" : badge === "bullish" ? "Premium" : badge === "discount" ? "Discount" : "Aligned";
         const spark = pos ? "▂▃▄▅▆▇" : "▇▆▅▄▃▂";
         const on = t === selected ? " is-selected" : "";
         return (
@@ -477,6 +478,19 @@
     window.renderCMCRadar.__bridged = true;
   }
 
+  function bindSignalTabs() {
+    document.querySelectorAll('.sig-tab').forEach((btn) => {
+      if (btn.__pronousBound) return;
+      btn.__pronousBound = true;
+      btn.addEventListener('click', () => {
+        const text = (btn.textContent || '').trim().toLowerCase();
+        window.__pronousSignalTab = text === 'all assets' ? 'all' : text;
+        document.querySelectorAll('.sig-tab').forEach(b => b.classList.toggle('active', b === btn));
+        renderSignalList();
+      });
+    });
+  }
+
   function boot() {
     hookLoadMarket();
     hookScan();
@@ -485,6 +499,7 @@
     hookMarketClicks();
     hookCmcRender();
     bindChrome();
+    bindSignalTabs();
     syncWalletFromApi();
     if (assets().length) {
       renderSignalList();
