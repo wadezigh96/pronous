@@ -44,6 +44,13 @@ for (const file of rootFiles) copyFile(file);
 copyDir('lib');
 copyDir('vendor');
 
+// Keep the density pass separate from desk.css so visual layout changes are isolated.
+const densityCss = path.join(root, 'desk-density-v2.css');
+const publicDeskCss = path.join(out, 'desk.css');
+if (fs.existsSync(densityCss) && fs.existsSync(publicDeskCss)) {
+  fs.appendFileSync(publicDeskCss, `\n\n${fs.readFileSync(densityCss, 'utf8')}\n`);
+}
+
 if (!fs.existsSync(path.join(out, 'index.html'))) {
   console.error('prepare-vercel-public: index.html was not copied');
   process.exit(1);
