@@ -73,3 +73,80 @@ input{border-radius:12px !important;background:rgba(8,9,12,.85) !important;borde
 .wallet-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
 .wallet-cancel{margin-top:9px}
 @media(max-width:600px){.topbar{height:auto;min-height:68px;padding:10px 0;flex-wrap:wrap;gap:8px}.wallet-bar{width:100%;justify-content:flex-start}.wallet-choice-grid{grid-template-columns:1fr}}
+
+
+/* INSTITUTIONAL TERMINAL PASS — visual-only refinement */
+:root{
+  --bg:#07090c;--surface:#0d1116;--surface2:#11161d;
+  --line:rgba(181,160,96,.16);--line2:rgba(181,160,96,.27);
+  --text:#e9e7e0;--dim:#b8b5ab;--muted:#737872;
+  --cyan:#d9b84c;--teal:#d9b84c;--violet:#b9a36a;--coral:#e16a61;
+  --gold:#d9b84c;--ux-radius:10px;--ux-radius-sm:8px;
+  --glass:rgba(13,17,22,.96);--glass-border:rgba(181,160,96,.15);
+  --shadow-card:0 8px 24px rgba(0,0,0,.22);
+}
+body{background:#07090c !important}
+body:before{display:none !important}
+.app{grid-template-columns:208px 1fr}
+.side{padding:22px 12px !important;background:#080b0f !important;border-right:1px solid rgba(181,160,96,.13) !important;backdrop-filter:none !important}
+.side:after{display:none !important}
+.side-brand{font-size:15px !important;letter-spacing:.18em !important;padding:4px 10px 28px !important;text-shadow:none !important}
+.navlabel{color:#666b68 !important;font-size:8px !important;letter-spacing:.16em !important}
+.navitem{color:#949892 !important;border-radius:7px !important;padding:9px 11px !important;margin:2px 0 !important}
+.navitem:hover{background:#0f1419 !important;border-color:rgba(181,160,96,.10) !important}
+.navitem.active{color:#e0c15c !important;background:#11130f !important;border-color:rgba(181,160,96,.16) !important;box-shadow:inset 2px 0 #d9b84c !important}
+.wrap{max-width:1420px !important;padding:0 30px 56px !important}
+.topbar{height:64px !important;background:#07090c !important;backdrop-filter:none !important;border-bottom:1px solid rgba(181,160,96,.12) !important;gap:14px !important}
+.topbar-title{font-size:11px !important;letter-spacing:.1em}
+.topbar-sub{color:#666b68 !important;font-size:9px !important}
+.health{color:#b9a36a !important;background:#0b100e;border:1px solid rgba(181,160,96,.18) !important;padding:6px 9px !important;animation:none !important}
+.ticker-wrap{background:#080b0f !important;border-bottom:1px solid rgba(181,160,96,.10) !important}
+.ticker{padding:8px 0 !important;color:#858983 !important;gap:26px !important;font-size:9px !important}
+.card{background:#0d1116 !important;border:1px solid rgba(181,160,96,.14) !important;border-radius:10px !important;box-shadow:var(--shadow-card) !important;backdrop-filter:none !important;padding:18px !important;transition:border-color .16s ease,box-shadow .16s ease !important}
+.card:before{display:none !important}
+.card:hover{border-color:rgba(181,160,96,.22) !important;box-shadow:0 10px 28px rgba(0,0,0,.25) !important}
+.kpis{gap:9px !important;margin:16px 0 18px !important}
+.kpi{min-height:104px !important;padding:16px !important;background:#0c1015 !important;border:1px solid rgba(181,160,96,.12) !important;border-radius:8px !important;box-shadow:none !important}
+.kpi:after{display:none !important}
+.kpi-label{color:#777b76 !important;font-size:9px !important;letter-spacing:.08em !important}
+.kpi-value{color:#e8e5dc !important;font-size:23px !important;margin-top:8px !important}
+.kpi-note{color:#666b68 !important;font-size:10px !important}
+.dashboard-head{padding:28px 0 8px !important;align-items:end !important}
+.dashboard-head h1{font-size:40px !important;line-height:1.02 !important;letter-spacing:-.035em !important;text-shadow:none !important}
+.dashboard-head p{color:#7c817b !important;max-width:520px !important;font-size:13px !important}
+.eyebrow{color:#c8aa55 !important;font-size:9px !important;letter-spacing:.15em !important}
+button{border-radius:7px !important;background:#d9b84c !important;border:1px solid #d9b84c !important;color:#10110d !important;box-shadow:none !important;font-size:11px !important;font-weight:700 !important;transition:background .15s ease,border-color .15s ease,transform .15s ease !important}
+button:hover{transform:none !important;background:#e2c45e !important;box-shadow:none !important}
+button.secondary{background:#0d1217 !important;color:#aaa99f !important;border-color:rgba(181,160,96,.20) !important}
+button.secondary:hover{background:#12181e !important;border-color:rgba(181,160,96,.34) !important}
+input{border-radius:7px !important;background:#090d12 !important;border:1px solid rgba(181,160,96,.17) !important;color:#e5e3dc !important;box-shadow:none !important;padding:10px 11px !important}
+input:focus{border-color:rgba(217,184,76,.58) !important;box-shadow:0 0 0 2px rgba(217,184,76,.07) !important}
+.terminal-head{margin-bottom:10px !important}
+.terminal-head h2{font-size:13px !important;font-weight:700 !important;letter-spacing:.01em !important}
+.terminal-head small{color:#666b68 !important;font-size:8px !important;letter-spacing:.14em !important}
+.result{background:#090d12 !important;border:1px solid rgba(181,160,96,.09) !important;border-radius:7px !important;color:#bfc2bc !important;padding:11px 12px !important;font-size:11px !important}
+.chart-box{background:#090d12 !important;border:1px solid rgba(181,160,96,.10) !important;border-radius:8px !important;box-shadow:none !important;padding:11px !important}
+.chart-meta{color:#666b68 !important;font-size:8px !important}
+.market th{color:#666b68 !important;font-size:8px !important;letter-spacing:.1em !important}
+.market td{color:#bfc2bc !important;padding:10px 8px !important}
+.market tbody tr:hover{background:#11161b !important}
+.tag{color:#a9a79d !important;background:#10140f !important;border:1px solid rgba(181,160,96,.17) !important;border-radius:999px !important;padding:5px 8px !important;font-size:9px !important}
+.pos,.live{color:#d8bd5e !important;text-shadow:none !important}.neg{color:#d9786e !important}.demo{color:#cdb466 !important}
+.exec-pipeline{gap:5px !important;margin-top:12px !important}
+.exec-step{min-height:72px !important;border-radius:8px !important;background:#0a0e13 !important;border:1px solid rgba(181,160,96,.10) !important;box-shadow:none !important}
+.exec-step.active{background:#11130f !important;border-color:rgba(217,184,76,.35) !important;box-shadow:inset 2px 0 #d9b84c !important}
+.exec-step b{color:#cdb466 !important}.exec-step em{color:#626762 !important}
+.feature div{border-radius:8px !important;background:#0b1015 !important;border:1px solid rgba(181,160,96,.10) !important;box-shadow:none !important}
+.feature div:hover{transform:none !important;border-color:rgba(181,160,96,.22) !important}
+.poa-banner{border-radius:8px !important;background:#11130f !important;border:1px solid rgba(181,160,96,.17) !important}
+.poa-live-dot{background:#d9b84c !important;box-shadow:none !important;animation:none !important}
+.drawer-panel{background:#0b0f14 !important;border-left:1px solid rgba(181,160,96,.18) !important;border-radius:0 !important;box-shadow:-18px 0 45px rgba(0,0,0,.35) !important}
+.drawer-title{font-size:32px !important;text-shadow:none !important}
+.drawer-gap{background:#10130f !important;border-color:rgba(181,160,96,.16) !important}
+.mobile-nav{background:rgba(8,11,15,.98) !important;border:1px solid rgba(181,160,96,.18) !important;border-radius:10px !important;box-shadow:0 8px 28px rgba(0,0,0,.35) !important;backdrop-filter:none !important}
+.mobile-nav a{font-size:8px !important;color:#777c77 !important}.mobile-nav a:active{color:#d9b84c !important}
+.wallet-status{background:#0d1217 !important;padding:7px 10px !important}.wallet-source{color:#cdb466 !important}.wallet-address{color:#676c68 !important}
+.wallet-chooser-backdrop{background:rgba(0,0,0,.78) !important;backdrop-filter:blur(2px) !important}
+.wallet-chooser-panel{background:#0d1116 !important;border:1px solid rgba(181,160,96,.22) !important;border-radius:10px !important;box-shadow:0 20px 60px rgba(0,0,0,.55) !important}
+@media(max-width:900px){.wrap{padding:0 14px 92px !important}.dashboard-head{padding:24px 0 6px !important}.dashboard-head h1{font-size:32px !important}.card{padding:16px !important;border-radius:9px !important}.kpi{min-height:96px !important;padding:14px !important}}
+@media(max-width:560px){.dashboard-head h1{font-size:30px !important}.kpi-value{font-size:20px !important}.card{padding:14px !important}}
