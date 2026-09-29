@@ -336,6 +336,8 @@
     }
   }
 
+  window.loadOnchain = loadOnchain;
+
   async function autoLoadOnchain() {
     const asset = pickAsset();
     if (!asset || !asset.tokenContractAddress) return;
