@@ -1,11 +1,19 @@
 const CMC_KEYLESS_BASE = "https://pro-api.coinmarketcap.com/public-api";
 const CMC_AUTH_BASE = "https://pro-api.coinmarketcap.com";
+const CMC_TIMEOUT_MS = 8000;
+const CMC_MAX_ATTEMPTS = 3;
 
 function getBaseAndHeaders() {
   const key = process.env.CMC_API_KEY;
   return key
     ? { base: CMC_AUTH_BASE, headers: { Accept: "application/json", "X-CMC_PRO_API_KEY": key }, authenticated: true }
     : { base: CMC_KEYLESS_BASE, headers: { Accept: "application/json" }, authenticated: false };
+}
+
+function retryDelayMs(response, attempt) {
+  const retryAfter = Number(response?.headers?.get?.("retry-after"));
+  if (Number.isFinite(retryAfter) && retryAfter >= 0) return Math.min(retryAfter * 1000, 2000);
+  return Math.min(250 * (2 ** attempt), 1000);
 }
 
 async function getJSON(path, params = {}) {
@@ -15,13 +23,36 @@ async function getJSON(path, params = {}) {
     if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
   }
   const url = base + path + (query.toString() ? "?" + query.toString() : "");
-  const response = await fetch(url, { headers });
+  let response;
+  for (let attempt = 0; attempt < CMC_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      response = await fetch(url, { headers, signal: AbortSignal.timeout(CMC_TIMEOUT_MS) });
+    } catch (error) {
+      if (attempt === CMC_MAX_ATTEMPTS - 1) throw Object.assign(new Error("CMC_NETWORK_ERROR"), { code: "CMC_NETWORK_ERROR", cause: error });
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs(null, attempt)));
+      continue;
+    }
+    if ((response.status === 429 || response.status >= 500) && attempt < CMC_MAX_ATTEMPTS - 1) {
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs(response, attempt)));
+      continue;
+    }
+    break;
+  }
   const text = await response.text();
   let data;
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
   if (!response.ok) {
     const error = new Error("CoinMarketCap API " + response.status);
+    error.code = response.status === 429 ? "CMC_RATE_LIMITED" : "CMC_HTTP_ERROR";
     error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  const apiCode = data?.status?.error_code;
+  if (apiCode !== undefined && apiCode !== null && Number(apiCode) !== 0) {
+    const error = new Error(data?.status?.error_message || "CMC_API_ERROR");
+    error.code = "CMC_API_ERROR";
+    error.status = 502;
     error.data = data;
     throw error;
   }
@@ -38,8 +69,8 @@ export async function cmcGlobalContext() {
     timestamp: data?.status?.timestamp || null,
     totalMarketCapUsd: q.total_market_cap ?? null,
     totalVolume24hUsd: q.total_volume_24h ?? null,
-    btcDominance: q.btc_dominance ?? null,
-    ethDominance: q.eth_dominance ?? null,
+    btcDominance: data?.data?.btc_dominance ?? null,
+    ethDominance: data?.data?.eth_dominance ?? null,
     activeCryptocurrencies: data?.data?.active_cryptocurrencies ?? null,
     activeExchanges: data?.data?.active_exchanges ?? null
   };
@@ -55,7 +86,7 @@ export async function cmcCryptoPrice(symbol) {
   const entries = Array.isArray(data?.data) ? data.data : Object.values(data?.data || {});
   const item = entries[0];
   const quote = item?.quotes?.[0] || item?.quote?.USD || {};
-  if (!item || quote.price == null) throw Object.assign(new Error("CMC_ASSET_NOT_FOUND"), { status: 404 });
+  if (!item || quote.price == null) throw Object.assign(new Error("CMC_ASSET_NOT_FOUND"), { status: 404, code: "CMC_ASSET_NOT_FOUND" });
   return {
     source: "coinmarketcap-api",
     authenticated,
