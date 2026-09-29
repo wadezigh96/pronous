@@ -30,6 +30,7 @@ fs.mkdirSync(out, { recursive: true });
 const rootFiles = [
   'index.html',
   'desk.css',
+  'desk-v0.css',
   'agent-card.json',
   'desk-app.js',
   'desk-charts.js',
