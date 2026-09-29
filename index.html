@@ -193,7 +193,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="row poa-gate-row">
 <button class="execute-main-btn" id="executeOnchainBtn" type="button">Execute on-chain →</button>
 <button class="secondary" id="confirmActionBtn" type="button" onclick="confirmAction()" disabled>Confirm action → POA</button>
-<span id="poaGateStatus" class="muted small">Simulation required before confirmation.</span></div>
+<span id="poaGateStatus" class="muted small">Connect wallet, then simulate before confirmation.</span></div>
 </section>
 <section class="card board-card poa-card" id="poa-section">
 <div class="card-head"><div class="card-title-row"><h2>Proof of Action</h2></div><span class="tag verified-tag">Verified</span></div>
@@ -241,8 +241,12 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <script src="/lib/rpc-guard.js"></script>
 <script src="/wallet-connect.js"></script>
 <script src="/desk-app.js"></script>
+<script src="/desk-live.js"></script>
+<script src="/desk-exec.js"></script>
 <script src="/cmc-radar.js"></script>
 <script src="/lib/execution-result.js"></script>
 <script src="/desk-onchain.js"></script>
+<script src="/desk-parity.js"></script>
+<script src="/desk-bridge.js"></script>
 <script>document.querySelectorAll('.sig-tab,.mw-tab,.cmc-tab,.oc-tab,.chart-tf,.tf-btn').forEach(btn=>{btn.addEventListener('click',function(){const g=this.parentElement;if(g)g.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');});});</script>
 </body></html>
