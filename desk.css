@@ -223,3 +223,27 @@ input:focus{border-color:rgba(217,184,76,.58) !important;box-shadow:0 0 0 2px rg
 @keyframes drawerIn{from{transform:translateX(18px);opacity:.7}to{transform:translateX(0);opacity:1}}
 @media(max-width:1100px){.dashboard-head{align-items:flex-start !important}.dashboard-head .head-actions{display:none !important}#tape,#market,#onchain-section{min-width:0 !important}#agent,#radar-section,#skills-section{min-width:0 !important}}
 @media(max-width:760px){.dashboard-head{display:block !important}.dashboard-head .head-actions{display:none !important}.topbar{position:relative !important}.card{min-width:0 !important}.market-wrap{max-height:360px !important}#tape #gapChart{min-height:200px !important}.poa-banner{gap:9px !important}}
+
+
+/* DENSITY PASS — compact institutional dashboard without changing palette or behavior */
+@media(min-width:761px){
+  .wrap{row-gap:10px !important;padding-bottom:36px !important}
+  .dashboard-head{padding:20px 0 4px !important}
+  .kpis{gap:8px !important;margin:10px 0 12px !important}
+  .kpi{min-height:88px !important;padding:13px !important}
+  .kpi-value{font-size:21px !important;margin-top:5px !important}
+  .card{padding:14px !important}
+  #tape .chart-box{min-height:0 !important}
+  #tape #gapChart{height:180px !important;min-height:180px !important}
+  #tape .chart-box canvas{height:180px !important}
+  #agent .result{min-height:72px !important;max-height:160px !important}
+  #radar-section .result{min-height:100px !important}
+  #onchain-section .result{max-height:250px !important}
+  .market-wrap{max-height:320px !important}
+  #skills-section .feature{margin-top:7px !important;gap:6px !important}
+  #skills-section .feature div{min-height:52px !important;padding:11px !important}
+  #execution .exec-pipeline{margin-top:7px !important}
+  #execution .exec-step{min-height:60px !important;padding:8px !important}
+  #poa-section .poa-banner{min-height:48px !important;padding:9px !important}
+  #studio-section .feature{margin-top:7px !important}
+}
