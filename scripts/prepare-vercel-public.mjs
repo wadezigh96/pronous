@@ -38,6 +38,8 @@ const rootFiles = [
   'desk-charts.js',
   'desk-exec.js',
   'desk-live.js',
+  'desk-bridge.js',
+  'desk-parity.js',
   'desk-onchain.js',
   'wallet-connect.js',
   'cmc-radar.js'
