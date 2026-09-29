@@ -1,177 +1,13 @@
-const crypto = require("crypto");
-const { calculateSpreadPct, normalizeAsset, assessQuote, isSupportedPlatform } = require("../lib/market");
+const { calculateSpreadPct, assessQuote, isSupportedPlatform } = require("../lib/market");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
+const { signedGet, normalizeCredential, publicKeyFingerprint } = require("../lib/binance-web3");
 
-const BASE = "https://web3.binance.com/build";
-const RECV_WINDOW = process.env.BINANCE_WEB3_RECV_WINDOW || "60000";
 const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
 
-function normalizeCredential(value) {
-  return String(value || "")
-    .replace(/^["']|["']$/g, "")
-    .replace(/\\r\\n/g, "\n")
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .trim();
-}
-
-function isoTimestamp() {
-  return new Date().toISOString();
-}
-
-function wirePath(requestPath) {
-  if (!requestPath) return "/build";
-  return requestPath.startsWith("/build") ? requestPath : "/build" + requestPath;
-}
-
-function signHmac(secret, payload) {
-  const normalizedSecret = normalizeCredential(secret);
-  return crypto.createHmac("sha256", normalizedSecret).update(payload, "utf8").digest("base64");
-}
-
-function parseEd25519PrivateKey(secret) {
-  const raw = String(secret || "").trim();
-  const normalized = raw
-    .replace(/^["']|["']$/g, "")
-    .replace(/\\r\\n/g, "\n")
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .trim();
-
-  if (/-----BEGIN PRIVATE KEY-----/.test(normalized) &&
-      /-----END PRIVATE KEY-----/.test(normalized)) {
-    return crypto.createPrivateKey({ key: normalized, format: "pem", type: "pkcs8" });
-  }
-
-  const compact = normalized.replace(/\s+/g, "");
-  if (/^[A-Za-z0-9+/=_-]+$/.test(compact)) {
-    const base64 = compact.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const der = Buffer.from(padded, "base64");
-    if (der.length > 0) {
-      try {
-        return crypto.createPrivateKey({ key: der, format: "der", type: "pkcs8" });
-      } catch (_) {
-        if (der.length === 32) {
-          const pkcs8 = Buffer.concat([
-            Buffer.from("302e020100300506032b657004220420", "hex"),
-            der
-          ]);
-          return crypto.createPrivateKey({ key: pkcs8, format: "der", type: "pkcs8" });
-        }
-      }
-    }
-  }
-
-  throw new Error("INVALID_ED25519_PRIVATE_KEY_FORMAT");
-}
-function credentialShape(secret) {
-  const raw = String(secret || "").trim().replace(/^["']|["']$/g, "");
-  if (!raw) return {kind:"EMPTY",length:0};
-  const normalized = raw.replace(/\\r\\n/g,"\n").replace(/\\n/g,"\n").replace(/\\r/g,"\r").trim();
-  if (/-----BEGIN [^-]+ PRIVATE KEY-----/.test(normalized)) return {kind:"PEM_PRIVATE_VARIANT",header:normalized.match(/-----BEGIN [^-]+ PRIVATE KEY-----/)?.[0]||"UNKNOWN",length:normalized.length};
-  if (normalized.includes("BEGIN PUBLIC KEY")) return {kind:"PEM_PUBLIC",length:normalized.length};
-  const compact = normalized.replace(/\s+/g,"");
-  if (/^[A-Za-z0-9+/=_-]+$/.test(compact)) {
-    const b64 = compact.replace(/-/g,"+").replace(/_/g,"/");
-    const der = Buffer.from(b64 + "=".repeat((4-(b64.length%4))%4),"base64");
-    return {kind:"BASE64",length:compact.length,decodedLength:der.length};
-  }
-  return {kind:"OTHER",length:normalized.length};
-}
-
-function signEd25519(privateKey, payload) {
-  const keyObject = parseEd25519PrivateKey(privateKey);
-  const message = Buffer.from(payload, "utf8");
-  const signature = crypto.sign(null, message, keyObject);
-  const publicKey = crypto.createPublicKey(keyObject);
-  const selfVerified = crypto.verify(null, message, publicKey, signature);
-  if (!selfVerified) throw new Error("ED25519_SELF_VERIFY_FAILED");
-  return { signature: signature.toString("base64"), selfVerified };
-}
-
-function privateKeyFingerprint(privateKey) {
-  const keyObject = parseEd25519PrivateKey(privateKey);
-  const publicDer = crypto.createPublicKey(keyObject).export({format:"der",type:"spki"});
-  return crypto.createHash("sha256").update(publicDer).digest("hex");
-}
-
-function signedHeaders(method, requestPath, body = "") {
-  const apiKey = normalizeCredential(process.env.BINANCE_WEB3_API_KEY);
-  const secret = normalizeCredential(process.env.BINANCE_WEB3_API_SECRET);
-  const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
-  if (!apiKey || !secret) return null;
-
-  const timestamp = isoTimestamp();
-  const normalizedMethod = method.toUpperCase();
-  const signedPath = wirePath(requestPath);
-  const prehash = timestamp + normalizedMethod + signedPath + body;
-  let signature;
-  let publicKeySha256;
-  let signatureSelfVerified;
-  if (algorithm === "ED25519") {
-    const signed = signEd25519(secret, prehash);
-    signature = signed.signature;
-    publicKeySha256 = privateKeyFingerprint(secret);
-    signatureSelfVerified = signed.selfVerified;
-  } else if (algorithm === "HMAC_SHA256" || algorithm === "HMAC-SHA256") {
-    signature = signHmac(secret, prehash);
-  } else {
-    throw new Error("UNSUPPORTED_SIGN_ALGO");
-  }
-
-  return {
-    "X-OC-APIKEY": apiKey,
-    "X-OC-TIMESTAMP": timestamp,
-    "X-OC-SIGN": signature,
-    "X-OC-RECV-WINDOW": RECV_WINDOW,
-    "X-OC-NONCE": crypto.randomBytes(16).toString("hex"),
-    _debug:process.env.DEBUG_AUTH==="1"?{algorithm,method:normalizedMethod,requestPath:signedPath,requestPathLength:signedPath.length,bodyLength:body.length,timestamp,prehashSha256:crypto.createHash("sha256").update(prehash,"utf8").digest("hex"),publicKeySha256,signatureSelfVerified}:undefined
-  };
-}
-
-function buildRequestPath(path, params = {}) {
-  const entries = Object.entries(params || {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "");
-  if (!entries.length) return path;
-  const query = entries.map(([key, value]) =>
-    encodeURIComponent(key) + "=" + encodeURIComponent(String(value))
-  ).join("&");
-  return path + "?" + query;
-}
-
 async function binanceGet(path, params = {}) {
-  const requestPath = buildRequestPath(path, params);
-  const headers = signedHeaders("GET", requestPath, "");
-  if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
-  const debug = headers._debug; delete headers._debug;
-  const r = await fetch(BASE + requestPath, {headers});
-  const data = await r.json();
-  if (!r.ok || (data.code !== undefined && data.code !== 0)) {
-    const e = new Error(data.msg || "Binance Web3 API error");
-    e.status = r.status || 502;
-    e.data = data; if (process.env.DEBUG_AUTH === "1") e.authDebug = debug;
-    throw e;
-  }
-  return data;
-}
-
-async function binancePost(path, body = {}) {
-  const requestBody = JSON.stringify(body);
-  const headers = signedHeaders("POST", path, requestBody);
-  if (!headers) throw new Error("LIVE_API_NOT_CONFIGURED");
-  headers["Content-Type"] = "application/json";
-  const r = await fetch(BASE + path, {method:"POST",headers,body:requestBody});
-  const data = await r.json();
-  if (!r.ok || (data.code !== undefined && data.code !== 0)) {
-    const e = new Error(data.msg || "Binance Web3 API error");
-    e.status = r.status || 502;
-    e.data = data;
-    throw e;
-  }
-  return data;
+  return signedGet(path, params);
 }
 
 const demoAssets = [
@@ -302,6 +138,16 @@ function rpcHex(value) {
 
 async function simulateEvmTransaction(evmTx = {}) {
   const rpcUrl = String(process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org").trim();
+  let rpc;
+  try {
+    const parsed = new URL(rpcUrl);
+    const allowed = new Set(String(process.env.BSC_RPC_ALLOWED_HOSTS || "bsc-dataseed.binance.org").split(",").map(x => x.trim().toLowerCase()).filter(Boolean));
+    if (parsed.protocol !== "https:" || !allowed.has(parsed.hostname.toLowerCase())) throw new Error("BSC_RPC_HOST_NOT_ALLOWED");
+  } catch (e) {
+    const err = new Error("INVALID_BSC_RPC_URL");
+    err.status = 500;
+    throw err;
+  }
   const tx = {
     from: evmTx.from,
     to: evmTx.to,
@@ -316,11 +162,14 @@ async function simulateEvmTransaction(evmTx = {}) {
   if (!tx.to && !tx.data) throw new Error("SIMULATION_TX_TARGET_REQUIRED");
   if (tx.from && !/^0x[a-fA-F0-9]{40}$/.test(tx.from)) throw new Error("INVALID_SIMULATION_FROM");
   if (tx.to && !/^0x[a-fA-F0-9]{40}$/.test(tx.to)) throw new Error("INVALID_SIMULATION_TO");
-  const rpc = await fetch(rpcUrl, {
+  rpc = await fetch(rpcUrl, {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]})
+    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]}),
+    signal: AbortSignal.timeout(Number(process.env.BSC_RPC_TIMEOUT_MS) || 8000)
   });
+  const contentType = String(rpc.headers?.get?.("content-type") || "").toLowerCase();
+  if (!contentType.includes("application/json")) throw new Error("BSC_RPC_NON_JSON");
   const body = await rpc.json();
   if (!rpc.ok || body.error) {
     const e = new Error(body.error?.message || "BSC eth_call simulation failed");
@@ -350,7 +199,7 @@ module.exports = async function handler(req,res) {
     if(action==="authcheck") {
       const algorithm = String(process.env.BINANCE_WEB3_SIGN_ALGO || "HMAC_SHA256").trim().toUpperCase();
       const fingerprint = algorithm === "ED25519" && process.env.BINANCE_WEB3_API_SECRET
-        ? privateKeyFingerprint(normalizeCredential(process.env.BINANCE_WEB3_API_SECRET))
+        ? publicKeyFingerprint(normalizeCredential(process.env.BINANCE_WEB3_API_SECRET))
         : null;
       const data = await binanceGet("/api/v1/dex/balance/supported/chain",{binanceChainId:"56"});
       return res.status(200).json({
@@ -382,7 +231,7 @@ module.exports = async function handler(req,res) {
             return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),spotOnly:true,summary,assets:rows});
           }
         } catch (e) {
-          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:process.env.DEBUG_AUTH==="1"?e.data:undefined,authDebug:e.authDebug||undefined});
+          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:undefined,authDebug:undefined});
         }
       }
       return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});

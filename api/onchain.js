@@ -1,32 +1,9 @@
-const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
-const crypto = require("crypto");
-const BASE = "https://web3.binance.com/build";
+const { guardRequest, isAddress, safeError } = require("../lib/http-policy");
+const { signedGet } = require("../lib/binance-web3");
 
-function cred(v) {
-  return String(v || "").replace(/^["']|["']$/g, "").replace(/\\n/g, "\n").trim();
-}
-function wirePath(p) {
-  if (!p) return "/build";
-  return p.startsWith("/build") ? p : "/build" + p;
-}
-async function signedGet(path) {
-  const apiKey = cred(process.env.BINANCE_WEB3_API_KEY);
-  const secret = cred(process.env.BINANCE_WEB3_API_SECRET);
-  if (!apiKey || !secret) throw new Error("LIVE_API_NOT_CONFIGURED");
-  const timestamp = new Date().toISOString();
-  const signedPath = wirePath(path);
-  const prehash = timestamp + "GET" + signedPath;
-  const signature = crypto.createHmac("sha256", secret).update(prehash, "utf8").digest("base64");
-  const r = await fetch(BASE + path, {
-    headers: {
-      "X-OC-APIKEY": apiKey,
-      "X-OC-TIMESTAMP": timestamp,
-      "X-OC-SIGN": signature,
-      "X-OC-RECV-WINDOW": process.env.BINANCE_WEB3_RECV_WINDOW || "60000"
-    }
-  });
-  const data = await r.json();
-  return { ok: r.ok && (data.code === undefined || data.code === 0), status: r.status, data };
+async function load(path) {
+  try { return { ok: true, data: await signedGet(path) }; }
+  catch (error) { return { ok: false, error }; }
 }
 function pick(result) {
   if (!result || !result.ok) return { error: result?.data?.msg || "unavailable" };
@@ -41,15 +18,15 @@ module.exports = async function handler(req, res) {
     const chain = url.searchParams.get("chain") || "56";
     if (!isAddress(token)) return res.status(400).json({ error: "Invalid token address" });
     if (chain !== "56") return res.status(400).json({ error: "Only BSC mainnet is supported" });
-    if (!cred(process.env.BINANCE_WEB3_API_KEY) || !cred(process.env.BINANCE_WEB3_API_SECRET)) {
+    if (!String(process.env.BINANCE_WEB3_API_KEY || "").trim() || !String(process.env.BINANCE_WEB3_API_SECRET || "").trim()) {
       return res.status(200).json({ mode: "demo", token, chain, explorer: "https://bscscan.com/token/" + token });
     }
     const q = "binanceChainId=" + encodeURIComponent(chain) + "&tokenContractAddress=" + encodeURIComponent(token);
     const [info, holders, trades, pools] = await Promise.all([
-      signedGet("/api/v1/dex/market/token/advanced-info?" + q),
-      signedGet("/api/v1/dex/market/token/holder?" + q),
-      signedGet("/api/v1/dex/market/trades?" + q + "&limit=12"),
-      signedGet("/api/v1/dex/market/token/top-liquidity?" + q)
+      load("/api/v1/dex/market/token/advanced-info?" + q),
+      load("/api/v1/dex/market/token/holder?" + q),
+      load("/api/v1/dex/market/trades?" + q + "&limit=12"),
+      load("/api/v1/dex/market/token/top-liquidity?" + q)
     ]);
     return res.status(200).json({
       mode: "live-data",

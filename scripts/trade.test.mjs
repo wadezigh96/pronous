@@ -24,6 +24,19 @@ test("wrong origin is rejected", async () => {
   assert.equal(res.statusCode,403);
 });
 
+test("missing Origin is rejected even when Sec-Fetch-Site says same-origin", async () => {
+  const res=makeRes(); await handler(req({action:"orderStatus",headers:{"sec-fetch-site":"same-origin"}}),res);
+  assert.equal(res.statusCode,403);
+});
+
+test("matching production Origin is accepted", async () => {
+  global.fetch=async()=>({ok:true,status:200,headers:{get:()=>"application/json"},json:async()=>({code:0,id:"ok"})});
+  const res=makeRes(); await handler(req({action:"orderStatus",headers:{origin:"https://pronous.vercel.app"},query:"order_123"}),res);
+  assert.equal(res.statusCode,200);
+  assert.equal(res.body.data.id,"ok");
+  global.fetch=originalFetch;
+});
+
 test("submitRfq accepts only the documented fields", async () => {
   global.fetch=async()=>({ok:true,status:200,headers:{get:()=> "application/json"},json:async()=>({code:0,id:"ok"})});
   const res=makeRes();
@@ -34,6 +47,12 @@ test("submitRfq accepts only the documented fields", async () => {
   assert.equal(res.body.data.id,"ok");
   assert.equal(res.body.data.secret,undefined);
   global.fetch=originalFetch;
+});
+
+test("query credentials are rejected", async () => {
+  const res=makeRes(); await handler({method:"GET",url:"/api/trade?action=history&quoteId=quote_123",headers:{origin:"https://pronous.vercel.app"},body:"",socket:{remoteAddress:"127.0.0.1"}},res);
+  assert.equal(res.statusCode,400);
+  assert.equal(res.body.error,"QUERY_CREDENTIALS_NOT_ALLOWED");
 });
 
 test("invalid input returns 400", async () => {

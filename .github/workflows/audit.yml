@@ -2,7 +2,7 @@ name: PRONOUS Audit
 
 on:
   push:
-    branches: [main]
+    branches: [main, "feat/**"]
   pull_request:
     branches: [main]
 
@@ -17,5 +17,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - run: npm install --omit=dev --no-audit --no-fund
+      - run: npm install --no-audit --no-fund
       - run: npm test
+      - run: npm run build
