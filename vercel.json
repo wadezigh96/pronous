@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "outputDirectory": ".",
   "framework": null,
   "installCommand": "npm install --omit=dev --no-audit --no-fund",
-  "buildCommand": "echo skip-optional-privy-vendor",
+  "buildCommand": "node scripts/prepare-vercel-public.mjs",
+  "outputDirectory": "public",
   "regions": [
     "sin1"
   ],

@@ -2,3 +2,4 @@
 *.pem
 ed25519_private.pem
 ed25519_public.pem
+/public/
