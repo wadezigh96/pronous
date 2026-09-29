@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="PRONOUS — tokenized stock intelligence desk on BNB Chain. Watch gaps, guard spend, simulate before confirm.">
+<meta name="theme-color" content="#050608">
+<meta property="og:title" content="PRONOUS · Living Market OS">
+<meta property="og:description" content="Tokenized equity command center on BSC. Spot only. Guarded execution.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pronous.vercel.app/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050608'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='system-ui' font-weight='800' font-size='14' fill='%23f5c542'%3EPR%3C/text%3E%3C/svg%3E">
+<title>PRONOUS · Living Market OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/desk.css">
+<link rel="stylesheet" href="/desk-v0.css">
+<link rel="stylesheet" href="/desk-density-v2.css">
+<link rel="stylesheet" href="/desk-board.css">
+</head>
+<body class="fin-dash board-ui">
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand"><span class="brand-mark">P</span><span class="brand-text">PRONOUS</span></div>
+    <div class="navgroup">
+      <div class="navlabel">WORKSPACE</div>
+      <a class="navitem active" href="#overview" data-nav="overview">
+        <span class="nav-ico">⌂</span> Overview
+      </a>
+      <a class="navitem" href="#market" data-nav="market">
+        <span class="nav-ico">◈</span> Market
+      </a>
+      <a class="navitem" href="#radar-section" data-nav="radar">
+        <span class="nav-ico">◎</span> Radar
+      </a>
+      <a class="navitem" href="#agent" data-nav="agent">
+        <span class="nav-ico">✦</span> Agent
+      </a>
+      <a class="navitem" href="#execution" data-nav="execution">
+        <span class="nav-ico">⚡</span> Execution
+      </a>
+      <a class="navitem" href="#poa-section" data-nav="poa">
+        <span class="nav-ico">⬡</span> POA
+      </a>
+    </div>
+    <div class="navgroup">
+      <div class="navlabel">TOOLS</div>
+      <a class="navitem" href="#skills-section" data-nav="skills">
+        <span class="nav-ico">☰</span> Skills
+      </a>
+      <a class="navitem" href="#studio-section" data-nav="studio">
+        <span class="nav-ico">⬡</span> Agent Studio
+      </a>
+      <a class="navitem" href="#onchain-section" data-nav="onchain">
+        <span class="nav-ico">⛓</span> On-chain
+      </a>
+    </div>
+    <div class="side-foot">
+      <div class="tag live-tag">● System Online</div>
+      <div class="muted small" style="margin-top:6px">BSC · Live Data</div>
+      <div class="muted small">AI agents · Real assets · On-chain intelligence.</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="wrap board-wrap">
+      <!-- TOPBAR -->
+      <div class="topbar board-topbar">
+        <div class="topbar-left">
+          <span class="topbar-crumb">PRONOUS</span>
+          <span class="topbar-title">Dashboard</span>
+        </div>
+        <div class="topbar-search" role="search">
+          <span class="search-icon">⌕</span>
+          <input type="search" placeholder="Find asset, chart, or moment…" aria-label="Search desk"
+            onkeydown="if(event.key==='Enter'){const t=this.value.trim().toUpperCase();if(t){document.getElementById('ticker').value=t;scan();}}">
+        </div>
+        <div class="topbar-right">
+          <span class="chain-badge">BSC</span>
+          <div class="wallet-bar">
+            <span id="walletSource" class="wallet-source">NO WALLET</span>
+            <span id="walletStatus" class="wallet-status">WALLET NOT CONNECTED</span>
+            <span id="walletAddressTop" class="wallet-address">Not connected</span>
+            <button id="connectWalletBtn" class="secondary connect-btn" type="button" onclick="connectWallet()">Connect Wallet</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOARD GRID -->
+      <div class="board-grid">
+
+        <!-- ROW 1: Market Signal | Scan & Plan | Market Watch -->
+        <section class="card board-card signal-card" id="tape">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">◈</span>
+              <h2>Market Signal</h2>
+            </div>
+            <small>Live market sentiment & AI analysis</small>
+          </div>
+          <div class="signal-tabs">
+            <button class="sig-tab active" type="button">All Assets</button>
+            <button class="sig-tab" type="button">Crypto</button>
+            <button class="sig-tab" type="button">Stocks</button>
+            <button class="sig-tab" type="button">RWA</button>
+          </div>
+          <div class="signal-list" id="signalList">
+            <div class="signal-row">
+              <div class="sig-asset"><span class="sig-logo nvda">N</span><div><b>NVDA</b><span>NVIDIA</span></div></div>
+              <div class="sig-price">$181.24 <span class="pos">+2.34%</span></div>
+              <div class="sig-spark pos">▁▂▃▅▆▇</div>
+              <span class="sig-badge bullish">Bullish</span>
+            </div>
+            <div class="signal-row">
+              <div class="sig-asset"><span class="sig-logo aapl">A</span><div><b>AAPL</b><span>Apple</span></div></div>
+              <div class="sig-price">$228.17 <span class="pos">+1.12%</span></div>
+              <div class="sig-spark pos">▂▃▄▅▆▇</div>
+              <span class="sig-badge bullish">Bullish</span>
+            </div>
+            <div class="signal-row">
+              <div class="sig-asset"><span class="sig-logo tsla">T</span><div><b>TSLA</b><span>Tesla</span></div></div>
+              <div class="sig-price">$248.76 <span class="neg">-0.83%</span></div>
+              <div class="sig-spark neg">▇▆▅▄▃▂</div>
+              <span class="sig-badge neutral">Neutral</span>
+            </div>
+            <div class="signal-row">
+              <div class="sig-asset"><span class="sig-logo btc">₿</span><div><b>BTC</b><span>Bitcoin</span></div></div>
+              <div class="sig-price">$67,432.18 <span class="pos">+1.06%</span></div>
+              <div class="sig-spark pos">▂▃▄▅▆▇</div>
+              <span class="sig-badge bullish">Bullish</span>
+            </div>
+            <div class="signal-row">
+              <div class="sig-asset"><span class="sig-logo eth">Ξ</span><div><b>ETH</b><span>Ethereum</span></div></div>
+              <div class="sig-price">$3,245.67 <span class="pos">+0.82%</span></div>
+              <div class="sig-spark pos">▂▃▄▅▆▇</div>
+              <span class="sig-badge bullish">Bullish</span>
+            </div>
+          </div>
+          <div class="card-foot muted small">⚡ AI scanning 1,248 assets · Last update <span id="signalUpdated">—</span></div>
+        </section>
+
+        <section class="card board-card scan-card" id="agent">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">✦</span>
+              <h2>Scan & Plan</h2>
+            </div>
+            <small>AI opportunity scanner</small>
+          </div>
+          <div class="scan-row">
+            <input id="ticker" value="NVDA" placeholder="Search asset or strategy…">
+            <button type="button" onclick="scan()">Scan</button>
+          </div>
+          <div class="scan-results" id="scan">Ready.</div>
+          <div class="opp-list">
+            <div class="opp-item">
+              <span class="opp-ico">📈</span>
+              <div><b>Top Gainers</b><span>AI scan · 5m</span></div>
+            </div>
+            <div class="opp-item">
+              <span class="opp-ico">🏛</span>
+              <div><b>RWA Opportunities</b><span>On-chain · 15m</span></div>
+            </div>
+            <div class="opp-item">
+              <span class="opp-ico">📊</span>
+              <div><b>Swing Setup</b><span>Technical · 15m</span></div>
+            </div>
+            <div class="opp-item">
+              <span class="opp-ico">⚖</span>
+              <div><b>Portfolio Rebalance</b><span>Risk · 30m</span></div>
+            </div>
+          </div>
+          <div class="plan-box" id="plan">No plan yet.</div>
+          <button class="secondary" style="margin-top:10px" type="button" onclick="simulate()">Simulate execution</button>
+        </section>
+
+        <section class="card board-card market-card" id="market">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">☰</span>
+              <h2>Market Watch</h2>
+              <span class="market-count" id="marketCount">—</span>
+            </div>
+            <small>Top Movers</small>
+          </div>
+          <div class="mw-tabs">
+            <button class="mw-tab active" type="button">Gainers</button>
+            <button class="mw-tab" type="button">Losers</button>
+            <button class="mw-tab" type="button">Volume</button>
+          </div>
+          <div class="market-watch-body open" id="marketWatchBody">
+            <div class="market-head">
+              <span id="marketUpdated" class="muted small">—</span>
+              <button class="secondary" style="max-width:100px;padding:6px 10px" onclick="loadMarket()">↻ Refresh</button>
+            </div>
+            <div class="row" style="margin-top:8px;gap:6px">
+              <input id="marketSearch" placeholder="Search ticker…" oninput="renderMarket()">
+              <button class="secondary" type="button" onclick="setFilter('all')">ALL</button>
+              <button class="secondary" type="button" onclick="setFilter('ondo')">ONDO</button>
+              <button class="secondary" type="button" onclick="setFilter('bstock')">bSTOCKS</button>
+            </div>
+            <div id="marketTable" class="result market-table-wrap">Loading live RWA data…</div>
+          </div>
+        </section>
+
+        <!-- ROW 2: Asset Chart | Agent Studio | CMC RWA -->
+        <section class="card board-card chart-card" id="overview">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">📈</span>
+              <h2>Asset Chart</h2>
+            </div>
+            <div class="chart-controls">
+              <button class="chart-tf active" type="button">Candles</button>
+              <button class="chart-tf" type="button">Depth</button>
+              <button class="chart-tf" type="button">Indicators</button>
+            </div>
+          </div>
+          <div class="chart-pair-row">
+            <select id="chartPair" class="pair-select">
+              <option>NVDA/USDT</option>
+              <option>AAPL/USDT</option>
+              <option>TSLA/USDT</option>
+            </select>
+            <div class="tf-group">
+              <button class="tf-btn" type="button">1m</button>
+              <button class="tf-btn active" type="button">5m</button>
+              <button class="tf-btn" type="button">15m</button>
+              <button class="tf-btn" type="button">1h</button>
+              <button class="tf-btn" type="button">4h</button>
+              <button class="tf-btn" type="button">1D</button>
+            </div>
+          </div>
+          <div class="chart-price-line">
+            <span class="chart-last" id="chartLast">181.24</span>
+            <span class="pos" id="chartChange">+2.34% (+4.16)</span>
+          </div>
+          <div class="chart-box gap-chart">
+            <div class="chart-meta">
+              <span id="tapeLabel">Waiting for RWA feed</span>
+              <span>SPOT · BSC</span>
+            </div>
+            <canvas id="gapChart" width="980" height="210"></canvas>
+          </div>
+        </section>
+
+        <section class="card board-card studio-card" id="studio-section">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">⬡</span>
+              <h2>Agent Studio</h2>
+            </div>
+            <span id="studioStatus" class="tag online-tag">● Online</span>
+          </div>
+          <div class="studio-desc muted small">AI Agent powered by BNB Chain</div>
+          <div class="agent-list">
+            <div class="agent-item">
+              <span class="agent-dot active"></span>
+              <div><b>Market Analysis</b><span>Active · Scanning</span></div>
+            </div>
+            <div class="agent-item">
+              <span class="agent-dot active"></span>
+              <div><b>RWA Monitor</b><span>Active · Watchlist</span></div>
+            </div>
+            <div class="agent-item">
+              <span class="agent-dot idle"></span>
+              <div><b>Execution Planner</b><span>Idle · Ready</span></div>
+            </div>
+            <div class="agent-item">
+              <span class="agent-dot active"></span>
+              <div><b>Portfolio Guard</b><span>Active · Risk Control</span></div>
+            </div>
+          </div>
+          <button type="button" class="studio-open-btn" onclick="openAgentStudioDocs()">Open Agent Studio</button>
+          <div class="studio-actions" style="margin-top:8px">
+            <button class="secondary" type="button" onclick="copyAgentStudioPrompt()">Copy deploy prompt</button>
+            <div id="studioFeedback" class="muted small" aria-live="polite">Prompt ready.</div>
+          </div>
+        </section>
+
+        <section class="card board-card cmc-card" id="cmcRadarCard">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">◈</span>
+              <h2>CMC RWA + Tokenisation</h2>
+            </div>
+          </div>
+          <div class="cmc-tabs">
+            <button class="cmc-tab active" type="button">RWA Assets</button>
+            <button class="cmc-tab" type="button">Tokenisation</button>
+            <button class="cmc-tab" type="button">Combined</button>
+          </div>
+          <div id="cmcRadar" class="cmc-table-wrap">
+            <table class="cmc-table">
+              <thead>
+                <tr><th>#</th><th>Asset</th><th>Price</th><th>24h</th><th>Type</th></tr>
+              </thead>
+              <tbody id="cmcBody">
+                <tr><td>1</td><td>🥇 GOLD</td><td>$4,156.65</td><td class="pos">+0.86%</td><td>RWA</td></tr>
+                <tr><td>2</td><td>NVDA</td><td>$182.47</td><td class="pos">+1.92%</td><td>Token</td></tr>
+                <tr><td>3</td><td>AAPL</td><td>$229.78</td><td class="pos">+1.24%</td><td>Token</td></tr>
+                <tr><td>4</td><td>TSLA</td><td>$249.33</td><td class="pos">+0.97%</td><td>Token</td></tr>
+                <tr><td>5</td><td>SPY</td><td>$571.62</td><td class="pos">+0.63%</td><td>RWA</td></tr>
+                <tr><td>6</td><td>USDT</td><td>$1.00</td><td class="pos">+0.01%</td><td>Stable</td></tr>
+                <tr><td>7</td><td>USDC</td><td>$1.00</td><td class="pos">+0.01%</td><td>Stable</td></tr>
+                <tr><td>8</td><td>BNB</td><td>$612.45</td><td class="pos">+1.47%</td><td>Native</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot"><a href="#market" class="muted small">View All Assets →</a></div>
+        </section>
+
+        <!-- ROW 3: On-chain | Skills -->
+        <section class="card board-card onchain-card" id="onchain-section">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">⛓</span>
+              <h2>On-chain</h2>
+            </div>
+            <small>Live blockchain activity & smart money</small>
+          </div>
+          <div class="oc-tabs">
+            <button class="oc-tab active" type="button">Latest Transactions</button>
+            <button class="oc-tab" type="button">Top Holders</button>
+            <button class="oc-tab" type="button">Contracts</button>
+          </div>
+          <div id="chain" class="result onchain-result">Select an asset to load contract, holders, trades and pools.</div>
+          <div class="card-foot muted small">● Live · BSC Mainnet</div>
+        </section>
+
+        <section class="card board-card skills-card" id="skills-section">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">☰</span>
+              <h2>Skills</h2>
+            </div>
+            <small>Agent Skills</small>
+          </div>
+          <div id="skills" class="skills-grid feature">
+            <div class="skill-tile"><span class="skill-ico">📡</span><b>Market Sentinel</b><span>Real-time analysis</span></div>
+            <div class="skill-tile"><span class="skill-ico">🛡</span><b>Gap Guard</b><span>Arbitrage detection</span></div>
+            <div class="skill-tile"><span class="skill-ico">🔄</span><b>Cross-Venue Check</b><span>Liquidity scan</span></div>
+            <div class="skill-tile"><span class="skill-ico">📋</span><b>Execution Planner</b><span>Trade planning</span></div>
+            <div class="skill-tile"><span class="skill-ico">🛡</span><b>Profitguard</b><span>Risk management</span></div>
+            <div class="skill-tile"><span class="skill-ico">⚖</span><b>Portfolio Drift</b><span>Rebalance</span></div>
+            <div class="skill-tile"><span class="skill-ico">🏦</span><b>SU Agent Treasury</b><span>Treasury management</span></div>
+            <div class="skill-tile"><span class="skill-ico">📜</span><b>Decision Ledger</b><span>On-chain record</span></div>
+          </div>
+        </section>
+
+        <!-- ROW 4: Preflight | Proof of Action -->
+        <section class="card board-card preflight-card" id="execution">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">⚡</span>
+              <h2>Preflight</h2>
+            </div>
+            <span class="tag live-tag">Live</span>
+          </div>
+          <div id="executionPipeline" class="exec-pipeline board-pipeline">
+            <div data-step="preflight" class="exec-step active"><b>Preflight</b><em>CHECK</em></div>
+            <div data-step="quote" class="exec-step"><b>Queue (2)</b><em>WAIT</em></div>
+            <div data-step="simulation" class="exec-step"><b>Simulation</b><em>LOCKED</em></div>
+            <div data-step="confirmation" class="exec-step"><b>Confirmation</b><em>LOCKED</em></div>
+            <div data-step="execution" class="exec-step"><b>Execution</b><em>LOCKED</em></div>
+          </div>
+          <div class="preflight-body">
+            <div class="pf-left">
+              <div class="pf-row"><span class="muted">Current Contract</span><code id="pfContract">0x1a2b…c3d4</code> <span class="tag">BSC</span></div>
+              <div class="pf-row"><span class="muted">Action</span><b>Swap</b></div>
+              <div class="pf-row"><span class="muted">Token In</span><b>BNB</b></div>
+              <div class="pf-row"><span class="muted">Token Out</span><b>USDT</b></div>
+              <div class="pf-row"><span class="muted">Amount</span><b>0.001</b></div>
+            </div>
+            <div class="pf-right">
+              <div class="pf-row"><span class="muted">Expected Output</span><b class="pos">0.9987 USDT</b></div>
+              <div class="pf-row"><span class="muted">Gas Fee</span><b>0.0003 BNB</b></div>
+            </div>
+          </div>
+          <div class="wallet-context muted small">Execution wallet: <span id="walletAddress">Not connected</span> · BSC Mainnet (56)</div>
+          <div class="row" style="margin-top:12px;gap:8px">
+            <input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount">
+            <input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend">
+            <button type="button" onclick="preflight()">Run preflight</button>
+          </div>
+          <div class="muted small" style="margin-top:8px">Spend token (from) must differ from the scanned stock (to). Common BSC: USDT / WBNB.</div>
+          <div class="row" style="margin-top:6px;gap:6px">
+            <input id="fromTokenAddress" placeholder="Spend token e.g. USDT 0x55d3…7955">
+            <button class="secondary" type="button" onclick="requestQuote()">Get quote</button>
+          </div>
+          <div class="row" style="margin-top:6px;gap:6px">
+            <button class="secondary" type="button" style="width:auto" onclick="setSpendToken('0x55d398326f99059fF775485246999027B3197955')">USDT</button>
+            <button class="secondary" type="button" style="width:auto" onclick="setSpendToken('0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c')">WBNB</button>
+            <button class="secondary" type="button" style="width:auto" onclick="setSpendToken('0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d')">USDC</button>
+          </div>
+          <div id="quoteResult" class="result">Quote is locked until preflight passes.</div>
+          <div id="preflight" class="result">Enter an amount and run preflight.</div>
+          <div class="row poa-gate-row" style="margin-top:10px">
+            <button class="secondary" id="executeOnchainBtn" type="button">Execute on-chain</button>
+            <button class="secondary" id="confirmActionBtn" type="button" onclick="confirmAction()" disabled>Confirm action → POA</button>
+            <span id="poaGateStatus" class="muted small">Simulation required before confirmation.</span>
+          </div>
+          <button type="button" class="execute-main-btn" id="executeMainBtn" style="margin-top:12px">Execute on-chain →</button>
+        </section>
+
+        <section class="card board-card poa-card" id="poa-section">
+          <div class="card-head">
+            <div class="card-title-row">
+              <span class="card-ico">⬡</span>
+              <h2>Proof of Action</h2>
+            </div>
+            <span class="tag verified-tag">Verified</span>
+          </div>
+          <div class="poa-banner">
+            <span class="poa-live-dot"></span>
+            <div>
+              <b>Action evidence layer</b>
+              <span class="muted small">Every PRONOUS action can produce tamper-evident proof.</span>
+            </div>
+            <button class="secondary" type="button" onclick="createCurrentPOA()">Create POA</button>
+          </div>
+          <div id="poaCurrent" class="result">No POA generated for this session.</div>
+          <div class="poa-detail">
+            <div class="poa-hash-row">
+              <span class="muted small">Transaction hash</span>
+              <code id="poaHashDisplay">0x7a3c9e2f6bBc5d4a1e…9f2d</code>
+              <button class="icon-btn" type="button" title="Copy">⎘</button>
+            </div>
+            <div class="poa-meta">
+              <div><span class="muted small">Block</span><b>#38,542,761</b></div>
+              <div><span class="muted small">Time</span><b>2m ago</b></div>
+            </div>
+            <div class="poa-checks">
+              <div class="check ok">✓ Signature Verified</div>
+              <div class="check ok">✓ Data Integrity</div>
+              <div class="check ok">✓ On-chain Confirmed</div>
+            </div>
+          </div>
+          <div class="poa-onchain" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(245,197,66,.15)">
+            <div class="muted small" style="margin-bottom:8px">ON-CHAIN ANCHOR · user pays BNB gas · does not execute swaps</div>
+            <div class="row" style="margin-bottom:8px;gap:6px">
+              <input id="poaAnchorInput" placeholder="0xD729eFf0E050195D464cC9597d7A5Cc7194911B5" value="0xD729eFf0E050195D464cC9597d7A5Cc7194911B5" style="flex:1">
+              <button class="secondary" type="button" style="width:auto" onclick="savePoaAnchorFromInput()">Save</button>
+            </div>
+            <div class="row" style="gap:6px">
+              <button type="button" onclick="anchorCurrentPOA()">Anchor POA on-chain</button>
+              <a id="poaAnchorTx" class="muted small" href="#" target="_blank" rel="noopener" style="display:none;align-self:center"></a>
+            </div>
+            <div id="poaAnchorStatus" class="muted small" style="margin-top:8px">Contract live on BSC: 0xD729…11B5. Create POA then Anchor — you pay BNB gas.</div>
+          </div>
+          <div class="poa-ledger-head">
+            <span class="muted small">LOCAL POA LEDGER</span>
+            <button class="secondary" type="button" onclick="clearPOALedger()">Clear</button>
+          </div>
+          <div id="poaLedger" class="poa-ledger">No evidence yet.</div>
+          <a href="https://bscscan.com" target="_blank" rel="noopener" class="view-bscscan muted small">View on BscScan →</a>
+        </section>
+
+        <!-- Hidden / secondary sections for JS compatibility -->
+        <section id="radar-section" class="card board-card radar-card" style="display:none">
+          <div class="terminal-head"><h2>Radar</h2><small>DETECT</small></div>
+          <div id="radar" class="result">Waiting for market data…</div>
+          <div id="clock" class="result">Select an asset.</div>
+        </section>
+
+        <div class="kpis" style="display:none">
+          <div class="kpi"><div class="kpi-label">Market mode</div><div class="kpi-value" id="kpiMode">LOADING</div><div class="kpi-note">RWA intelligence feed</div></div>
+          <div class="kpi"><div class="kpi-label">Assets watched</div><div class="kpi-value" id="kpiAssets">—</div><div class="kpi-note">Supported tokenized equities</div></div>
+          <div class="kpi"><div class="kpi-label">Largest gap</div><div class="kpi-value" id="kpiGap">—</div><div class="kpi-note">Token / reference spread</div></div>
+          <div class="kpi"><div class="kpi-label">Execution</div><div class="kpi-value" id="kpiExec">LOCKED</div><div class="kpi-note">Wallet confirmation required</div></div>
+        </div>
+
+      </div><!-- /board-grid -->
+
+      <input id="question" type="hidden">
+      <div id="chatlog" hidden></div>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <a href="#overview">Home</a>
+      <a href="#market">Market</a>
+      <a href="#radar-section">Radar</a>
+      <a href="#agent">Scan</a>
+      <a href="#execution">Execute</a>
+    </nav>
+  </main>
+</div>
+
+<!-- Wallet chooser modal (unchanged) -->
+<div id="walletChooser" class="wallet-chooser" hidden aria-hidden="true">
+  <div class="wallet-chooser-backdrop" onclick="closeWalletChooser()"></div>
+  <section class="wallet-chooser-panel" role="dialog" aria-modal="true" aria-labelledby="walletChooserTitle">
+    <div class="eyebrow">WALLET CONNECTION</div>
+    <h2 id="walletChooserTitle">Choose how to connect</h2>
+    <p class="muted small">PRONOUS keeps one active wallet source. Browser wallet and Privy never overwrite each other silently.</p>
+    <div class="wallet-choice-grid">
+      <button type="button" onclick="connectBrowserWallet()">Browser wallet</button>
+      <button type="button" class="secondary" onclick="connectPrivyWallet()">Email / Google (Privy)</button>
+    </div>
+    <button type="button" class="secondary wallet-cancel" onclick="closeWalletChooser()">Cancel</button>
+  </section>
+</div>
+
+<!-- Asset drawer (unchanged) -->
+<div id="assetDrawer" class="asset-drawer" aria-hidden="true">
+  <div class="drawer-backdrop" onclick="closeAsset()"></div>
+  <aside class="drawer-panel">
+    <button class="drawer-close" onclick="closeAsset()">Close</button>
+    <div id="drawerContent" style="padding-top:24px"></div>
+    <div class="drawer-chart" style="padding:0 24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="muted small">PRICE ACTION · <span id="assetChartSrc">LOADING</span></span>
+        <div style="display:flex;gap:4px">
+          <button class="secondary chart-bar-btn" type="button" onclick="loadAssetChart(window.__pronousSelectedAsset,'15m')">15m</button>
+          <button class="secondary chart-bar-btn" type="button" onclick="loadAssetChart(window.__pronousSelectedAsset,'1h')">1H</button>
+          <button class="secondary chart-bar-btn" type="button" onclick="loadAssetChart(window.__pronousSelectedAsset,'4h')">4H</button>
+        </div>
+      </div>
+      <canvas id="assetChart" width="760" height="260" style="width:100%;height:auto;display:block;background:#070a10;border:1px solid rgba(245,197,66,.12);border-radius:6px"></canvas>
+    </div>
+  </aside>
+</div>
+
+<script src="/desk-charts.js"></script>
+<script src="/lib/execution-gates.js"></script>
+<script src="/lib/wallet-state.js"></script>
+<script src="/lib/tx-policy.js"></script>
+<script src="/lib/rpc-guard.js"></script>
+<script src="/wallet-connect.js"></script>
+<script src="/desk-app.js"></script>
+<script src="/cmc-radar.js"></script>
+<script src="/lib/execution-result.js"></script>
+<script src="/desk-onchain.js"></script>
+<script>
+/* Lightweight board UI helpers — no change to core logic */
+document.querySelectorAll('.sig-tab,.mw-tab,.cmc-tab,.oc-tab,.chart-tf,.tf-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    const group=this.parentElement;
+    group.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+document.querySelectorAll('.navitem').forEach(a=>{
+  a.addEventListener('click',function(){
+    document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
