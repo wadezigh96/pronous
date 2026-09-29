@@ -219,6 +219,123 @@
     });
   }
 
+  function unwrapOnchain(value, depth) {
+    if (depth > 5 || value == null) return value;
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "object") return value;
+    if (value.data !== undefined && value.data !== value) return unwrapOnchain(value.data, depth + 1);
+    return value;
+  }
+
+  function onchainList(value) {
+    let v = unwrapOnchain(value, 0);
+    if (Array.isArray(v)) return v;
+    if (!v || typeof v !== "object") return [];
+    const keys = ["list", "items", "records", "rows", "holders", "trades", "pools", "topHolders", "liquidityPools", "tradeList", "data"];
+    for (const key of keys) {
+      if (v[key] !== undefined) {
+        const out = onchainList(v[key]);
+        if (out.length) return out;
+      }
+    }
+    return [];
+  }
+
+  function onchainField(root, keys, fallback) {
+    const queue = [unwrapOnchain(root, 0)];
+    const seen = new Set();
+    while (queue.length) {
+      const cur = queue.shift();
+      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
+      seen.add(cur);
+      for (const key of keys) {
+        if (cur[key] !== undefined && cur[key] !== null && cur[key] !== "") return cur[key];
+      }
+      for (const value of Object.values(cur)) {
+        if (value && typeof value === "object" && !seen.has(value)) queue.push(value);
+      }
+    }
+    return fallback;
+  }
+
+  function onchainMoney(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value ?? "—");
+    if (Math.abs(n) >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+    if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+    if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(2) + "K";
+    if (Math.abs(n) >= 1) return "$" + n.toFixed(2);
+    return "$" + n.toPrecision(4);
+  }
+
+  function onchainNum(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value ?? "—");
+    return n >= 1000 ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : n.toPrecision(4);
+  }
+
+  function onchainAddress(value) {
+    const s = String(value || "");
+    return /^0x[a-fA-F0-9]{40}$/.test(s) ? short(s) : (s || "—");
+  }
+
+  function onchainTime(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "—";
+    const ms = n < 1e12 ? n * 1000 : n;
+    return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function onchainRow(label, value, extra) {
+    return '<div class="onchain-row"><span>' + esc(label) + '</span><b>' + esc(value) + '</b>' + (extra ? '<em>' + esc(extra) + '</em>' : '') + '</div>';
+  }
+
+  function onchainRows(title, rows, empty) {
+    return '<div class="onchain-list"><div class="onchain-list-title">' + esc(title) + '</div>' +
+      (rows.length ? rows.join("") : '<div class="onchain-empty">' + esc(empty || "No live rows returned") + '</div>') +
+      '</div>';
+  }
+
+  function renderOnchain(asset, payload) {
+    const box = document.getElementById("chain");
+    if (!box) return;
+    const infoRoot = unwrapOnchain(payload && payload.info, 0) || {};
+    const holders = onchainList(payload && payload.holders).slice(0, 5);
+    const trades = onchainList(payload && payload.trades).slice(0, 5);
+    const pools = onchainList(payload && payload.pools).slice(0, 4);
+    const symbol = onchainField(infoRoot, ["symbol", "tokenSymbol"], asset.tokenSymbol || asset.ticker || "—");
+    const price = onchainField(infoRoot, ["price", "tokenPrice", "currentPrice"], asset.tokenPrice || "—");
+    const holdersCount = onchainField(infoRoot, ["holders", "totalHolders", "holderCount"], holders.length ? String(holders.length) : "—");
+    const liquidity = onchainField(infoRoot, ["liquidity", "liquidityUsd", "totalLiquidity"], "—");
+    const volume = onchainField(infoRoot, ["volume24h", "volume24H", "volumeUsd24h"], asset.volume24H || "—");
+    const marketCap = onchainField(infoRoot, ["marketCap", "marketCapUsd", "fdv"], asset.marketCap || "—");
+    const holderRows = holders.map((h, i) => onchainRow(String(i + 1).padStart(2, "0") + " · " + onchainAddress(h.address || h.owner || h.holder || h.wallet), onchainNum(h.balance || h.amount || h.quantity || "—"), h.percentage ?? h.percent ?? h.share ? String(h.percentage ?? h.percent ?? h.share) + "%" : ""));
+    const tradeRows = trades.map((t) => onchainRow(String(t.side || t.type || t.action || "TRADE").toUpperCase(), onchainMoney(t.price || t.tokenPrice || "—"), (t.amount || t.qty || t.quantity || "—") + " · " + onchainTime(t.time || t.timestamp || t.txTime)));
+    const poolRows = pools.map((p) => onchainRow(p.pair || p.symbol || p.name || p.dexName || "POOL", onchainMoney(p.liquidity || p.liquidityUsd || p.tvl || "—"), p.volume24h || p.volume24H ? "24h " + onchainMoney(p.volume24h || p.volume24H) : ""));
+    box.className = "result onchain-live";
+    box.innerHTML = '<div class="onchain-head"><div><div class="eyebrow">LIVE ON-CHAIN INTELLIGENCE</div><div class="onchain-title">' + esc(asset.ticker || symbol) + ' <span>' + esc(symbol) + '</span></div><div class="muted small">BSC · ' + esc(short(asset.tokenContractAddress)) + '</div></div><a class="tag onchain-link" href="' + esc(payload.explorer || ("https://bscscan.com/token/" + asset.tokenContractAddress)) + '" target="_blank" rel="noopener">BscScan ↗</a></div>' +
+      '<div class="onchain-kpis">' + onchainRow("PRICE", onchainMoney(price)) + onchainRow("HOLDERS", onchainNum(holdersCount)) + onchainRow("LIQUIDITY", onchainMoney(liquidity)) + onchainRow("24H VOLUME", onchainMoney(volume)) + onchainRow("MARKET CAP", onchainMoney(marketCap)) + '</div>' +
+      '<div class="onchain-columns">' + onchainRows("TOP HOLDERS", holderRows, "Holder ranking unavailable") + onchainRows("RECENT TRADES", tradeRows, "Trade feed unavailable") + onchainRows("LIQUIDITY", poolRows, "Liquidity pool data unavailable") + '</div>' +
+      '<div class="onchain-foot"><span class="tag ' + (payload.mode === "live-data" ? "live" : "demo") + '">' + esc(String(payload.mode || "unknown").toUpperCase()) + '</span><span class="muted small">Read-only market intelligence · no transaction broadcast</span></div>';
+  }
+
+  async function loadOnchain(asset) {
+    const box = document.getElementById("chain");
+    if (!box || !asset || !asset.tokenContractAddress) return;
+    box.className = "result onchain-live";
+    box.innerHTML = '<div class="onchain-loading"><span class="onchain-pulse"></span> Loading BSC contract, holders, trades and liquidity…</div>';
+    try {
+      const r = await fetch("/api/onchain?chain=56&token=" + encodeURIComponent(asset.tokenContractAddress), { cache: "no-store" });
+      const payload = await r.json();
+      if (!r.ok || payload.error) throw new Error(payload.error || "On-chain request failed");
+      window.__pronousOnchainAsset = asset;
+      window.__pronousOnchainPayload = payload;
+      renderOnchain(asset, payload);
+    } catch (e) {
+      box.innerHTML = '<div class="onchain-error"><b>On-chain read unavailable</b><span>' + esc(e.message || e) + '</span><a href="https://bscscan.com/token/' + esc(asset.tokenContractAddress) + '" target="_blank" rel="noopener">Open contract on BscScan ↗</a></div>';
+    }
+  }
+
   async function autoLoadOnchain() {
     const asset = pickAsset();
     if (!asset || !asset.tokenContractAddress) return;
