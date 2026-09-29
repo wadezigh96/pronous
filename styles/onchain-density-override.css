@@ -1,0 +1,15 @@
+/* PRONOUS on-chain density override — visual only. */
+.board-ui .onchain-card { position: relative; isolation: isolate; }
+.board-ui .onchain-card::after {
+  content: "LIVE BSC  •  READ-ONLY  •  ACTIVITY STREAM";
+  display: block; margin-top: auto; padding: 9px 11px;
+  border: 1px solid rgba(245,190,55,.08); border-radius: 10px;
+  background: linear-gradient(90deg, rgba(245,190,55,.07) 1px, transparent 1px) 0 0/28px 100%, linear-gradient(rgba(245,190,55,.05) 1px, transparent 1px) 0 0/100% 12px, rgba(8,9,12,.55);
+  color: rgba(245,190,55,.62); font: 9px "IBM Plex Mono", monospace;
+  letter-spacing: .08em; min-height: 34px; box-sizing: border-box;
+}
+.board-ui .onchain-card .onchain-result { max-height: 210px; scrollbar-width: thin; }
+.board-ui .onchain-card .oc-table { width: 100%; table-layout: fixed; }
+.board-ui .onchain-card .oc-table th,
+.board-ui .onchain-card .oc-table td { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) { .board-ui .onchain-card::after { min-height: 30px; } }
