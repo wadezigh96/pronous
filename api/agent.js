@@ -6,6 +6,23 @@ const { signedGet, normalizeCredential, publicKeyFingerprint } = require("../lib
 
 const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
 
+const AGENT_ALLOWED_ORIGIN = String(
+  process.env.ALLOWED_ORIGIN || process.env.APP_ORIGIN || "https://pronous.vercel.app"
+).trim().replace(/\/$/, "");
+
+function requireAgentOrigin(req, res) {
+  const origin = String(req.headers?.origin || "").trim().replace(/\/$/, "");
+  if (origin === AGENT_ALLOWED_ORIGIN) return true;
+  res.status(403).json({ error: "FORBIDDEN_ORIGIN" });
+  return false;
+}
+
+function requireAgentGet(req, res) {
+  if (req.method === "GET") return true;
+  res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
+  return false;
+}
+
 async function binanceGet(path, params = {}) {
   return signedGet(path, params);
 }
@@ -193,6 +210,8 @@ module.exports = async function handler(req,res) {
   try {
     const url=new URL(req.url,"http://localhost");
     const action=url.searchParams.get("action")||"scan";
+    if (!requireAgentGet(req, res)) return;
+    if (["quote", "quoteBuild", "build", "simulateTx"].includes(action) && !requireAgentOrigin(req, res)) return;
     const ticker=(url.searchParams.get("ticker")||"NVDA").trim().toUpperCase();
     if(!/^[A-Z0-9.-]{1,20}$/.test(ticker)) return res.status(400).json({error:"Invalid ticker"});
 
