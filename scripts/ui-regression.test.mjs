@@ -9,6 +9,8 @@ const api = readFileSync("api/onchain.js", "utf8");
 const agent = readFileSync("api/agent.js", "utf8");
 const app = readFileSync("desk-app.js", "utf8");
 const walletState = readFileSync("lib/wallet-state.js", "utf8");
+const walletConnect = readFileSync("wallet-connect.js", "utf8");
+const bridge = readFileSync("desk-bridge.js", "utf8");
 const gates = readFileSync("lib/execution-gates.js", "utf8");
 const txPolicy = readFileSync("lib/tx-policy.js", "utf8");
 
@@ -52,4 +54,30 @@ test("broadcast transaction policy remains BSC router and selector restricted", 
 
 test("POA reader receives the current proof object", () => {
   assert.match(app, /currentPOA=j\.proof;window\.currentPOA=j\.proof/);
+});
+
+
+test("wallet integration restores and synchronizes the active BSC wallet", () => {
+  assert.match(walletConnect, /restoreInjectedWallet\(\)/);
+  assert.match(walletConnect, /eth_accounts/);
+  assert.match(walletConnect, /setActiveWallet\('injected'/);
+  assert.match(walletConnect, /getChainId:/);
+  assert.match(walletConnect, /getSource:/);
+  assert.match(app, /await api\.sync\(\)/);
+});
+
+test("market signal is sourced from live assets and tabs are functional", () => {
+  assert.match(bridge, /function renderSignalList\(\)/);
+  assert.match(bridge, /function bindSignalTabs\(\)/);
+  assert.match(bridge, /window\.__pronousSignalTab/);
+  assert.match(bridge, /dataQuality !== 'unreliable'/);
+  assert.match(html, /Live token\/reference divergence/);
+  assert.doesNotMatch(html, /AI scanning 1,248 assets/);
+});
+
+test("POA initial UI does not claim fabricated confirmation", () => {
+  assert.match(html, /AWAITING EVIDENCE/);
+  assert.match(html, /No session proof/);
+  assert.doesNotMatch(html, /Signature Verified/);
+  assert.doesNotMatch(html, /On-chain Confirmed/);
 });
