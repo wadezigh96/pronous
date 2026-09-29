@@ -260,6 +260,20 @@ function clearWallet(source, reason = 'wallet disconnected') {
   setStatus('WALLET NOT CONNECTED');
   setButton('Connect Wallet', false);
 }
+async function restoreInjectedWallet() {
+  const provider = getInjectedProvider();
+  if (!provider?.request || getPreference() !== 'injected' || activeWallet) return false;
+  const accounts = await provider.request({ method: 'eth_accounts' }).catch(() => []);
+  if (!Array.isArray(accounts) || !accounts[0]) return false;
+  const chainId = await provider.request({ method: 'eth_chainId' }).catch(() => null);
+  if (normalizeChainId(chainId) !== 56) {
+    try { await ensureBsc(provider); } catch (_) { return false; }
+  }
+  const finalChain = await provider.request({ method: 'eth_chainId' }).catch(() => null);
+  if (normalizeChainId(finalChain) !== 56) return false;
+  setActiveWallet('injected', provider, accounts[0], finalChain);
+  return true;
+}
 function getInjectedProvider() {
   const eth = window.ethereum;
   if (!eth) return null;
@@ -473,6 +487,7 @@ window.connectWallet = async function connectWallet() {
 };
 window.addEventListener('pronous:privy-disconnect-request', () => disconnectActive());
 exposeWalletApi();
+restoreInjectedWallet().catch(() => false);
 bootPrivy().catch(err => {
   bridgeError = err?.message || String(err);
   setStatus('WALLET NOT CONNECTED');
