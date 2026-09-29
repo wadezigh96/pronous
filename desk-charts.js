@@ -63,7 +63,7 @@ async function loadAssetChart(asset,bar='1h',force=false){
     if(src)src.textContent=source;if(label)label.textContent=(ticker||'ASSET')+'/USDT · '+String(bar).toUpperCase()+' · '+source;canvases.forEach(x=>candles.length?drawCandleChart(x,candles):drawLineChart(x,fallback,'#f0b90b'));
   }catch(err){if(err&&err.name==='AbortError')return;if(src)src.textContent='UNAVAILABLE';if(label)label.textContent=(asset.ticker||'ASSET')+' · chart unavailable'}finally{if(chartControllers.get(key)===controller)chartControllers.delete(key)}
 }
-function redrawVisibleCharts(){if(chartResizeFrame)return;chartResizeFrame=requestAnimationFrame(()=>{chartResizeFrame=0;const asset=window.__pronousSelectedAsset;if(asset)loadAssetChart(asset,window.__pronousChartBar||'1h',true);else drawGapChart()})}
+function redrawVisibleCharts(){if(chartResizeFrame)return;chartResizeFrame=requestAnimationFrame(()=>{chartResizeFrame=0;const asset=window.__pronousSelectedAsset;if(asset)loadAssetChart(asset,window.__pronousChartBar||'1h',false);else drawGapChart()})}
 if(typeof ResizeObserver!=='undefined'){const ro=new ResizeObserver(()=>redrawVisibleCharts());document.addEventListener('DOMContentLoaded',()=>{['gapChart','assetChart'].forEach(id=>{const el=document.getElementById(id);if(el)ro.observe(el)})},{once:true})}
 function hookLiveDeskDom(){
   if(!document.querySelector('link[href="/desk-responsive.css"]')){
