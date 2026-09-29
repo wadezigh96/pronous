@@ -62,7 +62,7 @@
     <button type="button" class="secondary wallet-cancel" onclick="closeWalletChooser()">Cancel</button>
   </section>
 </div>
-<div id="assetDrawer" class="asset-drawer" aria-hidden="true"><div class="drawer-backdrop" onclick="closeAsset()"></div><aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button><div id="drawerContent" style="padding-top:24px"></div></aside></div>
+<div id="assetDrawer" class="asset-drawer" aria-hidden="true"><div class="drawer-backdrop" onclick="closeAsset()"></div><aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button><div id="drawerContent" style="padding-top:24px"></div><div class="drawer-chart" style="padding:0 24px 24px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><span class="muted small">PRICE ACTION · <span id="assetChartSrc">LOADING</span></span><div style="display:flex;gap:4px"><button class="secondary chart-bar-btn" type="button" onclick="loadAssetChart(window.__pronousSelectedAsset,'15m')">15m</button><button class="secondary chart-bar-btn" type="button" onclick="loadAssetChart(window.__pronousSelectedAsset,'1h')">1H</button><button class="secondary chart-bar-btn" type="button" onclick="loadAssetChart(window.__pronousSelectedAsset,'4h')">4H</button></div></div><canvas id="assetChart" width="760" height="260" style="width:100%;height:auto;display:block;background:#070a10;border:1px solid rgba(245,197,66,.12);border-radius:6px"></canvas></div></aside></div>
 <script src="/desk-charts.js"></script>
 <script src="/lib/execution-gates.js"></script><script src="/lib/wallet-state.js"></script><script src="/lib/tx-policy.js"></script>
 <script src="/lib/rpc-guard.js"></script>
