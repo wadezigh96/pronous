@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
     const chain = url.searchParams.get("chain") || "56";
     if (!isAddress(token)) return res.status(400).json({ error: "Invalid token address" });
     if (chain !== "56") return res.status(400).json({ error: "Only BSC mainnet is supported" });
-    if (!cred(process.env.BINANCE_WEB3_API_KEY) || !cred(process.env.BINANCE_WEB3_API_SECRET)) {
+    if (!String(process.env.BINANCE_WEB3_API_KEY || "").trim() || !String(process.env.BINANCE_WEB3_API_SECRET || "").trim()) {
       return res.status(200).json({ mode: "demo", token, chain, explorer: "https://bscscan.com/token/" + token });
     }
     const q = "binanceChainId=" + encodeURIComponent(chain) + "&tokenContractAddress=" + encodeURIComponent(token);
