@@ -32,6 +32,7 @@ const rootFiles = [
   'desk.css',
   'desk-v0.css',
   'desk-density-v2.css',
+  'desk-board.css',
   'agent-card.json',
   'desk-app.js',
   'desk-charts.js',
