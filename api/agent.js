@@ -138,6 +138,16 @@ function rpcHex(value) {
 
 async function simulateEvmTransaction(evmTx = {}) {
   const rpcUrl = String(process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org").trim();
+  let rpc;
+  try {
+    const parsed = new URL(rpcUrl);
+    const allowed = new Set(String(process.env.BSC_RPC_ALLOWED_HOSTS || "bsc-dataseed.binance.org").split(",").map(x => x.trim().toLowerCase()).filter(Boolean));
+    if (parsed.protocol !== "https:" || !allowed.has(parsed.hostname.toLowerCase())) throw new Error("BSC_RPC_HOST_NOT_ALLOWED");
+  } catch (e) {
+    const err = new Error("INVALID_BSC_RPC_URL");
+    err.status = 500;
+    throw err;
+  }
   const tx = {
     from: evmTx.from,
     to: evmTx.to,
@@ -152,11 +162,14 @@ async function simulateEvmTransaction(evmTx = {}) {
   if (!tx.to && !tx.data) throw new Error("SIMULATION_TX_TARGET_REQUIRED");
   if (tx.from && !/^0x[a-fA-F0-9]{40}$/.test(tx.from)) throw new Error("INVALID_SIMULATION_FROM");
   if (tx.to && !/^0x[a-fA-F0-9]{40}$/.test(tx.to)) throw new Error("INVALID_SIMULATION_TO");
-  const rpc = await fetch(rpcUrl, {
+  rpc = await fetch(rpcUrl, {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]})
+    body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"eth_call",params:[tx,"latest"]}),
+    signal: AbortSignal.timeout(Number(process.env.BSC_RPC_TIMEOUT_MS) || 8000)
   });
+  const contentType = String(rpc.headers?.get?.("content-type") || "").toLowerCase();
+  if (!contentType.includes("application/json")) throw new Error("BSC_RPC_NON_JSON");
   const body = await rpc.json();
   if (!rpc.ok || body.error) {
     const e = new Error(body.error?.message || "BSC eth_call simulation failed");
@@ -218,7 +231,7 @@ module.exports = async function handler(req,res) {
             return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),spotOnly:true,summary,assets:rows});
           }
         } catch (e) {
-          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:process.env.DEBUG_AUTH==="1"?e.data:undefined,authDebug:e.authDebug||undefined});
+          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:undefined,authDebug:undefined});
         }
       }
       return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});
