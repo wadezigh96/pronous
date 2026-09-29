@@ -17,6 +17,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - run: npm install
+      - run: npm install --omit=dev --no-audit --no-fund
       - run: npm test
       - run: npm run build
