@@ -17,19 +17,16 @@
     "mcp": "node mcp/server.mjs",
     "start": "node mcp/server.mjs",
     "audit": "node scripts/audit.mjs",
-    "test": "npm run build && node --test scripts/*.test.mjs && node scripts/audit.mjs",
-    "build": "node build-vendor.mjs"
+    "test": "node --test scripts/*.test.mjs && node scripts/audit.mjs",
+    "build": "node build-vendor.mjs",
+    "build:vendor": "node build-vendor.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.1.0",
-    "zod": "^4.0.0",
-    "@privy-io/react-auth": "2.13.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "viem": "2.21.19"
+    "zod": "^4.0.0"
   },
   "keywords": [
     "mcp",
@@ -45,6 +42,10 @@
     "url": "https://github.com/wadezigh96/pronous.git"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "@privy-io/react-auth": "2.13.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "viem": "2.21.19"
   }
 }
