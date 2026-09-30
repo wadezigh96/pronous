@@ -1,0 +1,38 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "PRONOUS",
+  "description": "Agentic market desk for tokenized equities on BNB Smart Chain. Watches Ondo / bStocks / xStocks token-vs-reference gaps, runs deterministic preflight (BSC-only, spot-only, spend cap, data quality), requires simulation and explicit user confirmation before any spend. Signal is never permission to spend. MCP tools are read-only or preflight-only; the server does not broadcast swaps. Optional Proof of Action can be anchored on-chain (user pays BNB gas only).",
+  "image": "https://pronous.vercel.app/favicon.ico",
+  "external_url": "https://pronous.vercel.app",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "https://pronous.vercel.app"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "https://github.com/wadezigh96/pronous",
+      "version": "1.0.0",
+      "notes": "npx -y github:wadezigh96/pronous — tools: market_assets, scan_asset, preflight, ask_pronous, cmc_market_context"
+    },
+    {
+      "name": "api",
+      "endpoint": "https://pronous.vercel.app/api/agent"
+    }
+  ],
+  "capabilities": [
+    "tokenized-stock-gap-radar",
+    "deterministic-preflight",
+    "spot-only-bsc",
+    "poa-anchor",
+    "mcp-tools"
+  ],
+  "supportedTrust": ["erc-8004"],
+  "network": {
+    "chainId": 56,
+    "name": "BNB Smart Chain"
+  },
+  "poaAnchor": "0xD729eFf0E050195D464cC9597d7A5Cc7194911B5",
+  "agentWallet": "REPLACE_WITH_STUDIO_OR_OPERATOR_WALLET",
+  "status": "pending_studio_mint"
+}
