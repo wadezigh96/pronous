@@ -18,6 +18,17 @@ test("on-chain script loads after desk app", () => assert.ok(html.indexOf('/desk
 test("on-chain auto renderer exists", () => { assert.match(onchain, /async function loadOnchain\(asset\)/); assert.match(onchain, /autoLoadOnchain\(\)/); assert.match(onchain, /window\.loadOnchain\s*=\s*loadOnchain/); assert.match(onchain, /\/api\/onchain\?chain=56&token=/); });
 test("on-chain density styles exist", () => { assert.match(css, /PRONOUS ON-CHAIN DENSITY REPAIR/); assert.match(css, /\.onchain-kpis/); assert.match(css, /\.onchain-columns/); });
 test("on-chain API remains BSC-only", () => { assert.match(api, /Only BSC mainnet is supported/); assert.match(api, /isAddress\(token\)/); });
+test("CMC supplies live BSC on-chain intelligence", () => {
+  assert.match(api, /CoinMarketCap DEX/);
+  assert.match(api, /CMC_BASE/);
+  assert.match(api, /\/v1\/dex\/token/);
+  assert.match(api, /\/v1\/dex\/token\/price/);
+  assert.match(api, /\/v1\/dex\/token\/pools/);
+  assert.match(api, /\/v1\/dex\/tokens\/transactions/);
+  assert.match(api, /\/v1\/dex\/token-liquidity\/query/);
+  assert.match(api, /network_slug: "bsc"/);
+  assert.match(api, /CMC_ONCHAIN_UNAVAILABLE/);
+});
 
 test("agent execution API rejects non-GET and foreign origins", () => {
   assert.match(agent, /function requireAgentOrigin\(req, res\)/);
@@ -55,7 +66,6 @@ test("broadcast transaction policy remains BSC router and selector restricted", 
 test("POA reader receives the current proof object", () => {
   assert.match(app, /currentPOA=j\.proof;window\.currentPOA=j\.proof/);
 });
-
 
 test("wallet integration restores and synchronizes the active BSC wallet", () => {
   assert.match(walletConnect, /restoreInjectedWallet\(\)/);
