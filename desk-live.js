@@ -5,6 +5,14 @@
     return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(3) : n.toPrecision(4);
   }
 
+  function signalFor(x) {
+    const q = String(x?.dataQuality || "").toLowerCase();
+    const spread = Number(x?.spreadPct);
+    if (q === "unreliable") return { label: "UNRELIABLE", cls: "neg" };
+    if (Number.isFinite(spread) && Math.abs(spread) >= 1) return { label: spread > 0 ? "PREMIUM" : "DISCOUNT", cls: spread > 0 ? "pos" : "neg" };
+    return { label: "OBSERVE", cls: "muted" };
+  }
+
   function arm() {
     if (window.__pronousLiveArmed) return;
     if (typeof window.loadMarket !== "function" || typeof window.renderRadar !== "function") {
@@ -29,10 +37,13 @@
         return;
       }
       el.innerHTML =
-        '<div class="muted small" style="margin-bottom:8px">LIVE · token vs reference · ' +
+        '<div class="muted small" style="margin-bottom:8px">LIVE · token vs reference · signal/risk · ' +
         top.length + " of " + rows.length + " gaps</div>" +
         top.map((x) => {
           const gap = Number(x.spreadPct);
+          const signal = signalFor(x);
+          const quality = String(x.dataQuality || "unknown").toUpperCase();
+          const state = x.marketStatus || x.openState || "—";
           return (
             '<div class="radar-gap-row" role="button" tabindex="0" onclick="openAsset(' +
             JSON.stringify(x.ticker) + "," + JSON.stringify(x.platformId || "") +
@@ -40,9 +51,11 @@
             JSON.stringify(x.ticker) + "," + JSON.stringify(x.platformId || "") +
             ')}"><div><b>' + esc(x.ticker) +
             '</b> <span class="muted small">' + esc(x.platformId || "") +
-            '</span></div><div class="muted small">' + fmtPx(x.tokenPrice) + " / " + fmtPx(x.referencePrice) +
+            '</span><div class="muted small">' + esc(String(state)) + " · " + esc(quality) +
+            '</div></div><div class="muted small">' + fmtPx(x.tokenPrice) + " / " + fmtPx(x.referencePrice) +
             '</div><div class="' + (gap >= 0 ? "pos" : "neg") + '">' +
-            (gap > 0 ? "+" : "") + gap.toFixed(2) + "%</div></div>"
+            (gap > 0 ? "+" : "") + gap.toFixed(2) + "%<div class=\"small \"" + signal.cls + "\">" +
+            esc(signal.label) + "</div></div></div>"
           );
         }).join("");
       const tape = document.getElementById("liveGapTape");
