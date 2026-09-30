@@ -392,3 +392,169 @@
   .board-ui .signal-row { grid-template-columns: 1.2fr 1fr auto; }
   .board-ui .sig-spark { display: none; }
 }
+
+/* === MOBILE DESK DENSITY FIX === */
+@media (max-width: 900px) {
+  html body.board-ui .board-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: max-content !important;
+    align-content: start !important;
+    align-items: start !important;
+    gap: 8px !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  html body.board-ui .board-grid > .board-card {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+  }
+
+  /* On-chain should end immediately after its actual content. */
+  html body.board-ui #onchain-section {
+    height: auto !important;
+    min-height: 0 !important;
+    align-self: start !important;
+  }
+
+  html body.board-ui .onchain-card {
+    height: auto !important;
+    min-height: 0 !important;
+    align-self: start !important;
+  }
+
+  html body.board-ui .onchain-card .onchain-result {
+    flex: 0 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  html body.board-ui #onchain-section .onchain-result {
+    flex: 0 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 220px !important;
+    overflow: auto !important;
+  }
+
+  /* Prevent hidden desktop sections from reserving mobile space. */
+  html body.board-ui #skills-section[hidden],
+  html body.board-ui #poa-section[hidden],
+  html body.board-ui .skills-card[hidden],
+  html body.board-ui .poa-card[hidden] {
+    display: none !important;
+  }
+
+  html body.board-ui .preflight-card,
+  html body.board-ui #execution {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  html body.board-ui .board-card {
+    padding: 12px 10px !important;
+  }
+
+  html body.board-ui .card-head {
+    margin-bottom: 8px !important;
+  }
+}
+
+/* === BOARD DENSITY FINAL OVERRIDE === */
+
+html body.board-ui .board-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0,1.15fr) minmax(0,.95fr) minmax(0,.95fr) !important;
+  grid-auto-rows: max-content !important;
+  align-items: start !important;
+  gap: 10px !important;
+}
+
+html body.board-ui .board-grid > .board-card {
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  align-self: start !important;
+  min-width: 0 !important;
+  grid-area: auto !important;
+}
+
+html body.board-ui #tape {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+html body.board-ui #agent {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+html body.board-ui #market {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+}
+html body.board-ui #overview {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+}
+html body.board-ui #studio-section {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+}
+html body.board-ui #cmcRadarCard {
+  grid-column: 3 !important;
+  grid-row: 2 !important;
+}
+html body.board-ui #onchain-section {
+  grid-column: 1 / 3 !important;
+  grid-row: 3 !important;
+}
+html body.board-ui #skills-section {
+  grid-column: 3 !important;
+  grid-row: 3 !important;
+}
+html body.board-ui #execution {
+  grid-column: 1 / 3 !important;
+  grid-row: 4 !important;
+}
+html body.board-ui #poa-section {
+  grid-column: 3 !important;
+  grid-row: 4 !important;
+}
+
+@media (max-width: 900px) {
+  html body.board-ui .board-grid {
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: max-content !important;
+    gap: 8px !important;
+  }
+
+  html body.board-ui .board-grid > .board-card {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+  }
+
+  html body.board-ui #agent {
+    display: block !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html body.board-ui .board-grid {
+    gap: 7px !important;
+  }
+
+  html body.board-ui .skills-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+}
+
+/* === END BOARD DENSITY FINAL OVERRIDE === */
