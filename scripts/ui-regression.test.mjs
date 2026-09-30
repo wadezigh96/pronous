@@ -56,6 +56,15 @@ test("wallet source state prevents cross-source overwrite", () => {
   assert.match(walletState, /SOURCE_NOT_ACTIVE/);
 });
 
+test("legacy simulation requests are bound to the active BSC wallet", () => {
+  assert.match(walletState, /__pronousWalletFetchGuard/);
+  assert.match(walletState, /action=simulateTx/);
+  assert.match(walletState, /getAddress/);
+  assert.match(walletState, /userWalletAddress=/);
+  assert.match(walletState, /normalizeChainId\(chainId\) === 56/);
+  assert.match(agent, /userWalletAddress is required for simulation/);
+});
+
 test("broadcast transaction policy remains BSC router and selector restricted", () => {
   assert.match(txPolicy, /Number\(chainId\) !== 56/);
   assert.match(txPolicy, /TX_TARGET_NOT_ALLOWLISTED/);
