@@ -89,6 +89,7 @@ for (const file of frontendFiles) {
 const wallet = readText('wallet-connect.js') || '';
 const page = readText('index.html') || '';
 const cmc = readText('api/cmc-radar.js') || '';
+const onchain = readText('api/onchain.js') || '';
 const execution = readText('lib/execution.js') || '';
 const gates = readText('lib/execution-gates.js') || '';
 
@@ -96,6 +97,11 @@ ok('Privy connect-or-create flow', wallet.includes('useConnectOrCreateWallet') &
 ok('BSC chain 56 configured', wallet.includes('id: 56') && wallet.includes("'0x38'"));
 ok('CMC server-side key', cmc.includes('process.env.CMC_API_KEY') && cmc.includes('X-CMC_PRO_API_KEY'));
 ok('CMC RWA quotes endpoint', cmc.includes('/v5/real-world-assets/quotes/latest'));
+ok('CMC DEX on-chain token endpoint', onchain.includes('/v1/dex/token') && onchain.includes('/v1/dex/token/price'));
+ok('CMC DEX pools + transactions', onchain.includes('/v1/dex/token/pools') && onchain.includes('/v1/dex/tokens/transactions'));
+ok('CMC DEX liquidity endpoint', onchain.includes('/v1/dex/token-liquidity/query'));
+ok('On-chain BSC guard', onchain.includes('chain !== "56"') && onchain.includes('Only BSC mainnet is supported'));
+ok('On-chain Binance fallback', onchain.includes('loadBinanceFallback') && onchain.includes('fallbackFrom: "CoinMarketCap DEX"'));
 ok('Execution confirmation gate', execution.includes('confirmationGate') && execution.includes('READY_TO_EXECUTE'));
 ok('Pure canExecute gate exists', gates.includes('function canExecute'));
 ok('Pure reset state exists', gates.includes('function resetExecutionState'));
