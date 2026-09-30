@@ -42,10 +42,9 @@ function drawGapChart(){
   rows.forEach((x,i)=>{
     const v=Number(x.spreadPct), ratio=Math.min(1,Math.abs(v)/maxAbs);
     const bar=Math.max(6,ratio*(mid-30)), x0=i*slot+slot*.16, bw=slot*.68;
-    const grad=ctx.createLinearGradient(0,mid-bar,0,mid+bar);
-    grad.addColorStop(0,'#ffe27a');grad.addColorStop(.45,'#f5c542');grad.addColorStop(1,'#9b6b0c');
-    ctx.fillStyle=grad;ctx.globalAlpha=.9;ctx.fillRect(x0,v>=0?mid-bar:mid,bw,bar);ctx.globalAlpha=1;
-    ctx.fillStyle='#f5c542';ctx.font='600 10px IBM Plex Mono,monospace';ctx.textAlign='center';ctx.fillText(String(x.ticker).slice(0,6),x0+bw/2,h-12);
+    const marketColor=v>=0?'#18c784':'#f6465d';
+    ctx.fillStyle=marketColor;ctx.globalAlpha=.9;ctx.fillRect(x0,v>=0?mid-bar:mid,bw,bar);ctx.globalAlpha=1;
+    ctx.fillStyle=marketColor;ctx.font='600 10px IBM Plex Mono,monospace';ctx.textAlign='center';ctx.fillText(String(x.ticker).slice(0,6),x0+bw/2,h-12);
     ctx.fillStyle='#d8d1c0';ctx.font='9px IBM Plex Mono,monospace';ctx.fillText((v>0?'+':'')+v.toFixed(2)+'%',x0+bw/2,v>=0?mid-bar-7:mid+bar+12);
   });
   ctx.strokeStyle='rgba(245,197,66,.55)';ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();

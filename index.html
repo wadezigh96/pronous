@@ -121,7 +121,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="card-head"><div class="card-title-row"><h2>CMC RWA + Tokenisation</h2></div></div>
 <div class="cmc-tabs"><button class="cmc-tab active" type="button">RWA Assets</button><button class="cmc-tab" type="button">Tokenisation</button><button class="cmc-tab" type="button">Combined</button></div>
 <div id="cmcRadar" class="cmc-table-wrap"><table class="cmc-table"><thead><tr><th>#</th><th>Asset</th><th>Price</th><th>24h</th><th>Type</th></tr></thead>
-<tbody id="cmcBody">
+<tbody id="cmcBody"><tr><td colspan="5" class="muted small">Loading live CMC data…</td></tr>
 <tr><td>1</td><td>GOLD</td><td>$4,156.65</td><td class="pos">+0.86%</td><td>RWA</td></tr>
 <tr><td>2</td><td>NVDA</td><td>$182.47</td><td class="pos">+1.92%</td><td>Token</td></tr>
 <tr><td>3</td><td>AAPL</td><td>$229.78</td><td class="pos">+1.24%</td><td>Token</td></tr>
@@ -136,7 +136,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <section class="card board-card onchain-card" id="onchain-section">
 <div class="card-head"><div class="card-title-row"><h2>On-chain</h2></div><small>Live blockchain activity</small></div>
 <div class="oc-tabs"><button class="oc-tab active" type="button">Latest Transactions</button><button class="oc-tab" type="button">Top Holders</button><button class="oc-tab" type="button">Contracts</button></div>
-<div id="chain" class="result onchain-result"><table class="oc-table"><thead><tr><th>#</th><th>Hash</th><th>From</th><th>To</th><th>Token</th><th>Value</th><th>Time</th></tr></thead><tbody>
+<div id="chain" class="result onchain-result"><div class="onchain-loading"><span class="onchain-pulse"></span> Loading live BSC indexed data…</div><table class="oc-table"><thead><tr><th>#</th><th>Hash</th><th>From</th><th>To</th><th>Token</th><th>Value</th><th>Time</th></tr></thead><tbody>
 <tr><td>1</td><td>0x3a8f…9e2d</td><td>0x4b2e…7f1a</td><td>0x8c7d…3a9b</td><td>USDT</td><td>$12,400</td><td>2m</td></tr>
 <tr><td>2</td><td>0x7c1e…8f9f</td><td>0xa81d…6f2c</td><td>0xf19e…4d7a</td><td>WBNB</td><td>$8,760</td><td>4m</td></tr>
 <tr><td>3</td><td>0x9d4b…2e8f</td><td>0x7a8d…1d6e</td><td>0x5b8f…9c2d</td><td>NVDA</td><td>$24,300</td><td>7m</td></tr>
@@ -151,9 +151,9 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="skill-tile"><b>Gap Guard</b><span>Arbitrage detection</span></div>
 <div class="skill-tile"><b>Cross-Venue Check</b><span>Liquidity scan</span></div>
 <div class="skill-tile"><b>Execution Planner</b><span>Trade planning</span></div>
-<div class="skill-tile"><b>Profitguard</b><span>Risk management</span></div>
+<div class="skill-tile"><b>Profit Guard</b><span>Risk management</span></div>
 <div class="skill-tile"><b>Portfolio Drift</b><span>Rebalance</span></div>
-<div class="skill-tile"><b>SU Agent Treasury</b><span>Treasury management</span></div>
+<div class="skill-tile"><b>Agent Treasury</b><span>Treasury management</span></div>
 <div class="skill-tile"><b>Decision Ledger</b><span>On-chain record</span></div>
 </div></section>
 <section class="card board-card preflight-card" id="execution">

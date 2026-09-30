@@ -258,3 +258,90 @@ input:focus{border-color:rgba(217,184,76,.58) !important;box-shadow:0 0 0 2px rg
 .onchain-link{white-space:nowrap;text-decoration:none}.onchain-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:9px}.onchain-kpis .onchain-row{border:1px solid var(--line);background:rgba(8,10,14,.55);border-radius:9px;padding:9px}.onchain-row{display:grid;grid-template-columns:1fr auto;gap:5px;align-items:center}.onchain-row span{color:var(--muted);font:9px "IBM Plex Mono",monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.onchain-row b{font:700 11px "IBM Plex Mono",monospace;color:var(--text);text-align:right}.onchain-row em{grid-column:1/-1;color:var(--muted);font:9px "IBM Plex Mono",monospace;font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.onchain-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:8px;margin-top:9px}.onchain-list{align-self:start;min-width:0}.onchain-list .onchain-row{min-height:32px}.onchain-list{border:1px solid var(--line);border-radius:10px;background:rgba(5,8,12,.48);overflow:hidden}.onchain-list-title{padding:8px 9px;color:var(--dim);font:800 9px "IBM Plex Mono",monospace;letter-spacing:.08em;border-bottom:1px solid var(--line);background:rgba(245,197,66,.025)}.onchain-list .onchain-row{padding:7px 9px;border-bottom:1px solid var(--line)}.onchain-list .onchain-row:last-child{border-bottom:0}.onchain-empty,.onchain-loading,.onchain-error{padding:14px;color:var(--muted);font:10px "IBM Plex Mono",monospace}.onchain-loading{display:flex;align-items:center;gap:8px}.onchain-pulse{width:7px;height:7px;border-radius:50%;background:#f5c542;box-shadow:0 0 12px rgba(245,197,66,.7);animation:pulse 1.4s infinite}.onchain-error{display:flex;flex-direction:column;gap:7px}.onchain-error b{color:var(--text);font:800 11px Inter,sans-serif}.onchain-error a{color:#f5c542}.onchain-foot{display:flex;align-items:center;gap:8px;margin-top:8px}.onchain-foot .tag{margin:0}
 @media(max-width:1100px){.onchain-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.onchain-columns{grid-template-columns:1fr 1fr}.onchain-columns .onchain-list:last-child{grid-column:1/-1}}
 @media(max-width:760px){#onchain-section{margin-bottom:12px!important}.onchain-head{align-items:center}.onchain-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.onchain-columns{grid-template-columns:1fr}.onchain-columns .onchain-list:last-child{grid-column:auto}.onchain-foot{flex-wrap:wrap}.onchain-title{font-size:18px}}
+
+/* UI/UX typography + live market colors */
+.card-head h2,
+.card-title-row h2 {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.card-head small,
+.card-meta,
+.card-footer,
+.muted {
+  font-size: 9px;
+}
+
+.topbar,
+.nav,
+.scan-box,
+.result,
+.plan-box {
+  font-size: 11px;
+}
+
+.onchain-result h3,
+.onchain-result .section-title {
+  font-size: 17px;
+}
+
+.onchain-result .metric-value,
+.market-price,
+.chart-price {
+  font-size: 20px;
+}
+
+.pos,
+.positive,
+.signal-positive,
+.market-positive,
+.cmc-positive {
+  color: #18c784;
+}
+
+.neg,
+.negative,
+.signal-negative,
+.market-negative,
+.cmc-negative {
+  color: #f6465d;
+}
+
+.badge.pos,
+.badge.positive {
+  color: #18c784;
+  border-color: rgba(24,199,132,.35);
+  background: rgba(24,199,132,.08);
+}
+
+.badge.neg,
+.badge.negative {
+  color: #f6465d;
+  border-color: rgba(246,70,93,.35);
+  background: rgba(246,70,93,.08);
+}
+
+.timeframe,
+.feature-label,
+.agent-label,
+.poa-context,
+.wallet-context {
+  font-size: 10px;
+}
+
+.onchain-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  font-size: 10px;
+}
+
+.onchain-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #18c784;
+  box-shadow: 0 0 8px rgba(24,199,132,.55);
+}

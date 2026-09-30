@@ -4,8 +4,8 @@
  */
 (function () {
   const $ = (id) => document.getElementById(id);
-  const esc = (s) =>
-    String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[m]));
+  const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ESC[m]);
 
   function fmtPrice(v) {
     const n = Number(v);
