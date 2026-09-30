@@ -3,3 +3,25 @@
 ed25519_private.pem
 ed25519_public.pem
 /public/
+
+# Local Agent Studio workspace
+pronous/
+
+# Agent Studio source: track safe source/config selectively
+!pronous/
+!pronous/app/
+!pronous/app/agent/
+!pronous/app/agent/src/
+!pronous/app/agent/src/*.ts
+!pronous/app/agent/README.md
+!pronous/app/agent/package.json
+!pronous/app/agent/tsconfig.json
+!pronous/app/agent/pnpm-workspace.yaml
+
+# Keep Agent Studio local state/secrets ignored
+pronous/.studio/
+pronous/app/agent/dist/
+pronous/app/agent/node_modules/
+pronous/app/agent/.env.local
+pronous/app/agent/*.bak
+pronous/app/agent/studio.toml
