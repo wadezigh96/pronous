@@ -25,7 +25,7 @@
 .board-ui .board-grid {
   display: grid !important;
   grid-template-columns: minmax(280px, 1.15fr) minmax(240px, 0.95fr) minmax(240px, 0.95fr) !important;
-  grid-template-rows: auto auto auto auto !important;
+  grid-template-rows: auto auto auto auto auto !important;
   gap: 12px !important;
   margin-top: 8px !important;
   width: 100% !important;
@@ -39,10 +39,10 @@
 .board-ui .chart-card    { grid-column: 1 / 2 !important; grid-row: 2 / 3 !important; }
 .board-ui .studio-card   { grid-column: 2 / 3 !important; grid-row: 2 / 3 !important; }
 .board-ui .cmc-card      { grid-column: 3 / 4 !important; grid-row: 2 / 3 !important; }
-.board-ui .onchain-card  { grid-column: 1 / 3 !important; grid-row: 3 / 4 !important; }
-.board-ui .skills-card   { grid-column: 3 / 4 !important; grid-row: 3 / 4 !important; }
+.board-ui .onchain-card  { grid-column: 1 / 3 !important; grid-row: 3 / 4 !important; align-self: start !important; }
+.board-ui .skills-card   { grid-column: 3 / 4 !important; grid-row: 3 / 5 !important; }
 .board-ui .preflight-card{ grid-column: 1 / 3 !important; grid-row: 4 / 5 !important; }
-.board-ui .poa-card      { grid-column: 3 / 4 !important; grid-row: 4 / 5 !important; }
+.board-ui .poa-card      { grid-column: 3 / 4 !important; grid-row: 5 / 6 !important; }
 
 /* Hide leftover sections */
 .board-ui #radar-section,
