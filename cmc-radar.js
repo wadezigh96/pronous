@@ -63,7 +63,7 @@ window.setCmcTab = setCmcTab;
 
 function cmcRowsForTab() {
   if (!cmcCache) return [];
-  if (cmcTab === "tokenisation") return cmcCache.tokenisation || [];
+  if (cmcTab === "tokenisation") return cmcCache.rwaTokens || [];
   if (cmcTab === "all") return cmcCache.radar || [];
   return (cmcCache.rwaAssets && cmcCache.rwaAssets.length ? cmcCache.rwaAssets : cmcCache.rwaTokens) || [];
 }
