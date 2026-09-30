@@ -33,9 +33,21 @@ function normalizeRwaAsset(row) {
     volume24h: num(row.tokenized_volume_24h ?? q.tokenized_volume_24h ?? q.volume_24h),
     marketCap: num(row.tokenized_market_cap ?? q.tokenized_market_cap ?? q.market_cap),
     tokenCount: tokens.length, leadToken: tokens[0]?.symbol || null,
-    tokens: tokens.slice(0, 4).map(t => ({ symbol: t.symbol, name: t.name, price: num(t.price), marketCap: num(t.market_cap), cryptoId: t.crypto_id })),
+    tokens: tokens.slice(0, 8).map(t => ({
+      symbol: t.symbol, name: t.name, price: num(t.price), marketCap: num(t.market_cap),
+      cryptoId: t.crypto_id, issuerId: t.issuer_id || null, issuerName: t.issuer_name || null
+    })),
     lastUpdated: q.last_updated || row.last_updated
   };
+}
+function flattenRwaTokens(rows) {
+  return rows.flatMap(asset => (asset.tokens || []).map((token, index) => ({
+    kind: "rwa-token", id: token.cryptoId || (String(asset.rwaId) + ":" + token.symbol), rwaId: asset.rwaId,
+    name: token.name || asset.name, symbol: token.symbol, slug: asset.slug,
+    assetType: asset.assetType || "rwa", rank: asset.rank ?? null, tokenRank: index + 1,
+    price: token.price, change1h: null, change24h: null, volume24h: null, marketCap: token.marketCap,
+    issuerId: token.issuerId, issuerName: token.issuerName, lastUpdated: asset.lastUpdated
+  })));
 }
 function normalizeToken(row, category) {
   const q = quoteOf(row);
@@ -88,9 +100,14 @@ module.exports = async function handler(req, res) {
     let issuers = [];
     try { issuers = await loadIssuerTokens(limit); } catch (_) {}
     const seen = new Set();
-    const radar = [...rwaAssets, ...issuers].filter(x => { const key = `${x.kind}:${x.symbol}:${x.id}`; if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, limit * 2);
-    res.setHeader('Cache-Control', 's-maxage=45, stale-while-revalidate=30');
-    return res.status(200).json({ source: 'CoinMarketCap', sourceMode: 'authenticated', universe: 'RWA + Tokenisation', freshness: 'CMC RWA quotes ~60s; issuer map ~30s', timestamp: rwaResult.timestamp || new Date().toISOString(), rwaAssets, rwaTokens: [], tokenisation: issuers, radar, counts: { rwaAssets: rwaAssets.length, rwaTokens: 0, tokenisation: issuers.length } });
+    const rwaTokens = flattenRwaTokens(rwaAssets);
+    const radar = [...rwaAssets, ...rwaTokens, ...issuers].filter(x => {
+      const key = x.kind + ":" + x.symbol + ":" + x.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, limit * 3);
+    return res.status(200).json({ source: 'CoinMarketCap', sourceMode: 'authenticated', universe: 'RWA + Tokenisation', freshness: 'CMC RWA quotes ~60s; issuer map ~30s', timestamp: rwaResult.timestamp || new Date().toISOString(), rwaAssets, rwaTokens, tokenisation: issuers, radar, counts: { rwaAssets: rwaAssets.length, rwaTokens: rwaTokens.length, tokenisation: issuers.length } });
   } catch (e) {
     return safeError(res, 502, 'CMC_RADAR_UNAVAILABLE');
   }
