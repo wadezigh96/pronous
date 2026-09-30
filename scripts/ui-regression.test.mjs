@@ -76,6 +76,11 @@ test("POA reader receives the current proof object", () => {
   assert.match(app, /currentPOA=j\.proof;window\.currentPOA=j\.proof/);
 });
 
+test("POA anchor gate uses the resolved wallet chain", () => {
+  assert.match(app, /const\\{api,address,chainId\\}=await resolveWalletForAnchor\(\)/);
+  assert.match(app, /Number\\(chainId \\|\\| walletChainId \\|\\| 0\\)!==56/);
+});
+
 test("wallet integration restores and synchronizes the active BSC wallet", () => {
   assert.match(walletConnect, /restoreInjectedWallet\(\)/);
   assert.match(walletConnect, /eth_accounts/);
