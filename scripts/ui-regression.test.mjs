@@ -7,6 +7,8 @@ const onchain = readFileSync("desk-onchain.js", "utf8");
 const css = readFileSync("desk.css", "utf8");
 const api = readFileSync("api/onchain.js", "utf8");
 const agent = readFileSync("api/agent.js", "utf8");
+const cmcRadarApi = readFileSync("api/cmc-radar.js", "utf8");
+const cmcRadar = readFileSync("cmc-radar.js", "utf8");
 const app = readFileSync("desk-app.js", "utf8");
 const walletState = readFileSync("lib/wallet-state.js", "utf8");
 const walletConnect = readFileSync("wallet-connect.js", "utf8");
@@ -28,6 +30,16 @@ test("CMC supplies live BSC on-chain intelligence", () => {
   assert.match(api, /\/v1\/dex\/token-liquidity\/query/);
   assert.match(api, /network_slug: "bsc"/);
   assert.match(api, /CMC_ONCHAIN_UNAVAILABLE/);
+});
+test("CMC RWA radar exposes live underlying tokens", () => {
+  assert.match(cmcRadarApi, /\/v5\/real-world-assets\/assets\/list/);
+  assert.match(cmcRadarApi, /\/v5\/real-world-assets\/quotes\/latest/);
+  assert.match(cmcRadarApi, /function flattenRwaTokens\(rows\)/);
+  assert.match(cmcRadarApi, /issuerId: token\.issuerId/);
+  assert.match(cmcRadarApi, /issuerName: token\.issuerName/);
+  assert.match(cmcRadarApi, /rwaTokens/);
+  assert.match(cmcRadar, /cmcCache\.rwaTokens \|\| \[\]/);
+  assert.match(cmcRadar, /Tokenisation/);
 });
 
 test("agent execution API rejects non-GET and foreign origins", () => {
