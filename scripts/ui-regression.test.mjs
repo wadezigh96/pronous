@@ -99,7 +99,13 @@ test("market signal is sourced from live assets and tabs are functional", () => 
   assert.doesNotMatch(html, /AI scanning 1,248 assets/);
 });
 
-test("chart initial UI does not claim fabricated market values", () => {\n  assert.doesNotMatch(html, /id="chartLast">181\\.24</);\n  assert.doesNotMatch(html, /id="chartChange">\\+2\\.34% \\(\\+4\\.16\\)</);\n  assert.match(html, /Waiting for live asset data/);\n});\n\ntest("POA initial UI does not claim fabricated confirmation", () => {
+test("chart initial UI does not claim fabricated market values", () => {
+  assert.doesNotMatch(html, /id="chartLast">181\\.24</);
+  assert.doesNotMatch(html, /id="chartChange">\\+2\\.34% \\(\\+4\\.16\\)</);
+  assert.match(html, /Waiting for live asset data/);
+});
+
+test("POA initial UI does not claim fabricated confirmation", () => {
   assert.match(html, /AWAITING EVIDENCE/);
   assert.match(html, /No session proof/);
   assert.doesNotMatch(html, /Signature Verified/);
