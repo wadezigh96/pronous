@@ -1,15 +1,49 @@
 /* PRONOUS on-chain density override — visual only. */
-.board-ui .onchain-card { position: relative; isolation: isolate; }
+.board-ui .onchain-card {
+  position: relative;
+  isolation: isolate;
+  /* Do not stretch to fill a tall grid row */
+  height: auto !important;
+  min-height: 0 !important;
+}
+.board-ui .onchain-card .onchain-result {
+  max-height: 210px;
+  scrollbar-width: thin;
+  flex: 0 1 auto;
+}
+.board-ui .onchain-card .oc-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.board-ui .onchain-card .oc-table th,
+.board-ui .onchain-card .oc-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Compact footer strip only when card has spare inner space — not a min-height driver */
 .board-ui .onchain-card::after {
   content: "LIVE BSC  •  READ-ONLY  •  ACTIVITY STREAM";
-  display: block; margin-top: auto; padding: 9px 11px;
-  border: 1px solid rgba(245,190,55,.08); border-radius: 10px;
-  background: linear-gradient(90deg, rgba(245,190,55,.07) 1px, transparent 1px) 0 0/28px 100%, linear-gradient(rgba(245,190,55,.05) 1px, transparent 1px) 0 0/100% 12px, rgba(8,9,12,.55);
-  color: rgba(245,190,55,.62); font: 9px "IBM Plex Mono", monospace;
-  letter-spacing: .08em; min-height: 34px; box-sizing: border-box;
+  display: block;
+  margin-top: 8px;
+  padding: 8px 11px;
+  border: 1px solid rgba(245, 190, 55, 0.08);
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(245, 190, 55, 0.07) 1px, transparent 1px) 0 0 / 28px 100%,
+    linear-gradient(rgba(245, 190, 55, 0.05) 1px, transparent 1px) 0 0 / 100% 12px,
+    rgba(8, 9, 12, 0.55);
+  color: rgba(245, 190, 55, 0.62);
+  font: 9px "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  min-height: 0;
+  box-sizing: border-box;
 }
-.board-ui .onchain-card .onchain-result { max-height: 210px; scrollbar-width: thin; }
-.board-ui .onchain-card .oc-table { width: 100%; table-layout: fixed; }
-.board-ui .onchain-card .oc-table th,
-.board-ui .onchain-card .oc-table td { overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 900px) { .board-ui .onchain-card::after { min-height: 30px; } }
+@media (max-width: 900px) {
+  .board-ui .onchain-card::after {
+    margin-top: 6px;
+    padding: 6px 10px;
+  }
+  .board-ui .onchain-card .onchain-result {
+    max-height: 180px;
+  }
+}
