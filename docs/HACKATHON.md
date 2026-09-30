@@ -22,7 +22,9 @@ Prize pool: **$20,000** (BNB Chain + Binance Web3 Wallet).
 | Demo video (≤ 4 minutes) | Script ready: [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) · [DEMO_VIDEO.md](./DEMO_VIDEO.md). Upload the recorded file to the official form. |
 | Developer Experience Report (25% of score) | [DEVEX_REPORT.md](./DEVEX_REPORT.md) |
 
-Registration form: https://forms.gle/NEmy3FxYc4f5Dua47
+**Current submission form:** https://forms.gle/yToDUzaDMwWnq6R6A
+
+The older registration form is historical registration material; use the current submission form above for the project submission.
 
 ## Judging map
 
