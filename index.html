@@ -9,12 +9,15 @@
 <link rel="stylesheet" href="/desk.css">
 <link rel="stylesheet" href="/desk-board.css">
 <style id="board-nuclear">
-html body.board-ui.fin-dash .wrap,html body.board-ui .board-wrap{display:block!important;grid:none!important;grid-template:none!important;max-width:1480px!important;padding:0 16px 40px!important}
+html body.board-ui.fin-dash .wrap,html body.board-ui .board-wrap{display:block!important;grid:none!important;grid-template:none!important;max-width:1480px!important;padding:0 12px 24px!important}
 html body.board-ui .topbar-left{display:flex!important;align-items:center!important;gap:8px!important}
 html body.board-ui .topbar-crumb{margin-right:0!important}
 html body.board-ui .topbar-crumb:after{content:"·"!important;margin-left:8px!important;margin-right:0!important;color:#8a8374!important}
 html body.board-ui.fin-dash .wrap>*,html body.board-ui .board-wrap>*{grid-area:unset!important;grid-column:unset!important;grid-row:unset!important}
 html body.board-ui .board-grid{display:grid!important;grid-template-columns:minmax(280px,1.15fr) minmax(240px,.95fr) minmax(240px,.95fr)!important;grid-template-rows:auto auto auto auto auto!important;gap:10px!important;width:100%!important;align-items:start!important}
+html body.board-ui .board-card{align-self:start!important;margin:0!important}
+html body.board-ui .onchain-result{flex:0 1 auto!important;max-height:220px!important}
+html body.board-ui .skills-grid{flex:0 1 auto!important}
 html body.board-ui #tape{grid-column:1/2!important;grid-row:1/2!important;margin:0!important;min-height:0!important}
 html body.board-ui #agent{grid-column:2/3!important;grid-row:1/2!important;margin:0!important;min-height:0!important}
 html body.board-ui #market{grid-column:3/4!important;grid-row:1/2!important;margin:0!important;min-height:0!important}
@@ -36,7 +39,7 @@ html body.board-ui .oc-table th,html body.board-ui .oc-table td{padding:6px 8px!
 html body.board-ui #radar-section,html body.board-ui .kpis,html body.board-ui .ticker-wrap,html body.board-ui .hero{display:none!important}
 html body.board-ui .app{display:grid!important;grid-template-columns:220px 1fr!important;min-height:100vh!important}
 html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!important;overflow-y:auto!important}
-@media(max-width:900px){html body.board-ui .app{display:block!important}html body.board-ui .side{display:none!important}html body.board-ui .board-grid{grid-template-columns:1fr!important}html body.board-ui #tape,html body.board-ui #agent,html body.board-ui #market,html body.board-ui #overview,html body.board-ui #studio-section,html body.board-ui #cmcRadarCard,html body.board-ui #onchain-section,html body.board-ui #skills-section,html body.board-ui #execution,html body.board-ui #poa-section{grid-column:1!important;grid-row:auto!important;min-height:0!important}}
+@media(max-width:900px){html body.board-ui .app{display:block!important}html body.board-ui .side{display:none!important}html body.board-ui .board-grid{grid-template-columns:1fr!important;gap:8px!important}html body.board-ui #tape,html body.board-ui #agent,html body.board-ui #market,html body.board-ui #overview,html body.board-ui #studio-section,html body.board-ui #cmcRadarCard,html body.board-ui #onchain-section,html body.board-ui #skills-section,html body.board-ui #execution,html body.board-ui #poa-section{grid-column:1!important;grid-row:auto!important;min-height:0!important;margin:0!important}html body.board-ui .board-card{margin:0!important}}
 </style>
 </head>
 <body class="fin-dash board-ui">
@@ -207,10 +210,24 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 </main></div>
 <div id="walletChooser" class="wallet-chooser" hidden aria-hidden="true">
 <div class="wallet-chooser-backdrop" onclick="closeWalletChooser()"></div>
-<section class="wallet-chooser-panel" role="dialog"><h2 id="walletChooserTitle">Choose how to connect</h2>
-<button type="button" onclick="connectBrowserWallet()">Browser wallet</button>
-<button type="button" class="secondary" onclick="connectPrivyWallet()">Email / Google (Privy)</button>
-<button type="button" class="secondary" onclick="closeWalletChooser()">Cancel</button></section></div>
+<section class="wallet-chooser-panel" role="dialog" aria-labelledby="walletChooserTitle">
+  <h2 id="walletChooserTitle">Connect Web3 Wallet</h2>
+  <p class="wallet-chooser-sub muted small">BSC Mainnet only · your keys stay in your wallet</p>
+  <div class="wallet-choice-grid">
+    <button type="button" class="wallet-choice-btn" onclick="connectBrowserWallet()">
+      <span class="wallet-choice-ico">⬡</span>
+      <span class="wallet-choice-label">Browser Wallet</span>
+      <span class="wallet-choice-desc">MetaMask · Binance · Rabby</span>
+    </button>
+    <button type="button" class="wallet-choice-btn secondary" onclick="connectPrivyWallet()">
+      <span class="wallet-choice-ico">✉</span>
+      <span class="wallet-choice-label">Email / Google</span>
+      <span class="wallet-choice-desc">Privy embedded wallet</span>
+    </button>
+  </div>
+  <p class="wallet-chooser-hint muted small">Mobile: use Privy, or open this site inside MetaMask / Binance Wallet browser.</p>
+  <button type="button" class="secondary wallet-cancel" onclick="closeWalletChooser()">Cancel</button>
+</section></div>
 <div id="assetDrawer" class="asset-drawer" aria-hidden="true">
 <div class="drawer-backdrop" onclick="closeAsset()"></div>
 <aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button>

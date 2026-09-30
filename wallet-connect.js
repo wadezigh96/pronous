@@ -274,27 +274,69 @@ async function restoreInjectedWallet() {
   setActiveWallet('injected', provider, accounts[0], finalChain);
   return true;
 }
+const eip6963Providers = [];
+if (typeof window !== 'undefined') {
+  window.addEventListener('eip6963:announceProvider', (event) => {
+    const detail = event?.detail;
+    if (!detail?.info || !detail?.provider) return;
+    const exists = eip6963Providers.some(p => p.info?.uuid === detail.info.uuid);
+    if (!exists) eip6963Providers.push(detail);
+  });
+  try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch (_) {}
+}
+
+function scoreProvider(p) {
+  if (!p) return -1;
+  if (p.isBinance || p.isBinanceWallet) return 100;
+  if (p.isMetaMask) return 80;
+  if (p.isCoinbaseWallet || p.isCoinbase) return 60;
+  if (p.isTrust || p.isTrustWallet) return 50;
+  return 10;
+}
+
 function getInjectedProvider() {
+  if (eip6963Providers.length) {
+    const ranked = [...eip6963Providers].sort((a, b) => scoreProvider(b.provider) - scoreProvider(a.provider));
+    return ranked[0].provider;
+  }
   const eth = window.ethereum;
   if (!eth) return null;
   if (Array.isArray(eth.providers) && eth.providers.length) {
-    return eth.providers.find(p => p.isBinance || p.isBinanceWallet || p.isMetaMask) || eth.providers[0];
+    return [...eth.providers].sort((a, b) => scoreProvider(b) - scoreProvider(a))[0];
   }
   return eth;
 }
-async function connectInjected() {
-  const provider = getInjectedProvider();
-  if (!provider?.request) throw new Error('No browser wallet detected');
+
+function listAvailableWallets() {
+  const list = [];
+  for (const item of eip6963Providers) {
+    list.push({
+      name: item.info?.name || 'Browser Wallet',
+      rdns: item.info?.rdns || '',
+      icon: item.info?.icon || '',
+      provider: item.provider
+    });
+  }
+  if (!list.length && window.ethereum) {
+    list.push({ name: 'Browser Wallet', rdns: '', icon: '', provider: getInjectedProvider() });
+  }
+  return list;
+}
+async function connectInjected(preferredProvider) {
+  const provider = preferredProvider || getInjectedProvider();
+  if (!provider?.request) throw new Error('No browser wallet detected. Install MetaMask or Binance Wallet.');
   setPreference('injected');
   setStatus('REQUESTING BROWSER WALLET');
+  setButton('Connecting…', true);
   const accounts = await provider.request({ method: 'eth_requestAccounts' });
   if (!accounts?.length) throw new Error('Browser wallet returned no account');
   try {
     await ensureBsc(provider);
   } catch (e) {
-    throw new Error('BSC switch rejected by browser wallet. Privy fallback is disabled: ' + (e?.message || e));
+    throw new Error('Please switch to BNB Smart Chain (BSC). ' + (e?.message || e));
   }
   const chainId = await provider.request({ method: 'eth_chainId' });
+  if (normalizeChainId(chainId) !== 56) throw new Error('Wallet is not on BSC Mainnet (chain 56)');
   setActiveWallet('injected', provider, accounts[0], chainId);
   closeWalletChooser();
 }
@@ -456,14 +498,16 @@ async function bootPrivy() {
 }
 window.openWalletChooser = openWalletChooser;
 window.closeWalletChooser = closeWalletChooser;
-window.connectBrowserWallet = async function () {
+window.listAvailableWallets = listAvailableWallets;
+window.connectBrowserWallet = async function (preferredProvider) {
   if (connecting) return;
   connecting = true;
-  try { await connectInjected(); }
+  try { await connectInjected(preferredProvider); }
   catch (e) {
     const message = e?.message || String(e);
     setStatus('BROWSER WALLET ERROR: ' + message);
     setButton('Connect Wallet', false);
+    console.warn('PRONOUS browser wallet connect failed:', e);
   }
   finally { connecting = false; }
 };
