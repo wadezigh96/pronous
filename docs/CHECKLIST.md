@@ -1,6 +1,6 @@
 # PRONOUS submission checklist
 
-Use this before pasting links into https://forms.gle/NEmy3FxYc4f5Dua47
+Use this before pasting links into the current BNB Chain submission form: https://forms.gle/yToDUzaDMwWnq6R6A
 
 ## Required package
 
@@ -18,6 +18,23 @@ Use this before pasting links into https://forms.gle/NEmy3FxYc4f5Dua47
 - [x] Simulation stays behind a connected wallet + spend token
 - [x] POA create / verify works off-chain
 - [x] PoaAnchor live on BSC: `0xD729eFf0E050195D464cC9597d7A5Cc7194911B5`
+
+## Agentic Wallet live evidence
+
+- [x] Agentic Wallet authenticated and `CONNECTED`
+- [x] BSC chain `56` wallet balance verified read-only
+- [x] Quote-only USDT → BNB succeeded before execution
+- [x] Live USDT → BNB market order finished on BSC
+  - Order ID: `26093000001928633252`
+  - Input: `0.030000000000000000 USDT`
+  - Output: `0.000038972065408586 BNB`
+  - Status: `FINISHED`
+  - Tx hash: `0xa5bb9f8a3c549b69c25444f716ab6ac97ba0bd8ecf53aa07bc4f23413fbe2a4b`
+- [x] Prior live BNB → USDT market order also finished
+  - Order ID: `26092500001914567268`
+  - Tx hash: `0x3361450a5b42c05c1b807ab29bfbf7d3600c0fcb9106a7f46746d5ce61f39e5d`
+- [ ] Agent Studio hosted identity/runtime linked to the submission
+- [ ] Demo video ≤ 4 minutes uploaded
 
 ## Safety claims that must stay true
 
