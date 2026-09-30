@@ -34,6 +34,9 @@ Use this before pasting links into the current BNB Chain submission form: https:
   - Order ID: `26092500001914567268`
   - Tx hash: `0x3361450a5b42c05c1b807ab29bfbf7d3600c0fcb9106a7f46746d5ce61f39e5d`
 - [ ] Agent Studio hosted identity/runtime linked to the submission
+  - Template: [agent/erc8004-registration.json](../agent/erc8004-registration.json)
+  - How-to: [ERC8004_IDENTITY.md](./ERC8004_IDENTITY.md)
+  - agentId: _pending Studio mint_
 - [ ] Demo video ≤ 4 minutes uploaded
 
 ## Safety claims that must stay true
@@ -48,4 +51,5 @@ Use this before pasting links into the current BNB Chain submission form: https:
 
 - Agentic Wallet contract: [agent/AGENTIC_WALLET.md](../agent/AGENTIC_WALLET.md)
 - Agent Studio deploy prompt: [agent/AGENT_STUDIO_DEPLOY.md](../agent/AGENT_STUDIO_DEPLOY.md)
+- ERC-8004 identity pack: [ERC8004_IDENTITY.md](./ERC8004_IDENTITY.md)
 - MCP one-paste: [MCP.md](./MCP.md)

@@ -34,6 +34,7 @@ const rootFiles = [
   'desk-density-v2.css',
   'desk-board.css',
   'desk-responsive.css',
+  'styles/onchain-density-override.css',
   'agent-card.json',
   'desk-app.js',
   'desk-charts.js',
