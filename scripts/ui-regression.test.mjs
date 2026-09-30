@@ -77,7 +77,7 @@ test("POA reader receives the current proof object", () => {
 });
 
 test("POA anchor gate uses the resolved wallet chain", () => {
-  assert.match(app, /const\\{api,address,chainId\\}=await resolveWalletForAnchor\(\)/);
+  assert.match(app, /const\s*\{\s*api\s*,\s*address\s*,\s*chainId\s*\}\s*=\s*await resolveWalletForAnchor\(\)/);
   assert.match(app, /Number\\(chainId \\|\\| walletChainId \\|\\| 0\\)!==56/);
 });
 
