@@ -16,22 +16,22 @@ PRONOUS is a BSC mainnet desk for tokenized equities: live RWA feeds, guarded pr
 
 ---
 
-## On-chain evidence (live mainnet)
+## POA contract reference and optional demo records
 
-Contract **PoaAnchor** records `poaHash` + lifecycle status. Value of every anchor tx is **0** — only network gas.
+The documented **PoaAnchor** contract records `poaHash` and lifecycle status; its anchor call does not execute swaps. The address and records below are references from the submission materials, not independently verified on-chain evidence. No blockchain transaction was broadcast during this verification.
 
 | # | poaId | Status | Tx |
 |---|--------|--------|-----|
-| 1 | `POA-MUIRMLF` | PLANNED (0) | [0xaac0d01f…d1e7](https://bscscan.com/tx/0xaac0d01ff85b77dde8f3c7240479820eadbfb5cc76306f867aa3798a085bd1e7) |
-| 2 | `POA-MUIRRIEL` | PLANNED (0) | [0x5665fd14…64de](https://bscscan.com/tx/0x5665fd14d1d23e5a4e215470f19ab533df346fd0e47722f8bf010cb1dde264de) |
+| 1 | `POA-MUIRMLF` | PLANNED / OPTIONAL DEMO — not independently verified | [BscScan reference](https://bscscan.com/tx/0xaac0d01ff85b77dde8f3c7240479820eadbfb5cc76306f867aa3798a085bd1e7) |
+| 2 | `POA-MUIRRIEL` | PLANNED / OPTIONAL DEMO — not independently verified | [BscScan reference](https://bscscan.com/tx/0x5665fd14d1d23e5a4e215470f19ab533df346fd0e47722f8bf010cb1dde264de) |
 
-**Actor (both txs):** `0xfceafec082f9e8b17cdb51f33c3d5c9759a25e03`
+**Actor listed in the references (not independently verified):** `0xfceafec082f9e8b17cdb51f33c3d5c9759a25e03`
 
 **Event:** `PoaAnchored(poaHash, actor, status, timestamp, poaId)`
 
 **Verify on-chain read:** BscScan → Contract → Read → `getRecord(bytes32 poaHash)`
 
-Example hashes:
+Example `poaHash` values from the submission materials (not independently verified; not evidence of broadcast transactions):
 
 - Tx1: `0xe2fce44f8f9e2a6e45aa2e596c9059bba401522d2c80e2be1396e2b30687b33f`
 - Tx2: `0x68372ee4c7a67863a7e961afdac351bb357d7dccc86b28f5872bc17de0786000`
@@ -43,10 +43,11 @@ Example hashes:
 ```
 Market (bStocks / Ondo / xStocks)
   → Scan / gap radar
-  → Preflight (policy, spend caps)
   → Quote (from ≠ to token)
+  → Preflight (policy, spend caps)
   → Simulation (dry-run)
-  → Explicit user Confirm
+  → Explicit user confirmation
+  → Gated broadcast (only after required checks; not used in this verification)
   → POA create (off-chain SHA-256, free)
   → Optional POA Anchor (on-chain, user pays BNB gas)
   → Execution only after gates (spot only)
@@ -60,14 +61,11 @@ See also: [CHECKLIST.md](./CHECKLIST.md) · [POA_ONCHAIN.md](./POA_ONCHAIN.md) �
 
 ---
 
-## Demo flow (suggested video)
+## Verified production flow and optional demo steps
 
-1. Open https://pronous.vercel.app — market live.
-2. Scan NVDA (or any listed ticker).
-3. Preflight → Simulate.
-4. Create POA → Verify (VALID · hash match).
-5. Connect wallet → **Anchor POA on-chain** → approve (gas only).
-6. Show BscScan tx + `PoaAnchored` event + optional `getRecord`.
+Verified production checks: `/api/agent` and the assets/radar actions returned HTTP 200; the assets action returned 488 live assets. Preflight with `amount=1` and `maxSpend=2` returned `READY_FOR_SIMULATION`. The simulation endpoint returned HTTP 200 with `simulationMode: DRY_RUN` and `broadcast: false`.
+
+The following are planned/optional demo steps, not verified in this production check: create and verify a POA; connect a wallet and anchor a POA; inspect a BscScan transaction, `PoaAnchored` event, or `getRecord` result. Agent Studio hosted runtime and Agentic Wallet live execution have not been independently verified as live.
 
 ---
 
@@ -78,9 +76,9 @@ See also: [CHECKLIST.md](./CHECKLIST.md) · [POA_ONCHAIN.md](./POA_ONCHAIN.md) �
 | Tokenized stocks universe | bStocks / Ondo / xStocks feeds |
 | BSC mainnet | Yes |
 | Spot only / no perps | Enforced in product + copy |
-| Guarded / confirmed execution | Preflight → sim → confirm gates |
+| Guarded execution | Preflight and dry-run simulation verified; confirmation/broadcast remain gated, and broadcast was not used in this verification |
 | Public repo + deployed app | This repo + Vercel |
-| On-chain attestation | PoaAnchor + live txs above |
+| On-chain attestation | PoaAnchor reference and planned/optional demo records above; not independently verified |
 
 ---
 
