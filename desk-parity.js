@@ -57,5 +57,6 @@
     if(timer) clearInterval(timer);
     timer=setInterval(()=>{if(!document.hidden)loadParity();},30000);
   }
+  window.loadRwaParity=function(ticker){const input=document.getElementById('rwaParityTicker');if(input&&ticker)input.value=String(ticker).trim().toUpperCase();return loadParity();};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
 })();
