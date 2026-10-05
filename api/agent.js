@@ -13,6 +13,20 @@ const AGENT_ALLOWED_ORIGIN = String(
 function requireAgentOrigin(req, res) {
   const origin = String(req.headers?.origin || "").trim().replace(/\/$/, "");
   if (origin === AGENT_ALLOWED_ORIGIN) return true;
+
+  // Same-origin GET/fetch requests may omit the Origin header on some browsers/webviews.
+  // Accept an explicit Fetch Metadata same-origin signal or an exact production Referer.
+  const fetchSite = String(req.headers?.["sec-fetch-site"] || "").trim().toLowerCase();
+  if (!origin && fetchSite === "same-origin") return true;
+
+  const referer = String(req.headers?.referer || "").trim();
+  if (!origin && referer) {
+    try {
+      const ref = new URL(referer);
+      if (ref.origin === AGENT_ALLOWED_ORIGIN) return true;
+    } catch (_) {}
+  }
+
   res.status(403).json({ error: "FORBIDDEN_ORIGIN" });
   return false;
 }
