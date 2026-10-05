@@ -18,20 +18,20 @@ PRONOUS is a BSC mainnet desk for tokenized equities: live RWA feeds, guarded pr
 
 ## POA contract reference and optional demo records
 
-The documented **PoaAnchor** contract records `poaHash` and lifecycle status; its anchor call does not execute swaps. The address and records below are references from the submission materials, not independently verified on-chain evidence. No blockchain transaction was broadcast during this verification.
+The documented **PoaAnchor** contract records `poaHash` and lifecycle status; its anchor call does not execute swaps. The records below have been independently verified on BSC mainnet via the public RPC. Both referenced transactions returned `status=0x1`, target the documented PoaAnchor contract, originate from the documented actor, and emit the expected `PoaAnchored` event.
 
 | # | poaId | Status | Tx |
 |---|--------|--------|-----|
-| 1 | `POA-MUIRMLF` | PLANNED / OPTIONAL DEMO — not independently verified | [BscScan reference](https://bscscan.com/tx/0xaac0d01ff85b77dde8f3c7240479820eadbfb5cc76306f867aa3798a085bd1e7) |
-| 2 | `POA-MUIRRIEL` | PLANNED / OPTIONAL DEMO — not independently verified | [BscScan reference](https://bscscan.com/tx/0x5665fd14d1d23e5a4e215470f19ab533df346fd0e47722f8bf010cb1dde264de) |
+| 1 | `POA-MUIRMLF` | **CONFIRMED — independently verified on-chain** | [BscScan reference](https://bscscan.com/tx/0xaac0d01ff85b77dde8f3c7240479820eadbfb5cc76306f867aa3798a085bd1e7) |
+| 2 | `POA-MUIRRIEL` | **CONFIRMED — independently verified on-chain** | [BscScan reference](https://bscscan.com/tx/0x5665fd14d1d23e5a4e215470f19ab533df346fd0e47722f8bf010cb1dde264de) |
 
-**Actor listed in the references (not independently verified):** `0xfceafec082f9e8b17cdb51f33c3d5c9759a25e03`
+**Verified actor:** `0xfceafec082f9e8b17cdb51f33c3d5c9759a25e03`
 
 **Event:** `PoaAnchored(poaHash, actor, status, timestamp, poaId)`
 
 **Verify on-chain read:** BscScan → Contract → Read → `getRecord(bytes32 poaHash)`
 
-Example `poaHash` values from the submission materials (not independently verified; not evidence of broadcast transactions):
+Verified `poaHash` values from BSC mainnet transaction logs:
 
 - Tx1: `0xe2fce44f8f9e2a6e45aa2e596c9059bba401522d2c80e2be1396e2b30687b33f`
 - Tx2: `0x68372ee4c7a67863a7e961afdac351bb357d7dccc86b28f5872bc17de0786000`
@@ -65,7 +65,7 @@ See also: [CHECKLIST.md](./CHECKLIST.md) · [POA_ONCHAIN.md](./POA_ONCHAIN.md) �
 
 Verified production checks: `/api/agent` and the assets/radar actions returned HTTP 200; the assets action returned 488 live assets. Preflight with `amount=1` and `maxSpend=2` returned `READY_FOR_SIMULATION`. The simulation endpoint returned HTTP 200 with `simulationMode: DRY_RUN` and `broadcast: false`.
 
-The following are planned/optional demo steps, not verified in this production check: create and verify a POA; connect a wallet and anchor a POA; inspect a BscScan transaction, `PoaAnchored` event, or `getRecord` result. Agent Studio hosted runtime and Agentic Wallet live execution have not been independently verified as live.
+The following POA verification steps are now complete: the documented PoaAnchor contract was verified on BSC mainnet, both referenced anchor transactions were independently verified with successful receipts and expected `PoaAnchored` logs, and the documented actor, POA IDs, and `poaHash` values matched the on-chain records. Agent Studio hosted runtime and Agentic Wallet live execution have not been independently verified as live.
 
 ---
 
@@ -78,7 +78,7 @@ The following are planned/optional demo steps, not verified in this production c
 | Spot only / no perps | Enforced in product + copy |
 | Guarded execution | Preflight and dry-run simulation verified; confirmation/broadcast remain gated, and broadcast was not used in this verification |
 | Public repo + deployed app | This repo + Vercel |
-| On-chain attestation | PoaAnchor reference and planned/optional demo records above; not independently verified |
+| On-chain attestation | **PoaAnchor records independently verified on BSC mainnet via public RPC** |
 
 ---
 
