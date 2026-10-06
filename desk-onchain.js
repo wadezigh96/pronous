@@ -63,6 +63,14 @@
     };
   }
 
+  async function readWallet() {
+    const api = window.PRONOUS_WALLET;
+    if (api && typeof api.sync === "function") {
+      try { await api.sync(); } catch (_) {}
+    }
+    return wallet();
+  }
+
   function pad32(hex) {
     return String(hex || "").replace(/^0x/, "").padStart(64, "0");
   }
@@ -107,7 +115,8 @@
       btn.__pronousBound = true;
         btn.onclick = async function () {
           const status = document.getElementById("poaGateStatus");
-          if (!wallet().address) {
+          const current = await readWallet();
+          if (!current.address || !current.api) {
             if (status) status.textContent = "Connect wallet before Execute.";
             return;
           }
@@ -481,7 +490,7 @@
     const status = document.getElementById("poaGateStatus");
     const set = function (t) { if (status) status.textContent = t; };
     const btn = document.getElementById("executeOnchainBtn");
-    const w = wallet();
+    const w = await readWallet();
     const state = window.__pronousExecutionState || (window.__pronousExecutionState = { inFlight: false });
     const gates = window.PRONOUS_EXECUTION_GATES;
     if (!gates) { set("Execution security module unavailable. Execution blocked."); return; }

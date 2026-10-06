@@ -530,6 +530,16 @@ window.connectWallet = async function connectWallet() {
   openWalletChooser();
 };
 window.addEventListener('pronous:privy-disconnect-request', () => disconnectActive());
+window.addEventListener('pronous:wallet-replay-request', () => {
+  if (!activeWallet?.address) return;
+  window.dispatchEvent(new CustomEvent('pronous:privy-wallet-connected', {
+    detail: {
+      source: activeWallet.source,
+      address: activeWallet.address,
+      chainId: normalizeChainId(activeWallet.chainId)
+    }
+  }));
+});
 exposeWalletApi();
 restoreInjectedWallet().catch(() => false);
 bootPrivy().catch(err => {

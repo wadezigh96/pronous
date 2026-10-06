@@ -94,11 +94,3 @@ function startLiveSignal(){
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && typeof loadMarket==='function')loadMarket({silent:true})});
 startLiveSignal();
-(function(){
-  [['/desk-live.js?v=rwa1',false],['/desk-onchain.js?v=abc1',false],['/desk-exec.js?v=amt2',false],['/cmc-radar.js?v=rwa1',true],['/desk-parity.js?v=parity1',true]].forEach(([src,defer])=>{
-    if(document.querySelector('script[src^="'+src.split('?')[0]+'"]')) return;
-    const s=document.createElement('script');
-    s.src=src; if(defer) s.defer=true;
-    document.head.appendChild(s);
-  });
-})();

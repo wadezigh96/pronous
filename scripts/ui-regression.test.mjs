@@ -99,7 +99,19 @@ test("wallet integration restores and synchronizes the active BSC wallet", () =>
   assert.match(walletConnect, /setActiveWallet\('injected'/);
   assert.match(walletConnect, /getChainId:/);
   assert.match(walletConnect, /getSource:/);
+  assert.match(walletConnect, /pronous:wallet-replay-request/);
   assert.match(app, /await api\.sync\(\)/);
+  assert.match(app, /syncDeskWallet/);
+  assert.match(onchain, /async function readWallet\(\)/);
+  assert.match(onchain, /await readWallet\(\)/);
+  assert.match(onchain, /!current\.address \|\| !current\.api/);
+});
+
+test("desk charts do not preload execution scripts ahead of the wallet module", () => {
+  const charts = readFileSync("desk-charts.js", "utf8");
+  assert.doesNotMatch(charts, /desk-onchain\.js\?v=/);
+  assert.doesNotMatch(charts, /createElement\('script'\)/);
+  assert.ok(html.indexOf("/wallet-connect.js") < html.indexOf("/desk-onchain.js"));
 });
 
 test("market signal is sourced from live assets and tabs are functional", () => {
