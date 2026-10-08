@@ -14,6 +14,7 @@
     "docs/MCP.md"
   ],
   "scripts": {
+    "pronous": "node mcp/server.mjs",
     "mcp": "node mcp/server.mjs",
     "start": "node mcp/server.mjs",
     "audit": "node scripts/audit.mjs",
