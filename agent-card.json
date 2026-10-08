@@ -23,7 +23,15 @@
   "x402Support": false,
   "chainId": 56,
   "spotOnly": true,
-  "assets": ["bstock", "ondo", "xstocks"],
-  "registrationStatus": "card-published-not-minted",
-  "note": "ERC-8004 mint and x402 runtime require bag deploy plus the builder wallet. This file is the public registration document only."
+  "assets": [
+    "bstock",
+    "ondo",
+    "xstocks"
+  ],
+  "registrationStatus": "minted-verified",
+  "note": "ERC-8004 identity is minted and independently verified on BSC Mainnet. The trading execution path remains separately gated by wallet, simulation and explicit confirmation. x402 runtime remains disabled.",
+  "agentId": 367667,
+  "agentWallet": "0x30ce2986c17BeF0496435809158E5F0a7aE77989",
+  "registrationNetwork": "bsc-mainnet",
+  "registrationTx": "0x43de410c1f554e3dc178e3778df67187a4c6957d719291123d4194f0c5d68774"
 }
