@@ -12,7 +12,7 @@
 
 **Watch → Compare → Explain → Guard → Prepare → Confirm**
 
-[Live App](https://pronous.vercel.app/) · [**Submission**](docs/SUBMISSION.md) · [Hackathon](docs/HACKATHON.md) · [DevEx](docs/DEVEX_REPORT.md) · [Product](docs/PRODUCT.md) · [On-chain POA](docs/POA_ONCHAIN.md) · [Demo](docs/DEMO_VIDEO.md)
+[Live App](https://pronous.vercel.app/) · [**Submission**](docs/SUBMISSION.md) · [Hackathon](docs/HACKATHON.md) · [DevEx](docs/DEVEX_REPORT.md) · [Product](docs/PRODUCT.md) · [User Utilities](docs/USER_UTILITIES.md) · [x402](docs/X402.md) · [On-chain POA](docs/POA_ONCHAIN.md) · [Demo](docs/DEMO_VIDEO.md)
 
 </div>
 
@@ -32,19 +32,8 @@ PRONOUS separates **observation**, **decision**, **execution**, and **proof**. G
 
 ## Core workflow
 
-```mermaid
-flowchart TD
-  A[Market / Radar] --> B[Scan asset]
-  B --> C[Explain gap]
-  C --> D{Policy / Guard}
-  D -->|fail| X[Blocked]
-  D -->|pass| E[Preflight]
-  E --> F[Quote]
-  F --> G[Simulation]
-  G --> H[User Confirm]
-  H --> I[Optional POA]
-  I --> J[Optional on-chain Anchor]
-  J --> K[Execution boundary]
+```text
+Watch → Compare → Explain → Guard → Prepare → Simulate → Confirm → Prove
 ```
 
 | Step | What happens |
@@ -60,10 +49,6 @@ flowchart TD
 ---
 
 ## Agent path
-
-```text
-Observe → Detect → Verify → Guard → Plan → (Simulate) → Confirm → Prove
-```
 
 1. Agent / MCP tool scans the market or a ticker (e.g. NVDA).
 2. Intelligence explains token vs reference gap.
@@ -92,6 +77,24 @@ Tools: `market_assets` · `scan_asset` · `preflight` · `ask_pronous` — [MCP 
 
 ---
 
+## User utilities
+
+**Available now:** live market scanning, opportunity radar, deterministic preflight, MCP intelligence, ERC-8004 identity, and guarded wallet execution.
+
+**Next utility layer:** read-only portfolio watching, user-configurable alerts, cross-venue comparison, and a published market-data quality score. These utilities do not authorize transactions.
+
+See [docs/USER_UTILITIES.md](docs/USER_UTILITIES.md).
+
+---
+
+## x402 / B402
+
+PRONOUS has a dedicated BNB Agent Studio seller project configured for a $0.01 paid market-intelligence request on BSC Mainnet. Production merchant credentials and real verify/settle evidence are still pending, so `agent-card.json` intentionally keeps `x402Support: false`.
+
+See [docs/X402.md](docs/X402.md).
+
+---
+
 ## Safety boundaries
 
 | Layer | Responsibility |
@@ -113,17 +116,9 @@ A market gap alone never authorizes spending. AI / agent logic is not a security
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  Desk[PRONOUS Desk HTML/JS] --> API[Market Layer + Agent Controller]
-  API --> Intel[Intelligence]
-  Intel --> Guard[Policy / Guard]
-  Guard --> Exec[Execution Boundary]
-  Exec --> Sim[Quote · Build · Simulation]
-  Sim --> User[User Confirmation]
-  User --> Wallet[Wallet Boundary]
-  Wallet --> BSC[BNB Smart Chain]
-  User --> POA[POA off-chain / on-chain]
+```text
+Desk → Market/Agent → Intelligence → Guard → Quote/Build → Simulation → User Confirmation → Wallet → BSC
+                                                        └→ POA off-chain / on-chain
 ```
 
 Live API checks:
@@ -139,7 +134,7 @@ Live API checks:
 
 | Item | Link |
 |------|------|
-| **Contract** | [`0xD729eFf0E050195D464cC9597d7A5Cc7194911B5`](https://bscscan.com/address/0xD729eFf0E050195D464cC9597d7A5Cc7194911B5) |
+| **Contract** | [0xD729eFf0E050195D464cC9597d7A5Cc7194911B5](https://bscscan.com/address/0xD729eFf0E050195D464cC9597d7A5Cc7194911B5) |
 | **Evidence** | [docs/SUBMISSION.md](docs/SUBMISSION.md) |
 | **How it works** | [docs/POA_ONCHAIN.md](docs/POA_ONCHAIN.md) |
 
@@ -151,12 +146,12 @@ Live API checks:
 
 ```text
 pronous/
-├── index.html          # Product dashboard
-├── api/                # agent.js · skills · ask
-├── lib/                # market · policy · execution · execution-gates
-├── agent/              # Agent Studio · Agentic Wallet docs
-├── contracts/          # PoaAnchor.sol
-└── docs/               # PRODUCT · ARCHITECTURE · SUBMISSION · POA
+├── index.html
+├── api/
+├── lib/
+├── agent/
+├── contracts/
+└── docs/
 ```
 
 ---
