@@ -5,6 +5,7 @@ const policy = fs.readFileSync("lib/http-policy.js", "utf8");
 const portfolio = fs.readFileSync("api/portfolio.js", "utf8");
 const trade = fs.readFileSync("api/trade.js", "utf8");
 const agent = fs.readFileSync("api/agent.js", "utf8");
+const utilities = fs.readFileSync("utilities.html", "utf8");
 
 assert.match(policy, /X-Content-Type-Options/);
 assert.match(policy, /Cache-Control/);
