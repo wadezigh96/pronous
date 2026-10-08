@@ -60,7 +60,9 @@ Requires Node.js 20+.
 
 ```bash
 npm install
-npm run mcp
+npm run pronous
+
+# `npm run mcp` remains supported as a compatibility alias
 ```
 
 For the official MCP Inspector:
