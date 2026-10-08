@@ -27,12 +27,18 @@
     "poa-anchor",
     "mcp-tools"
   ],
-  "supportedTrust": ["erc-8004"],
+  "supportedTrust": [
+    "erc-8004"
+  ],
   "network": {
     "chainId": 56,
     "name": "BNB Smart Chain"
   },
   "poaAnchor": "0xD729eFf0E050195D464cC9597d7A5Cc7194911B5",
-  "agentWallet": "REPLACE_WITH_STUDIO_OR_OPERATOR_WALLET",
-  "status": "pending_studio_mint"
+  "agentWallet": "0x30ce2986c17BeF0496435809158E5F0a7aE77989",
+  "status": "verified_onchain",
+  "agentId": 367667,
+  "registrationTx": "0x43de410c1f554e3dc178e3778df67187a4c6957d719291123d4194f0c5d68774",
+  "registrationBlock": "0x788b2f8",
+  "registrationNetwork": "bsc-mainnet"
 }
