@@ -47,8 +47,10 @@ async function rpc(method, params) {
     body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method, params }),
     signal: AbortSignal.timeout(Number(process.env.BSC_RPC_TIMEOUT_MS) || 8000)
   });
+  const contentType = String(response.headers?.get?.("content-type") || "").toLowerCase();
+  if (!contentType.includes("application/json")) throw new Error("BSC_RPC_NON_JSON");
   const body = await response.json();
-  if (!response.ok || body.error) throw new Error(body.error?.message || "BSC_RPC_ERROR");
+  if (!response.ok || body.error) throw new Error("BSC_RPC_ERROR");
   return body.result;
 }
 
@@ -171,10 +173,13 @@ module.exports = async function handler(req, res) {
       execution: { broadcast: false, signing: false }
     });
   } catch (error) {
+    console.error("PRONOUS /api/portfolio internal error", {
+      code: error?.message || "PORTFOLIO_LOOKUP_FAILED"
+    });
     return res.status(502).json({
       mode: "live-error",
       network: "BSC",
-      error: error.message || "Portfolio lookup failed"
+      error: "PORTFOLIO_LOOKUP_FAILED"
     });
   }
 };
