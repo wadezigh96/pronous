@@ -29,6 +29,7 @@ fs.mkdirSync(out, { recursive: true });
 
 const rootFiles = [
   'index.html',
+  'utilities.html',
   'desk.css',
   'desk-v0.css',
   'desk-density-v2.css',
