@@ -20,7 +20,8 @@
     "test": "node --test scripts/*.test.mjs && node scripts/audit.mjs",
     "build": "node build-vendor.mjs",
     "build:vendor": "node build-vendor.mjs",
-    "erc8004:register": "node scripts/erc8004-register.mjs"
+    "erc8004:register": "node scripts/erc8004-register.mjs",
+    "security:smoke": "node scripts/security-smoke.mjs"
   },
   "engines": {
     "node": ">=20 <27"
