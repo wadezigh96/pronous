@@ -19,14 +19,16 @@
     "audit": "node scripts/audit.mjs",
     "test": "node --test scripts/*.test.mjs && node scripts/audit.mjs",
     "build": "node build-vendor.mjs",
-    "build:vendor": "node build-vendor.mjs"
+    "build:vendor": "node build-vendor.mjs",
+    "erc8004:register": "node scripts/erc8004-register.mjs"
   },
   "engines": {
     "node": ">=20 <27"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.1.0",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "@bnbagent/sdk": "^0.6.0"
   },
   "keywords": [
     "mcp",
