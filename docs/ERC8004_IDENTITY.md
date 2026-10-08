@@ -10,46 +10,48 @@ On-chain AI agent passport (ERC-721 + URIStorage):
 - **agentURI** — JSON registration file (name, description, services, MCP/A2A endpoints)
 - Optional reputation / validation registries
 
-**Identity Registry (mainnets, CREATE2):** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+**Identity Registry (BSC mainnet):** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
 
-On **BSC mainnet**, registration can be gas-sponsored via MegaFuel (BNB Agent SDK).
+On **BSC mainnet**, registration can be gas-sponsored via MegaFuel through the BNB Agent SDK.
 
-## Status in this repo
+## Verified PRONOUS identity
 
-| Item | Status |
+The PRONOUS identity was registered on BSC Mainnet and independently verified by querying the BSC RPC.
+
+| Item | Verified value |
 | --- | --- |
-| Registration JSON template | [agent/erc8004-registration.json](../agent/erc8004-registration.json) |
-| Studio deploy prompt | [agent/AGENT_STUDIO_DEPLOY.md](../agent/AGENT_STUDIO_DEPLOY.md) |
-| On-chain `agentId` | **Pending** — must be minted in BNB Agent Studio (or SDK) by the builder |
-| Linked in submission form | **Pending** |
+| On-chain `agentId` | **367667** |
+| Identity wallet | `0x30ce2986c17BeF0496435809158E5F0a7aE77989` |
+| Chain | BSC Mainnet (56) |
+| Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| Registration transaction | `0x43de410c1f554e3dc178e3778df67187a4c6957d719291123d4194f0c5d68774` |
+| Receipt status | `0x1` (success) |
+| Block | `0x788b2f8` |
+| Explorer | https://bscscan.com/tx/0x43de410c1f554e3dc178e3778df67187a4c6957d719291123d4194f0c5d68774 |
 
-A GitHub commit cannot mint the hosted Studio identity/runtime. That step is manual in Studio UI.
+The registration transaction was sent from the dedicated PRONOUS ERC-8004 wallet to the BSC Identity Registry. No trading transaction or PRONOUS Execute flow was used for this registration.
 
-## Mint path (recommended)
+## Registration source
 
-1. Open [BNB Agent Studio](https://www.bnbchain.org/en/bnb-agent-studio).
-2. Paste the deploy prompt from `agent/AGENT_STUDIO_DEPLOY.md`.
-3. Attach or host `agent/erc8004-registration.json` as the agentURI payload (IPFS or HTTPS).
-4. Complete wallet / x402 / runtime steps in Studio.
-5. Record here and in [CHECKLIST.md](./CHECKLIST.md):
+The repository contains a one-time local registration utility:
 
-```md
-- agentId: <tokenId>
-- chain: BSC (56)
-- registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
-- explorer: https://bscscan.com/token/<registry>?a=<agentId>
-- studio URL: <paste>
-```
+- `scripts/erc8004-register.mjs`
+- npm command: `npm run erc8004:register`
 
-## Alternative: BNB Agent SDK
+The utility is intended for local operator use only. It does not run as part of the Vercel application and does not replace the existing user-confirmed trading execution path.
 
-```bash
-pip install bnbagent
-# optional: pip install "bnbagent[ipfs]"
-```
+Never commit `PRIVATE_KEY`, `WALLET_PASSWORD`, seed phrases, or wallet keystore files.
 
-See https://docs.bnbchain.org/developer-kit/bnbagent-sdk/ — register against BSC Identity Registry, pin metadata, store `agentId` in this doc.
+## Registration JSON
 
-## Safety note
+The public registration metadata template is:
 
-Never commit Studio wallet secrets, API keys, or seed phrases. The MCP layer remains preflight/read-only; live execution stays behind user confirmation and Agentic Wallet.
+- [agent/erc8004-registration.json](../agent/erc8004-registration.json)
+
+The registered identity uses the PRONOUS web/API/MCP service metadata described by that document.
+
+## Safety boundary
+
+The ERC-8004 identity wallet is separate from the PRONOUS trading wallet.
+
+The MCP layer remains preflight/read-only; live execution stays behind the existing wallet, BSC chain, simulation, explicit confirmation, execution-gate, and Proof-of-Action controls.
