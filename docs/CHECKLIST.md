@@ -30,14 +30,14 @@ Use this before pasting links into the current BNB Chain submission form.
 - [ ] B402/x402 production settlement verified
 - [ ] x402 support enabled in `agent-card.json` after real settlement evidence
 
-## Agentic Wallet live evidence
+## Agentic Wallet evidence
 
-- [x] Agentic Wallet authenticated and `CONNECTED`
+- [x] Agentic Wallet authentication/read-only checks documented
 - [x] BSC chain `56` wallet balance verified read-only
-- [x] Quote-only USDT → BNB succeeded before execution
-- [x] Live USDT → BNB market order finished on BSC
-- [x] Prior live BNB → USDT market order also finished
+- [ ] Agentic Wallet live execution independently verified in the current submission evidence
 - [ ] Agent Studio hosted runtime independently verified live
+
+> Current submission wording intentionally does not claim live Agentic Wallet execution or a hosted Agent Studio runtime as independently verified.
 
 ## x402 seller
 
