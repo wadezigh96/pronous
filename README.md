@@ -22,6 +22,93 @@ PRONOUS is an **agent utility layer** and **market desk** for tokenized equities
 
 PRONOUS separates observation, decision, execution, and proof. Guards, simulation, and explicit user confirmation sit between the agent and the chain. Optional POA can be anchored on-chain; the anchor is attestation only.
 
+## Quick start — run the PRONOUS agent / MCP
+
+PRONOUS includes a local **MCP server** that can be connected to an MCP-compatible AI client.
+
+Requires **Node.js 20+**.
+
+```bash
+git clone https://github.com/wadezigh96/pronous.git
+cd pronous
+npm install
+npm run pronous
+```
+
+`npm run pronous` starts the same local stdio MCP server as `npm run mcp`.
+
+The MCP server defaults to the production PRONOUS API:
+
+```text
+https://pronous.vercel.app
+```
+
+To point the local agent at another PRONOUS deployment:
+
+```bash
+PRONOUS_API_URL=https://your-pronous-deployment.example npm run pronous
+```
+
+### Connect it to an MCP client
+
+Use this configuration:
+
+```json
+{
+  "mcpServers": {
+    "pronous": {
+      "command": "npx",
+      "args": ["-y", "github:wadezigh96/pronous"]
+    }
+  }
+}
+```
+
+Then an MCP-compatible AI client can ask PRONOUS to:
+
+- inspect monitored tokenized stocks
+- scan a ticker
+- explain token/reference price divergence
+- run deterministic preflight checks
+- answer questions about BSC, market gaps and the PRONOUS safety model
+
+Example:
+
+```text
+Use PRONOUS to scan NVDA and explain the token/reference gap.
+```
+
+### MCP tools
+
+- `market_assets`
+- `scan_asset`
+- `preflight`
+- `cmc_market_context`
+- `ask_pronous`
+
+The MCP interface is **read-only / preflight-only**. It does not expose private keys, seed phrases, wallet signing, or transaction broadcast.
+
+## Wallet — user controlled
+
+PRONOUS wallet actions are intentionally kept at the **user wallet boundary**.
+
+For the web application:
+
+1. Open **[PRONOUS](https://pronous.vercel.app/)**.
+2. Connect the user's wallet through the supported wallet UI.
+3. Use **BSC Mainnet / chain ID 56**.
+4. Review the quote and preflight result.
+5. Review the BSC simulation.
+6. Give explicit confirmation.
+7. The wallet remains responsible for signing the transaction.
+
+The MCP process does **not** ask the user to paste a private key or seed phrase and does not silently take custody of the wallet.
+
+For portfolio observation, open **[PRONOUS User Utilities](https://pronous.vercel.app/utilities.html)**. The Utilities center is read-only.
+
+> **Important:** `npm run pronous` starts the PRONOUS MCP agent interface; it is not a private-key wallet daemon and does not grant the agent unrestricted trading authority.
+
+---
 ## User utility center
 
 Open **[PRONOUS User Utilities](https://pronous.vercel.app/utilities.html)** for the read-only control center.
