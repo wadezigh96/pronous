@@ -62,6 +62,7 @@ Use this before pasting links into the current BNB Chain submission form.
 - [x] Local divergence alert rules
 - [x] Cross-venue comparison
 - [x] Published market-data quality view
+- [x] API security hardening + smoke checks
 - [ ] Persistent server-side notifications (future)
 - [ ] Historical portfolio performance (future)
 
