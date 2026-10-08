@@ -48,7 +48,7 @@ Studio identity / x402 runtime cannot be created by a GitHub repo. The hosted ag
 
 - **Verified in production:** Binance Web3 RWA market data; 488 live assets from the assets action; preflight returned `READY_FOR_SIMULATION`; dry-run returned `simulationMode: DRY_RUN` and `broadcast: false`.
 - **Integration targets/documentation:** quote/build/swap adapters, Agentic Wallet / Wallet Skills execution, BNB Agent Studio runtime, and MCP tools. Agent Studio hosted runtime and Agentic Wallet live execution have not been independently verified as live.
-- **Verification checks:** `npm test` passed 79/79; repository `HEAD` and `origin/main` were both `6483cc0` during verification. No blockchain transaction was broadcast during verification.
+- **Verification checks:** `npm test` passed 80/80; repository `HEAD` and `origin/main` were both `6483cc0` during verification. No blockchain transaction was broadcast during verification.
 
 ## Eligibility note
 
