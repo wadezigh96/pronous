@@ -6,6 +6,7 @@ Use this before pasting links into the current BNB Chain submission form.
 
 - [x] Public repo: https://github.com/wadezigh96/pronous
 - [x] Live app: https://pronous.vercel.app
+- [x] User utility center: https://pronous.vercel.app/utilities.html
 - [x] DevEx report: [DEVEX_REPORT.md](./DEVEX_REPORT.md)
 - [ ] Demo video ≤ 4 minutes uploaded to the form (last remaining submission item)
 
@@ -35,11 +36,7 @@ Use this before pasting links into the current BNB Chain submission form.
 - [x] BSC chain `56` wallet balance verified read-only
 - [x] Quote-only USDT → BNB succeeded before execution
 - [x] Live USDT → BNB market order finished on BSC
-  - Order ID: `26093000001928633252`
-  - Tx hash: `0xa5bb9f8a3c549b69c25444f716ab6ac97ba0bd8ecf53aa07bc4f23413fbe2a4b`
 - [x] Prior live BNB → USDT market order also finished
-  - Order ID: `26092500001914567268`
-  - Tx hash: `0x3361450a5b42c05c1b807ab29bfbf7d3600c0fcb9106a7f46746d5ce61f39e5d`
 - [ ] Agent Studio hosted runtime independently verified live
 
 ## x402 seller
@@ -61,10 +58,12 @@ Use this before pasting links into the current BNB Chain submission form.
 - [x] Deterministic preflight / execution guard
 - [x] MCP market intelligence
 - [x] ERC-8004 identity
-- [ ] Portfolio watcher
-- [ ] User-configurable alerts
-- [ ] Cross-venue comparison
-- [ ] Published market-data quality score
+- [x] Read-only BSC portfolio watcher
+- [x] Local divergence alert rules
+- [x] Cross-venue comparison
+- [x] Published market-data quality view
+- [ ] Persistent server-side notifications (future)
+- [ ] Historical portfolio performance (future)
 
 ## Safety claims that must stay true
 

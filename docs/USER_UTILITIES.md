@@ -1,108 +1,63 @@
 # PRONOUS User Utilities
 
-PRONOUS is intended to be a market utility for tokenized stocks on BSC, not only a dashboard.
+The utility center is available at **/utilities.html** and is intentionally separated from the transaction execution surface.
 
-## Available now
+## Implemented
 
-### 1. Market scanner
+### Portfolio watcher
 
-A user can scan a ticker and receive:
+Read-only BSC Mainnet wallet inspection:
 
-- tokenized asset
-- platform
+- native BNB balance
+- tracked tokenized-stock balances
+- token price and estimated tokenized value
+- venue/platform
+- data quality and market status
+- requested-vs-resolved coverage
+
+The API never signs or broadcasts. It accepts a validated wallet address and a bounded list of tickers.
+
+### Smart alerts
+
+Local user rules can watch divergence thresholds. Alerts are informational only and do not call the execution path.
+
+### Cross-venue comparison
+
+The utility page compares the same underlying ticker across supported venues and displays:
+
+- venue
 - token price
 - reference price
 - spread
 - data quality
 - market status
-- execution guard state
 
-Example:
+Missing rows remain missing; they are not synthesized.
 
-```
-NVDA → token/reference gap → quality → market state
-```
+### Market quality
 
-### 2. Opportunity radar
+The quality state is shown next to the spread. Unreliable data is not silently converted into an opportunity.
 
-The live radar compares the monitored universe and surfaces the largest gaps that pass the current data-quality filter.
+## Production boundaries
 
-A large gap is **not** a buy instruction.
+- BSC Mainnet only
+- Read-only wallet observation
+- No private keys
+- No signing
+- No automatic network switching
+- No transaction construction
+- No transaction broadcast
+- No alert-triggered execution
+- Existing execution gates remain unchanged
 
-### 3. Pre-trade guard
+## Remaining improvements
 
-The execution path remains:
+Future iterations can add persistent authenticated preferences, push/email delivery for alerts, richer historical portfolio performance, and broader token coverage without weakening the execution boundary.
 
-```
-preflight
-→ quote/build
-→ chain simulation
-→ explicit confirmation
-→ wallet signing/broadcast
-```
-
-The agent cannot turn a market signal into automatic spending.
-
-### 4. MCP
-
-AI clients can use PRONOUS for market intelligence and deterministic preflight without receiving private keys or signing access.
-
-## Next product utilities
-
-These are intentionally separated from the trading path.
-
-### Portfolio watcher
-
-Read-only wallet analysis:
-
-- tokenized-stock holdings
-- estimated exposure
-- concentration
-- venue/platform distribution
-- market-value changes
-
-No transaction permission is required.
-
-### User alerts
-
-User-defined conditions such as:
-
-- NVDA discount above a threshold
-- premium above a threshold
-- market session opens
-- data quality becomes unreliable
-
-Alerts should be read-only and should never auto-execute a trade.
-
-### Cross-venue comparison
-
-For the same underlying ticker, compare available venues:
+Product principle:
 
 ```
-NVDA
-├── Ondo
-├── bStocks
-└── xStocks
+Observe → Compare → Explain → Guard → Prepare → Simulate → Confirm
 ```
 
-The comparison must distinguish missing data from a genuine price difference.
-
-### Market-data quality score
-
-Publish a simple quality state for every observation:
-
-- **HIGH** — token and reference prices are coherent
-- **CAUTION** — unusual divergence or incomplete context
-- **UNRELIABLE** — observation must not be treated as an opportunity
-
-The quality layer exists to prevent large feed errors from becoming trading signals.
-
-## Product principle
-
-```
-Observe → Explain → Guard → Prepare → Simulate → Confirm
-```
-
-The most important boundary remains:
-
-> A market signal is never permission to spend.
+A market signal is never permission to spend.

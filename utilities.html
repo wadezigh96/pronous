@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRONOUS · User Utilities</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/desk.css">
+<style>
+:root{--u-border:rgba(245,190,55,.12);--u-muted:#918b7f;--u-bg:#0a0a09;--u-panel:#11110f;--u-text:#f4f0e7}
+*{box-sizing:border-box}body{margin:0;background:var(--u-bg);color:var(--u-text);font-family:Inter,system-ui,sans-serif}.utilities{max-width:1440px;margin:auto;padding:22px}.utility-top{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--u-border);padding-bottom:18px}.brand{display:flex;gap:12px;align-items:center}.mark{width:34px;height:34px;border:1px solid #c9a44c;border-radius:9px;display:grid;place-items:center;font-weight:800}.eyebrow{font:12px "IBM Plex Mono",monospace;color:#c9a44c;text-transform:uppercase}.title{font-size:24px;font-weight:800}.subtitle{color:var(--u-muted);font-size:13px;margin-top:3px}.top-actions{display:flex;gap:8px;align-items:center}.btn{border:1px solid var(--u-border);background:#171612;color:var(--u-text);padding:9px 12px;border-radius:8px;cursor:pointer}.btn.primary{background:#c9a44c;color:#111;border-color:#c9a44c;font-weight:700}.btn:disabled{opacity:.45;cursor:not-allowed}.status{font:11px "IBM Plex Mono",monospace;color:#9bd18b}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin-top:14px}.panel{background:var(--u-panel);border:1px solid var(--u-border);border-radius:12px;padding:16px;min-width:0}.wide{grid-column:1/-1}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}.head h2{font-size:15px;margin:0}.head p{margin:4px 0 0;color:var(--u-muted);font-size:12px}.wallet{font-family:"IBM Plex Mono",monospace;font-size:12px;word-break:break-all;color:#d9d2c4}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.metric{border:1px solid var(--u-border);border-radius:9px;padding:12px}.metric b{display:block;font-size:17px}.metric span{font-size:11px;color:var(--u-muted)}.row{display:flex;gap:8px;flex-wrap:wrap}.input{flex:1;min-width:180px;background:#0b0b09;border:1px solid var(--u-border);color:var(--u-text);padding:10px;border-radius:8px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:9px 8px;border-bottom:1px solid rgba(245,190,55,.08);text-align:left;white-space:nowrap}.table th{color:var(--u-muted);font-weight:500}.pill{display:inline-flex;padding:3px 7px;border-radius:999px;border:1px solid var(--u-border);font:10px "IBM Plex Mono",monospace}.pill.good{color:#9bd18b}.pill.warn{color:#e8c875}.pill.bad{color:#e28a7b}.empty{padding:18px;text-align:center;color:var(--u-muted);font-size:12px}.alert{display:flex;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--u-border);border-radius:8px;margin-bottom:7px;font-size:12px}.alert small{color:var(--u-muted)}.foot{margin-top:14px;color:var(--u-muted);font-size:11px;display:flex;justify-content:space-between;gap:12px}.notice{padding:10px;border-radius:8px;background:#15130e;border:1px solid var(--u-border);color:#cfc7b7;font-size:12px;line-height:1.5}.hide{display:none!important}@media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.utility-top{align-items:flex-start;flex-direction:column}.top-actions{width:100%}.top-actions .btn{flex:1}}
+</style>
+</head>
+<body>
+<main class="utilities">
+<header class="utility-top">
+<div class="brand"><div class="mark">P</div><div><div class="eyebrow">PRONOUS / USER UTILITIES</div><div class="title">Portfolio & Market Control Center</div><div class="subtitle">Read-only portfolio, watchlist alerts, cross-venue comparison and data quality.</div></div></div>
+<div class="top-actions"><span id="status" class="status">DISCONNECTED</span><button id="connect" class="btn primary">Connect BSC wallet</button><a class="btn" href="/">Dashboard</a></div>
+</header>
+
+<section class="grid">
+<section class="panel wide">
+<div class="head"><div><h2>Wallet overview</h2><p>Balances are read-only. This page cannot sign or broadcast transactions.</p></div><span class="pill">BSC MAINNET · 56</span></div>
+<div id="walletText" class="wallet">No wallet connected.</div>
+<div class="metrics" style="margin-top:12px">
+<div class="metric"><b id="bnb">—</b><span>BNB balance</span></div>
+<div class="metric"><b id="held">—</b><span>Tracked assets held</span></div>
+<div class="metric"><b id="value">—</b><span>Estimated tokenized value</span></div>
+<div class="metric"><b id="coverage">—</b><span>Portfolio coverage</span></div>
+</div>
+</section>
+
+<section class="panel">
+<div class="head"><div><h2>Watchlist</h2><p>Choose up to 8 tokenized stocks.</p></div></div>
+<div class="row"><input id="ticker" class="input" placeholder="Ticker, e.g. NVDA"><button id="add" class="btn">Add</button><button id="refresh" class="btn">Refresh</button></div>
+<div id="watchlist" style="margin-top:10px"></div>
+</section>
+
+<section class="panel">
+<div class="head"><div><h2>Smart alerts</h2><p>Local alert rules; no automatic execution.</p></div></div>
+<div class="row"><select id="alertTicker" class="input"><option>NVDA</option></select><input id="threshold" class="input" type="number" step="0.1" value="2" min="0.1" placeholder="%"><button id="alertAdd" class="btn">Add divergence alert</button></div>
+<div id="alerts" style="margin-top:10px"></div>
+</section>
+
+<section class="panel wide">
+<div class="head"><div><h2>Portfolio positions</h2><p>Token balances + live token price. Zero-balance assets remain visible so coverage is auditable.</p></div><span id="portfolioTime" class="pill">—</span></div>
+<div id="portfolio" class="table-wrap"><div class="empty">Connect a BSC wallet to inspect the portfolio.</div></div>
+</section>
+
+<section class="panel wide">
+<div class="head"><div><h2>Cross-venue comparison</h2><p>Same underlying ticker across Ondo, bStocks and xStocks where available.</p></div><span class="pill">LIVE DATA</span></div>
+<div class="row"><input id="compareTicker" class="input" value="NVDA"><button id="compare" class="btn">Compare</button></div>
+<div id="comparison" style="margin-top:10px"><div class="empty">Choose a ticker and compare available venues.</div></div>
+</section>
+
+<section class="panel wide">
+<div class="head"><div><h2>Market quality</h2><p>Quality is a guardrail, not a trading signal.</p></div></div>
+<div id="quality" class="table-wrap"><div class="empty">Loading live market quality…</div></div>
+</section>
+</section>
+
+<div class="foot"><span>PRONOUS · BSC Mainnet · read-only utilities</span><span>Signal ≠ permission to spend</span></div>
+</main>
+<script>
+const state={wallet:null,watchlist:JSON.parse(localStorage.getItem("pronous.watchlist")||'["NVDA","AAPL","MSFT","TSLA"]'),alerts:JSON.parse(localStorage.getItem("pronous.alerts")||"[]"),assets:[]};
+const $=id=>document.getElementById(id);
+const save=()=>{localStorage.setItem("pronous.watchlist",JSON.stringify(state.watchlist));localStorage.setItem("pronous.alerts",JSON.stringify(state.alerts));};
+const money=n=>n==null||!Number.isFinite(Number(n))?"—":Number(n).toLocaleString(undefined,{maximumFractionDigits:4});
+function renderWatch(){ $("watchlist").innerHTML=state.watchlist.map(t=>'<span class="pill" style="margin:2px">'+t+' <button data-rm="'+t+'" style="border:0;background:none;color:#c9a44c;cursor:pointer">×</button></span>').join("")||'<div class="empty">No tickers selected.</div>';document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{state.watchlist=state.watchlist.filter(x=>x!==b.dataset.rm);save();renderWatch();refreshAll()});$("alertTicker").innerHTML=state.watchlist.map(t=>'<option>'+t+'</option>').join("")||'<option>NVDA</option>';}
+function renderAlerts(){if(!state.alerts.length){$("alerts").innerHTML='<div class="empty">No alerts configured.</div>';return}$("alerts").innerHTML=state.alerts.map((a,i)=>'<div class="alert"><span><b>'+a.ticker+'</b> divergence ≥ '+a.threshold+'%<br><small>Local notification rule · no auto-execution</small></span><button class="btn" data-alert="'+i+'">Remove</button></div>').join("");document.querySelectorAll("[data-alert]").forEach(b=>b.onclick=()=>{state.alerts.splice(Number(b.dataset.alert),1);save();renderAlerts();});}
+async function loadAssets(){const r=await fetch("/api/agent?action=assets",{cache:"no-store"});const d=await r.json();if(!r.ok||d.mode!=="live-data")throw new Error(d.error||"Live market data unavailable");state.assets=d.assets||[];renderQuality();renderComparison();renderAlerts();}
+function qualityPill(q){const x=String(q||"unknown").toLowerCase();const c=x==="ok"||x==="high"?"good":x==="unreliable"?"bad":"warn";return '<span class="pill '+c+'">'+x.toUpperCase()+'</span>'}
+function renderQuality(){const rows=state.assets.filter(a=>state.watchlist.includes(String(a.ticker).toUpperCase()));$("quality").innerHTML=rows.length?'<table class="table"><thead><tr><th>Asset</th><th>Venue</th><th>Token</th><th>Reference</th><th>Spread</th><th>Quality</th><th>Market</th></tr></thead><tbody>'+rows.map(a=>'<tr><td><b>'+a.ticker+'</b></td><td>'+a.platformId+'</td><td>'+money(a.tokenPrice)+'</td><td>'+money(a.referencePrice)+'</td><td>'+money(a.spreadPct)+'%</td><td>'+qualityPill(a.dataQuality)+'</td><td>'+String(a.marketStatus||"—")+'</td></tr>').join("")+'</tbody></table>':'<div class="empty">No live rows for the current watchlist.</div>';checkAlerts();}
+function renderComparison(){const t=$("compareTicker").value.trim().toUpperCase();const rows=state.assets.filter(a=>String(a.ticker).toUpperCase()===t);$("comparison").innerHTML=rows.length?'<table class="table"><thead><tr><th>Venue</th><th>Token</th><th>Reference</th><th>Spread</th><th>Quality</th><th>Status</th></tr></thead><tbody>'+rows.map(a=>'<tr><td><b>'+a.platformId+'</b></td><td>'+money(a.tokenPrice)+'</td><td>'+money(a.referencePrice)+'</td><td>'+money(a.spreadPct)+'%</td><td>'+qualityPill(a.dataQuality)+'</td><td>'+String(a.marketStatus||"—")+'</td></tr>').join("")+'</tbody></table>':'<div class="empty">No supported venue data for '+t+'.</div>';}
+function checkAlerts(){for(const a of state.alerts){const matches=state.assets.filter(x=>String(x.ticker).toUpperCase()===a.ticker&&x.dataQuality!=="unreliable"&&Math.abs(Number(x.spreadPct||0))>=Number(a.threshold));if(matches.length) console.info("PRONOUS alert",a.ticker,matches.map(x=>x.spreadPct));}}
+async function loadPortfolio(){if(!state.wallet)return;$("portfolio").innerHTML='<div class="empty">Reading BSC balances…</div>';const qs=encodeURIComponent(state.watchlist.join(","));const r=await fetch("/api/portfolio?wallet="+encodeURIComponent(state.wallet)+"&tickers="+qs,{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Portfolio lookup failed");$("bnb").textContent=money(d.nativeBNB);$("held").textContent=d.heldAssets+" / "+d.coverage.resolved;$("value").textContent=d.estimatedTokenizedValue==null?"—":"$"+money(d.estimatedTokenizedValue);$("coverage").textContent=d.coverage.resolved+"/"+d.coverage.requested;$("portfolioTime").textContent=new Date(d.updatedAt).toLocaleTimeString();$("portfolio").innerHTML=d.assets.length?'<table class="table"><thead><tr><th>Asset</th><th>Venue</th><th>Balance</th><th>Token price</th><th>Est. value</th><th>Quality</th></tr></thead><tbody>'+d.assets.map(a=>'<tr><td><b>'+a.ticker+'</b><br><small>'+a.tokenSymbol+'</small></td><td>'+a.platformId+'</td><td>'+ (a.balance==null?"Unavailable":money(a.balance))+'</td><td>'+money(a.tokenPrice)+'</td><td>'+ (a.estimatedValue==null?"—":"$"+money(a.estimatedValue))+'</td><td>'+qualityPill(a.dataQuality)+'</td></tr>').join("")+'</tbody></table>':'<div class="empty">No tracked positions resolved.</div>';}
+async function refreshAll(){try{await loadAssets();if(state.wallet)await loadPortfolio();$("status").textContent=state.wallet?"CONNECTED":"MARKET LIVE";$("status").style.color="#9bd18b"}catch(e){$("status").textContent="DATA ERROR";$("status").style.color="#e28a7b";console.error(e)}}
+async function connect(){if(!window.ethereum){alert("Open PRONOUS in a BSC-compatible wallet browser or install a Web3 wallet.");return}try{const accounts=await window.ethereum.request({method:"eth_requestAccounts"});const chain=await window.ethereum.request({method:"eth_chainId"});if(chain.toLowerCase()!=="0x38"){alert("Please switch the wallet to BSC Mainnet (chain 56). No automatic network switch was requested.");return}state.wallet=accounts[0];$("walletText").textContent=state.wallet;$("connect").textContent="Refresh wallet";await loadPortfolio();$("status").textContent="CONNECTED"}catch(e){console.error(e);alert("Wallet connection was not completed.");}}
+$("connect").onclick=connect;
+$("add").onclick=()=>{const t=$("ticker").value.trim().toUpperCase();if(!/^[A-Z0-9.-]{1,20}$/.test(t)||state.watchlist.includes(t)||state.watchlist.length>=8)return;state.watchlist.push(t);$("ticker").value="";save();renderWatch();refreshAll();};
+$("refresh").onclick=refreshAll;
+$("compare").onclick=renderComparison;
+$("alertAdd").onclick=()=>{const t=$("alertTicker").value;const threshold=Number($("threshold").value);if(!t||!(threshold>0))return;state.alerts.push({ticker:t,threshold});save();renderAlerts();};
+window.addEventListener("load",()=>{renderWatch();renderAlerts();refreshAll();});
+</script>
+</body>
+</html>
