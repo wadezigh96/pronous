@@ -84,7 +84,7 @@ async function liveRadar(sizeUSDT, limit) {
       candidatesQuoted:0,volumeAvailable:false,noVolumeData:assets.length,
       reason:"UPSTREAM_24H_VOLUME_UNAVAILABLE",
       routeAvailable:0,noRoute:0,quoteErrors:0,actionable:0,quoteSizeUSDT:sizeUSDT,
-      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
+      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",volumeBasis:"upstream reported 24h volume; units unverified unless volume24HUnit is supplied",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
     }};
     const selected=volumeCandidates.slice(0,limit);
     const rows=await mapWithConcurrency(selected,2,a=>quoteRadarAsset(a,sizeUSDT));
@@ -227,6 +227,7 @@ async function fetchLiveAssets() {
         nextOpenTime:x.statusInfo?.nextOpenTime ?? null,
         nextCloseTime:x.statusInfo?.nextCloseTime ?? null,
         volume24H:x.volume24H ?? x.volume24h ?? x.volume24HUsd ?? x.volume24hUsd ?? null,
+        volume24HUnit:x.volume24HUnit ?? x.volumeUnit ?? null,
         marketCap:x.marketCap ?? null,
         tokenToShareRatio:x.tokenToShareRatio ?? null
       };
