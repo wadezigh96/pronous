@@ -2,7 +2,8 @@
 import { spawn } from "node:child_process";
 
 const timeoutMs = Number(process.env.PRONOUS_NPX_SMOKE_TIMEOUT_MS || 60000);
-const child = spawn("npx", ["-y", "github:wadezigh96/pronous"], {
+const packageSpec = process.env.PRONOUS_NPX_PACKAGE || "github:wadezigh96/pronous";
+const child = spawn("npx", ["-y", packageSpec], {
   stdio: ["pipe", "pipe", "pipe"],
   env: { ...process.env, CI: "1" }
 });
@@ -30,7 +31,7 @@ function pass() {
   done = true;
   clearTimeout(timeout);
   console.log("NPM_NPX_SMOKE_PASS " + JSON.stringify({
-    command: "npx -y github:wadezigh96/pronous",
+    command: "npx -y " + packageSpec,
     node: process.version,
     initialized: sawInitialize,
     tools: ["market_assets", "scan_asset", "preflight"]
