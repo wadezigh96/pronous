@@ -10,7 +10,7 @@
 
 - PR #19 ratio-adjustment merge: https://github.com/wadezigh96/pronous/pull/19
 - PR #19 original green CI (96 tests, 96 pass, 0 fail): https://github.com/wadezigh96/pronous/actions/runs/37988305052
-- Derived-price live snapshot + full artifact: https://github.com/wadezigh96/pronous/actions/runs/37989233347
+- Derived-price live snapshot + committed 488-row JSON: https://github.com/wadezigh96/pronous/actions/runs/37992545416
 - Quote-only measurements (18 attempts, 17 routes, 1 no-route): https://github.com/wadezigh96/pronous/actions/runs/37992545416
 - Saved data: [derived-price-analysis.json](./derived-price-analysis.json), [quote-measurements.json](./quote-measurements.json)
 
