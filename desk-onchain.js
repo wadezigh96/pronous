@@ -598,12 +598,18 @@
   function enableExecuteIfReady() {
     const btn = document.getElementById("executeOnchainBtn");
     if (!btn) return;
-    btn.disabled = false;
-    btn.title = wallet().address
-      ? (window.__pronousSimulated
-        ? "Click to confirm and send the swap from your wallet."
-        : "Run simulation first. Execute will remain gated until simulation passes.")
-      : "Connect wallet first.";
+    const connected = Boolean(wallet().address);
+    const simulated = window.__pronousSimulated === true;
+    const confirmAvailable = typeof window.confirmAction === "function";
+    const ready = connected && simulated && confirmAvailable;
+    btn.disabled = !ready;
+    btn.title = !connected
+      ? "Connect wallet first."
+      : !simulated
+        ? "Run simulation first. Execute remains disabled until simulation passes."
+        : !confirmAvailable
+          ? "Confirmation handler unavailable. Execution blocked."
+          : "Simulation passed. Review and confirm in your wallet before execution.";
   }
 
   window.addEventListener("pronous:simulation-passed", enableExecuteIfReady);
