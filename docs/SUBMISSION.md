@@ -23,7 +23,7 @@
 - `lowImpactGapPct` uses the smallest-size buy quote (10 USDT by default) as a lower-impact proxy; it is not a true bid/ask midpoint.
 - `impactAdjustedGapPct` adjusts the requested-size quote price by the provider's reported fractional price impact before calculating the gap; it remains a modelled estimate, not a fill price or midpoint.
 - Off-hours preflight remains `READY_FOR_SIMULATION` with `warning: "ACK_REQUIRED"` until the user explicitly acknowledges the stale-reference risk. The signal remains `OFF_HOURS_DRIFT` and `actionable` remains false.
-- A closed/pre-market/post-market underlying may show `OFF_HOURS_DRIFT` and a stale-reference warning. This is informational and non-actionable. Preflight and loop guards block the off-hours session.
+- A closed/pre-market/post-market underlying may show `OFF_HOURS_DRIFT` and a stale-reference warning. This is informational and non-actionable. Preflight requires explicit acknowledgement before quote-build can continue; the automated loop blocks the off-hours session.
 - Large gaps with large price impact are treated as a route/liquidity warning. Quote requests do not ask for calldata or broadcast a transaction.
 
 ### Not enabled / not independently verified
