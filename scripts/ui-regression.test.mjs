@@ -16,6 +16,7 @@ const bridge = readFileSync("desk-bridge.js", "utf8");
 const live = readFileSync("desk-live.js", "utf8");
 const gates = readFileSync("lib/execution-gates.js", "utf8");
 const txPolicy = readFileSync("lib/tx-policy.js", "utf8");
+const market = readFileSync("lib/market.js", "utf8");
 
 test("on-chain script loads after desk app", () => assert.ok(html.indexOf('/desk-app.js') < html.indexOf('/desk-onchain.js')));
 test("on-chain auto renderer exists", () => { assert.match(onchain, /async function loadOnchain\(asset\)/); assert.match(onchain, /autoLoadOnchain\(\)/); assert.match(onchain, /window\.loadOnchain\s*=\s*loadOnchain/); assert.match(onchain, /\/api\/onchain\?chain=56&token=/); });
@@ -125,12 +126,15 @@ test("market signal is sourced from live assets and tabs are functional", () => 
 });
 
 test("single-ticker scan recovers missing ratio from the live RWA list", () => {
-  assert.match(agent, /resolveShareRatio/);
-  assert.match(agent, /if\(shareRatio===null\)/);
+  assert.match(agent, /resolveAssetShareRatio/);
+  assert.match(agent, /if\(resolution\.shareRatio===null\)/);
   assert.match(agent, /shareRatioSource/);
-  assert.match(agent, /rwa-tokens-list/);
-  assert.match(agent, /feedAsset\?\.tokenToShareRatio/);
-  assert.match(agent, /feedAsset\?\.shareRatio/);
+  assert.match(market, /rwa-tokens-list/);
+  assert.match(market, /feedAsset\?\.tokenToShareRatio/);
+  assert.match(market, /feedAsset\?\.shareRatio/);
+  const resolverAt = agent.indexOf("const asset=LIVE_ENABLED?await findLiveAsset(ticker):demoAsset(ticker)");
+  assert.ok(resolverAt >= 0, "all single-ticker actions share the same ratio resolver");
+  for (const action of ["scan","preflight","loop","simulate"]) assert.ok(agent.indexOf('if(action==="' + action + '")',resolverAt)>resolverAt,action+" resolves the asset before handling");
 });
 
 test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route as null", () => {
@@ -138,9 +142,18 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /onchainGapPct/);
   assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
-  assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&gap!==null&&Math\.abs\(gap\)>=MIN_ACTIONABLE_GAP_PCT/);
+  assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&normalizedMidGap!==null&&/);
+  assert.match(agent, /Math\.abs\(normalizedMidGap\)>=MIN_ACTIONABLE_GAP_PCT/);
+  assert.match(agent, /midGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY"/);
+  assert.match(agent, /gapBasis:"REQUESTED_SIZE_BUY_QUOTE_INCLUDES_PRICE_IMPACT"/);
+  assert.match(agent, /midGapFormula:"midGapPct uses the smallest-size buy quote/);
+  assert.match(live, /x\.midGapPct/);
+  assert.match(live, /Requested-size quote gap \(impact included; not an actual fill\)/);
+  assert.match(live, /OFF_HOURS_DRIFT · STALE REF/);
+  assert.match(market, /function classifyAssetSignal\(asset = \{\}\)/);
+  assert.match(live, /SMALL-QUOTE GAP vs REFERENCE/);
   assert.match(agent, /marketHoursContext\(asset\)==="MARKET_STATUS_REPORTED"/);
-  assert.match(agent, /const status = String\(asset\.marketStatus/);
+  assert.match(market, /const status = \[asset\.marketStatus, asset\.openState\]/);
   assert.doesNotMatch(agent, /asset\.openState === true/);
   assert.match(agent, /MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
   assert.match(agent, /Number\(q\.priceImpact\)\*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
