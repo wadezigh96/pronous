@@ -14,6 +14,15 @@
 
 ---
 
+## Production boundaries
+
+PRONOUS is a BSC Mainnet **spot desk**, not an unsupervised trading bot.
+
+- **Live:** market scan, preflight, Binance quote path, PancakeSwap **quote-preview only**, simulation, user confirmation, Proof of Action
+- **Read-only utilities:** `/utilities.html` (portfolio watcher, cross-venue compare — no signing)
+- **Not enabled:** x402 payments, autonomous broadcast without confirmation, public hosted MCP (use `npm run mcp` locally)
+- **Skills:** entries with `status: "live"` are wired; `status: "planned"` are catalog-only
+
 ## About
 
 PRONOUS is an **agent utility layer** and **market desk** for tokenized equities on **BNB Smart Chain**.
