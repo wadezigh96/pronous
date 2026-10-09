@@ -20,3 +20,15 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - name: One-off live derived-price evidence
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        run: node scripts/verify-derived-price.mjs
+        env:
+          PRONOUS_ASSETS_URL: https://pronous.vercel.app/api/agent?action=assets
+      - name: Upload derived-price evidence
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        uses: actions/upload-artifact@v4
+        with:
+          name: derived-price-analysis
+          path: docs/derived-price-analysis.json
+          if-no-files-found: warn
