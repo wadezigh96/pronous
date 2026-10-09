@@ -57,6 +57,7 @@
             gap == null || !Number.isFinite(gap) ? {label:"NO REFERENCE",cls:"muted"} :
             context === "MARKET_CLOSED_REFERENCE_MAY_BE_STALE" ? {label:"MARKET CLOSED · CHECK STALE REF",cls:"muted"} :
             Number(x.priceImpactPct) > Number(window.__pronousRadarSummary?.maxActionablePriceImpactPct || 1) ? {label:"HIGH IMPACT · REVIEW",cls:"muted"} :
+            context !== "MARKET_STATUS_REPORTED" ? {label:"HOURS UNCONFIRMED · REVIEW",cls:"muted"} :
             Math.abs(gap) >= 1 ? {label:gap > 0 ? "PREMIUM" : "DISCOUNT",cls:gap > 0 ? "pos" : "neg"} :
             {label:"BELOW THRESHOLD",cls:"muted"};
           const shownGap = routed && gap != null && Number.isFinite(gap);
