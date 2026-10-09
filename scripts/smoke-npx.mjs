@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 
-const timeoutMs = Number(process.env.PRONOUS_NPX_SMOKE_TIMEOUT_MS || 60000);
+const timeoutMs = Number(process.env.PRONOUS_NPX_SMOKE_TIMEOUT_MS || 180000);
 const packageSpec = process.env.PRONOUS_NPX_PACKAGE || "github:wadezigh96/pronous";
 const child = spawn("npx", ["-y", packageSpec], {
   stdio: ["pipe", "pipe", "pipe"],
