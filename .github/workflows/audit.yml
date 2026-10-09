@@ -63,25 +63,25 @@ jobs:
           path: artifacts/npx-cold-start.json
           if-no-files-found: warn
       - name: One-off live derived-price evidence
-        if: github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010'
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
         run: node scripts/verify-derived-price.mjs
         env:
           PRONOUS_ASSETS_URL: https://pronous.vercel.app/api/agent?action=assets
       - name: One-off PancakeSwap quote measurements
-        if: github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010'
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
         run: node scripts/measure-quotes.mjs
         env:
           PRONOUS_ASSETS_URL: https://pronous.vercel.app/api/agent?action=assets
           PRONOUS_QUOTE_MAX_TICKERS: 3
       - name: Upload read-only measurement evidence
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010'
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
         uses: actions/upload-artifact@v4
         with:
           name: derived-price-analysis
           path: docs/derived-price-analysis.json
           if-no-files-found: warn
       - name: Upload quote measurement evidence
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010'
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
         uses: actions/upload-artifact@v4
         with:
           name: quote-measurements
