@@ -44,7 +44,7 @@
       }
       el.innerHTML =
         '<div class="muted small" style="margin-bottom:8px">BUY-QUOTE vs REFERENCE · PancakeSwap quote-only · ' +
-        esc(String(top[0].quoteSizeUSDT || 100)) + ' USDT input · ' + top.length + ' candidates</div>' +
+        esc(String(top[0].quoteSizeUSDT || 100)) + ' USDT input · ' + top.length + ' candidates · volume units unverified</div>' +
         '<div class="muted small" style="margin-bottom:8px">This is a one-way buy quote, not a sell quote or round-trip arbitrage calculation. Price impact may exceed the apparent gap.</div>' +
         top.map((x) => {
           const routed = x.routeStatus === "ROUTE";
