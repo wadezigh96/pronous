@@ -39,8 +39,12 @@ curl -i 'https://pronous.vercel.app/api/agent?action=radar&limit=5&sizeUSDT=100'
 Expected behavior:
 - When the upstream live feed is available: `mode: live-data`, pagination metadata, and at most five quote candidates in radar.
 - Quote routes show `ROUTE`, `NO ROUTE`, or `QUOTE ERROR`; missing quotes never become a zero gap.
-- The radar gap is computed from the quote-derived buy price versus `referencePrice × shareRatio`.
-- The radar is not an arbitrage proof: it is a one-way quote comparison. Price impact and market session must be read alongside the gap.
+- `onchainGapPct` / `requestedSizeGapPct` is the requested-size BUY quote gap and includes price impact; label it as an execution-price estimate, not an actual fill.
+- `lowImpactGapPct` uses the smallest-size quote (10 USDT by default) as a lower-impact proxy, not a true bid/ask midpoint.
+- `impactAdjustedGapPct` is a separate estimate after adjusting the requested-size quote price for reported fractional price impact; it is not a fill price.
+- Off-hours preflight should remain `READY_FOR_SIMULATION` with `warning: "ACK_REQUIRED"` until acknowledged. The UI must show the stale-reference warning, keep the signal non-actionable, and send `ackOffHours=true` only when the checkbox is checked.
+- Closed/pre-market/post-market assets can show `OFF_HOURS_DRIFT` and a stale-reference warning. Keep the gap visible, but keep the signal non-actionable; preflight must require acknowledgement before quote-build, and the automated loop must block it.
+- The radar is not an arbitrage proof: it is a one-way quote comparison. Read price impact and session context alongside both gaps.
 - When the live feed is not configured or unavailable: a clear unavailable response, no fabricated live prices.
 - More than 60 requests/minute from one IP should return HTTP 429 with `Retry-After: 60` when requests hit the same warm function instance. The in-memory counter is per instance, not a shared global serverless limit.
 

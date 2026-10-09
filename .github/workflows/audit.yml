@@ -2,7 +2,7 @@ name: PRONOUS Audit
 
 on:
   push:
-    branches: [main, "feat/**"]
+    branches: [main, "feat/**", "fix/**"]
   pull_request:
     branches: [main]
 
@@ -12,25 +12,56 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - run: npm install --no-audit --no-fund
+          cache: npm
+          cache-dependency-path: package.json
+      - name: Install dependencies with retry
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            echo "npm install attempt $attempt/3"
+            if npm install --no-audit --no-fund --prefer-offline; then
+              exit 0
+            else
+              status=$?
+              echo "npm install attempt $attempt failed with status $status"
+            fi
+            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 5))"; fi
+          done
+          exit "$status"
       - run: npm test
       - run: npm run build
       - name: Set up Node.js 20 for npx package smoke test
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar')
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010')
         uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Verify npx install and MCP initialize/tools-list on clean Node 20
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar')
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010')
         run: node scripts/smoke-npx.mjs
         env:
           PRONOUS_NPX_SMOKE_TIMEOUT_MS: 180000
-          PRONOUS_NPX_PACKAGE: ${{ github.event_name == 'pull_request' && format('github:wadezigh96/pronous#{0}', github.head_ref) || 'github:wadezigh96/pronous' }}
+          PRONOUS_NPX_PACKAGE: ${{ (github.event_name == 'pull_request' && format('github:wadezigh96/pronous#{0}', github.head_ref)) || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010' && format('github:wadezigh96/pronous#{0}', github.ref_name)) || 'github:wadezigh96/pronous' }}
+      - name: Measure npx cold start before and after dependency change
+        if: (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010')
+        run: node scripts/benchmark-npx.mjs
+        env:
+          PRONOUS_NPX_BENCH_TIMEOUT_MS: 180000
+          PRONOUS_NPX_BENCH_BEFORE: github:wadezigh96/pronous
+          PRONOUS_NPX_BENCH_AFTER: github:wadezigh96/pronous#fix/radar-mid-gap-off-hours-20261010
+      - name: Upload npx cold-start benchmark
+        if: always() && ((github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: npx-cold-start-benchmark
+          path: artifacts/npx-cold-start.json
+          if-no-files-found: warn
       - name: One-off live derived-price evidence
         if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
         run: node scripts/verify-derived-price.mjs
