@@ -10,6 +10,7 @@
     const spread = x?.adjustedSpreadPct == null ? NaN : Number(x.adjustedSpreadPct);
     if (q === "missing_ratio") return { label: "MISSING RATIO", cls: "neg" };
     if (q !== "ok") return { label: "REVIEW DATA", cls: "muted" };
+    if (/closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(String(x?.marketStatus || "")) || x?.openState === false) return { label: "OFF_HOURS_DRIFT", cls: "muted" };
     if (Number.isFinite(spread) && Math.abs(spread) >= 1) return { label: spread > 0 ? "PREMIUM" : "DISCOUNT", cls: spread > 0 ? "pos" : "neg" };
     return { label: "OBSERVE", cls: "muted" };
   }
@@ -43,20 +44,22 @@
         return;
       }
       el.innerHTML =
-        '<div class="muted small" style="margin-bottom:8px">BUY-QUOTE vs REFERENCE · PancakeSwap quote-only · ' +
-        esc(String(top[0].quoteSizeUSDT || 100)) + ' USDT input · ' + top.length + ' candidates · volume units unverified</div>' +
-        '<div class="muted small" style="margin-bottom:8px">This is a one-way buy quote, not a sell quote or round-trip arbitrage calculation. Price impact may exceed the apparent gap.</div>' +
+        '<div class="muted small" style="margin-bottom:8px">SMALL-QUOTE GAP vs REFERENCE · PancakeSwap quote-only · ' +
+        esc(String(top[0].midQuoteSizeUSDT || 10)) + ' USDT smallest-size proxy · ' + top.length + ' candidates · volume units unverified</div>' +
+        '<div class="muted small" style="margin-bottom:8px">The small-quote gap is a lower-impact proxy, not a true bid/ask midpoint. Requested-size quote gap includes price impact and is not an actual fill or round-trip arbitrage calculation.</div>' +
         top.map((x) => {
           const routed = x.routeStatus === "ROUTE";
-          const gap = x.onchainGapPct == null ? null : Number(x.onchainGapPct);
+          const gap = x.midGapPct == null ? null : Number(x.midGapPct);
+          const requestedGap = x.requestedSizeGapPct == null ? (x.onchainGapPct == null ? null : Number(x.onchainGapPct)) : Number(x.requestedSizeGapPct);
           const context = String(x.marketContext || "MARKET_HOURS_UNCONFIRMED");
           const state = x.marketStatus || x.openState || "hours unconfirmed";
           const threshold = Number(window.__pronousRadarSummary?.minActionableGapPct || 1);
           const gapText = !routed ? String(x.routeStatus || "QUOTE ERROR") :
-            gap == null || !Number.isFinite(gap) ? "NO REFERENCE" : ((gap > 0 ? "+" : "") + gap.toFixed(2) + "%");
+            gap == null || !Number.isFinite(gap) ? "NO SMALL-QUOTE REFERENCE" : ((gap > 0 ? "+" : "") + gap.toFixed(2) + "%");
+          const requestedGapText = requestedGap == null || !Number.isFinite(requestedGap) ? "—" : ((requestedGap > 0 ? "+" : "") + requestedGap.toFixed(2) + "%");
           const signal = !routed ? {label:gapText,cls:"muted"} :
-            gap == null || !Number.isFinite(gap) ? {label:"NO REFERENCE",cls:"muted"} :
-            context === "MARKET_CLOSED_REFERENCE_MAY_BE_STALE" ? {label:"MARKET CLOSED · CHECK STALE REF",cls:"muted"} :
+            gap == null || !Number.isFinite(gap) ? {label:"NO SMALL-QUOTE GAP",cls:"muted"} :
+            context === "MARKET_CLOSED_REFERENCE_MAY_BE_STALE" ? {label:"OFF_HOURS_DRIFT · STALE REF",cls:"muted"} :
             x.priceImpactPct == null || !Number.isFinite(Number(x.priceImpactPct)) ? {label:"IMPACT UNKNOWN · REVIEW",cls:"muted"} :
             Number(x.priceImpactPct) > Number(window.__pronousRadarSummary?.maxActionablePriceImpactPct || 1) ? {label:"HIGH IMPACT · REVIEW",cls:"muted"} :
             context !== "MARKET_STATUS_REPORTED" ? {label:"HOURS UNCONFIRMED · REVIEW",cls:"muted"} :
@@ -72,20 +75,21 @@
             '</b> <span class="muted small">' + esc(x.platformId || "") +
             '</span><div class="muted small">' + esc(String(state)) + ' · ' + esc(context) + '</div></div>' +
             '<div class="muted small">' + (routed ? 'Quote: ' + fmtPx(x.quotePriceUSDTPerToken) + ' USDT/token' : 'Route: ' + esc(String(x.routeStatus || "QUOTE ERROR"))) +
-            '<div class="muted small">Ref × ratio: ' + (x.referencePrice == null || x.shareRatio == null ? '—' : fmtPx(Number(x.referencePrice) * Number(x.shareRatio))) + '</div></div>' +
+            '<div class="muted small">Ref × ratio: ' + (x.referencePrice == null || x.shareRatio == null ? '—' : fmtPx(Number(x.referencePrice) * Number(x.shareRatio))) + '</div>' +
+            '<div class="muted small">Requested-size quote gap (impact included; not an actual fill): ' + esc(requestedGapText) + '</div></div>' +
             '<div class="' + (shownGap && gap >= 0 ? "pos" : shownGap ? "neg" : "muted") + '">' +
-            esc(gapText) + '<div class="small ' + signal.cls + '">' + esc(signal.label) + '</div>' +
-            (x.priceImpactPct == null ? '' : '<div class="muted small">Impact ' + esc(Number(x.priceImpactPct).toFixed(3)) + '%</div>') +
+            esc(gapText) + '<div class="small muted">Smallest-size quote proxy</div><div class="small ' + signal.cls + '">' + esc(signal.label) + '</div>' +
+            (x.priceImpactPct == null ? '' : '<div class="muted small">Requested-size impact ' + esc(Number(x.priceImpactPct).toFixed(3)) + '%</div>') +
             '</div></div>'
           );
         }).join("");
       const tape = document.getElementById("liveGapTape");
       if (tape) {
         tape.innerHTML = top.map((x) => {
-          if (x.routeStatus !== "ROUTE" || x.onchainGapPct == null) {
-            return "<span>" + esc(x.ticker) + ' <em class="muted">' + esc(x.routeStatus || "NO QUOTE") + '</em></span>';
+          if (x.routeStatus !== "ROUTE" || x.midGapPct == null) {
+            return "<span>" + esc(x.ticker) + ' <em class="muted">' + esc(x.routeStatus || "NO SMALL-QUOTE GAP") + '</em></span>';
           }
-          const gap = Number(x.onchainGapPct);
+          const gap = Number(x.midGapPct);
           return "<span>" + esc(x.ticker) + ' <em class="' + (gap >= 0 ? "pos" : "neg") + '">' +
             (gap > 0 ? "+" : "") + gap.toFixed(2) + "%</em></span>";
         }).join("");
