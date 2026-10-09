@@ -401,6 +401,14 @@ module.exports = async function handler(req,res) {
       }
     }
 
+    if (!LIVE_ENABLED && ["scan","preflight","loop","simulate","pancakeQuote","quote","quoteBuild","build"].includes(action)) {
+      return res.status(503).json({
+        mode:"unavailable",network:"BSC",ticker,error:"LIVE_RWA_FEED_NOT_CONFIGURED",
+        message:"The server-side read-only Binance feed is not configured. No demo price is substituted.",
+        asset:{ticker,tokenPrice:null,referencePrice:null,shareRatio:null,dataQuality:"unavailable",actionable:false},
+        broadcast:false,calldataAvailable:false
+      });
+    }
     const asset=LIVE_ENABLED?await findLiveAsset(ticker):demoAsset(ticker);
     if(action==="pancakeQuote") {
       const input={
@@ -546,7 +554,7 @@ module.exports = async function handler(req,res) {
         ? "MISSING_RATIO"
         : asset.dataQuality!=="ok"
           ? "UNRELIABLE"
-          : Math.abs(spread)>=1
+          : asset.actionable===true
             ? (spread>0 ? "PREMIUM" : "DISCOUNT")
             : "OBSERVE";
       const risk = asset.dataQuality==="missing_ratio"
@@ -588,7 +596,7 @@ module.exports = async function handler(req,res) {
         signal:{
           type:signal,
           spreadPct:asset.adjustedSpreadPct ?? null,
-          actionable:asset.dataQuality==="ok"&&(signal==="PREMIUM"||signal==="DISCOUNT")
+          actionable:asset.dataQuality==="ok"&&asset.actionable===true&&(signal==="PREMIUM"||signal==="DISCOUNT")
         },
         risk:{
           status:risk,
