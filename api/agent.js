@@ -411,6 +411,7 @@ module.exports = async function handler(req,res) {
     }
     const asset=LIVE_ENABLED?await findLiveAsset(ticker):demoAsset(ticker);
     if(action==="pancakeQuote") {
+      res.setHeader("Cache-Control", "public, s-maxage=20, stale-while-revalidate=10");
       const input={
         fromTokenAddress:String(url.searchParams.get("fromTokenAddress")||"").trim(),
         toTokenAddress:String(url.searchParams.get("toTokenAddress")||"").trim(),
@@ -432,12 +433,19 @@ module.exports = async function handler(req,res) {
       if(!asset.tokenContractAddress)
         return res.status(409).json({error:"SUPPORTED_RWA_TOKEN_ADDRESS_REQUIRED",broadcast:false});
       try {
-        const quote=await getPancakeQuote({
+        const cacheKey = "pancake-preview:" + [
+          asset.tokenContractAddress,
+          input.fromTokenAddress.toLowerCase(),
+          input.toTokenAddress.toLowerCase(),
+          input.amount,
+          input.maxSpend
+        ].join(":");
+        const quote=await cachedValue(cacheKey,()=>getPancakeQuote({
           assetAddress:asset.tokenContractAddress,
           tokenInAddress:input.fromTokenAddress,
           tokenOutAddress:input.toTokenAddress,
           amount:input.amount
-        });
+        }));
         return res.status(200).json({
           mode:"live-pancakeswap-quote",network:"BSC",ticker,
           asset:{ticker:asset.ticker,platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,
