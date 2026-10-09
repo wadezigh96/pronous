@@ -18,7 +18,7 @@
     "mcp": "node mcp/server.mjs",
     "start": "node mcp/server.mjs",
     "audit": "node scripts/audit.mjs",
-    "test": "node --test scripts/*.test.mjs && node scripts/audit.mjs",
+    "test": "node --test scripts/*.test.mjs scripts/*.test.cjs && node scripts/audit.mjs",
     "build": "node build-vendor.mjs",
     "build:vendor": "node build-vendor.mjs",
     "erc8004:register": "node scripts/erc8004-register.mjs",
