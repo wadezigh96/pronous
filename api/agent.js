@@ -100,7 +100,7 @@ function evaluateLoop(asset, opts={}) {
 }
 
 function makePlan(asset) {
-  const spread = Number(asset.spreadPct || 0);
+  const spread = Number(asset.adjustedSpreadPct ?? asset.spreadPct ?? 0);
   let action = "HOLD / OBSERVE";
   if (asset.dataQuality === "missing_ratio") action = "BLOCK — MISSING SHARE RATIO";
   else if (asset.dataQuality !== "ok") action = "HOLD — DATA QUALITY REVIEW";
@@ -470,7 +470,7 @@ module.exports = async function handler(req,res) {
         },
         signal:{
           type:signal,
-          spreadPct:spread,
+          spreadPct:asset.adjustedSpreadPct ?? null,
           actionable:asset.dataQuality==="ok"&&(signal==="PREMIUM"||signal==="DISCOUNT")
         },
         risk:{
