@@ -11,7 +11,7 @@ const DEFAULT_URL = "https://pronous.vercel.app/api/agent?action=assets";
 const PAGE_SIZE = 100;
 const MAX_ASSETS = 2000;
 const OUTLIER_THRESHOLD_PCT = Number(process.env.DERIVED_PRICE_OUTLIER_PCT || 0.1);
-const EPSILON_PCT = 1e-9;
+const EPSILON_PCT = 0.000001; // percent; matches the first histogram bucket label
 
 function numeric(value) {
   const n = Number(value);
