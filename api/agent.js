@@ -1,4 +1,5 @@
 const { calculateSpreadPct, assessQuote, isSupportedPlatform } = require("../lib/market");
+const { getPancakeQuote } = require("../lib/pancakeswap-quote");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
@@ -225,7 +226,7 @@ module.exports = async function handler(req,res) {
     const url=new URL(req.url,"http://localhost");
     const action=url.searchParams.get("action")||"scan";
     if (!requireAgentGet(req, res)) return;
-    if (["quote", "quoteBuild", "build", "simulateTx"].includes(action) && !requireAgentOrigin(req, res)) return;
+    if (["quote", "quoteBuild", "build", "simulateTx", "pancakeQuote"].includes(action) && !requireAgentOrigin(req, res)) return;
     const ticker=(url.searchParams.get("ticker")||"NVDA").trim().toUpperCase();
     if(!/^[A-Z0-9.-]{1,20}$/.test(ticker)) return res.status(400).json({error:"Invalid ticker"});
 
@@ -271,6 +272,48 @@ module.exports = async function handler(req,res) {
     }
 
     const asset=LIVE_ENABLED?await findLiveAsset(ticker):demoAsset(ticker);
+    if(action==="pancakeQuote") {
+      const input={
+        fromTokenAddress:String(url.searchParams.get("fromTokenAddress")||"").trim(),
+        toTokenAddress:String(url.searchParams.get("toTokenAddress")||"").trim(),
+        amount:String(url.searchParams.get("amount")||"").trim(),
+        maxSpend:String(url.searchParams.get("maxSpend")||"").trim()
+      };
+      if(!isAmount(input.amount) || !isAmount(input.maxSpend))
+        return res.status(400).json({error:"INVALID_AMOUNT_OR_MAX_SPEND",broadcast:false});
+      const spend=validateSpendCap(input.amount,input.maxSpend);
+      if(!spend.ok) return res.status(400).json({error:spend.error,broadcast:false});
+      if(!isAddress(input.fromTokenAddress))
+        return res.status(400).json({error:"INVALID_FROM_TOKEN_ADDRESS",broadcast:false});
+      if(!isAddress(input.toTokenAddress))
+        return res.status(400).json({error:"INVALID_TO_TOKEN_ADDRESS",broadcast:false});
+      if(!LIVE_ENABLED) return res.status(200).json({
+        mode:"demo",network:"BSC",status:"PANCAKESWAP_QUOTE_REQUIRES_LIVE_API",
+        ticker,broadcast:false,calldataAvailable:false
+      });
+      if(!asset.tokenContractAddress)
+        return res.status(409).json({error:"SUPPORTED_RWA_TOKEN_ADDRESS_REQUIRED",broadcast:false});
+      try {
+        const quote=await getPancakeQuote({
+          assetAddress:asset.tokenContractAddress,
+          tokenInAddress:input.fromTokenAddress,
+          tokenOutAddress:input.toTokenAddress,
+          amount:input.amount
+        });
+        return res.status(200).json({
+          mode:"live-pancakeswap-quote",network:"BSC",ticker,
+          asset:{ticker:asset.ticker,platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,
+            tokenContractAddress:asset.tokenContractAddress},
+          quote,broadcast:false,
+          next:"Quote preview only. PancakeSwap calldata, signing and execution are not enabled."
+        });
+      } catch(e) {
+        return res.status(e.status||502).json({
+          mode:"pancakeswap-quote-error",error:e.code||"PANCAKESWAP_QUOTE_FAILED",
+          broadcast:false,calldataAvailable:false
+        });
+      }
+    }
     if(action==="quote") {
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress")||asset.tokenContractAddress,amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress")};
       const built=buildQuoteParams(input);
