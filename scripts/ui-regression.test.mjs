@@ -124,6 +124,15 @@ test("market signal is sourced from live assets and tabs are functional", () => 
   assert.doesNotMatch(html, /AI scanning 1,248 assets/);
 });
 
+test("single-ticker scan recovers missing ratio from the live RWA list", () => {
+  assert.match(agent, /resolveShareRatio/);
+  assert.match(agent, /if\(shareRatio===null\)/);
+  assert.match(agent, /shareRatioSource/);
+  assert.match(agent, /rwa-tokens-list/);
+  assert.match(agent, /feedAsset\?\.tokenToShareRatio/);
+  assert.match(agent, /feedAsset\?\.shareRatio/);
+});
+
 test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route as null", () => {
   assert.match(agent, /monitor:"onchain-vs-reference"/);
   assert.match(agent, /onchainGapPct/);

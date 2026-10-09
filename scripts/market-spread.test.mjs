@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { assessQuote, calculateAdjustedSpreadPct, calculateSpreadPct, normalizeAsset } = require("../lib/market");
+const { assessQuote, calculateAdjustedSpreadPct, calculateSpreadPct, normalizeAsset, resolveShareRatio } = require("../lib/market");
 const { buildGuardChecks } = require("../lib/policy");
 
 // CRWD/NOW/PPLT/GME use the ratio multipliers reported in the live RWA snapshot.
@@ -47,6 +47,12 @@ test("raw and adjusted spread helpers have explicit semantics", () => {
   assert.equal(calculateAdjustedSpreadPct(400, 100, 4), 0);
   assert.equal(calculateAdjustedSpreadPct(10, 100, 0.1), 0);
   assert.equal(calculateAdjustedSpreadPct(100, 100, 0), null);
+});
+
+test("share ratio resolution falls through invalid price/search fields to the live token-list ratio", () => {
+  assert.equal(resolveShareRatio(null, 0, "not-a-ratio", 4), 4);
+  assert.equal(resolveShareRatio(undefined, -1, Infinity, "0.125"), 0.125);
+  assert.equal(resolveShareRatio(null, "", 0, -1, NaN), null);
 });
 
 test("missing or invalid share ratio is never actionable", () => {

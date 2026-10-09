@@ -100,6 +100,14 @@ Suggested API contract, instead of overloading one `spreadPct` field:
 
 A missing route must remain null and be labelled `NO ROUTE`; a missing price must never silently become zero. If the underlying market is closed, the same gap may mean either a real opportunity or a stale reference and should not automatically pass the actionability gate.
 
+## 4B. CRWD single-ticker scan regression
+
+I ran the exact production request `GET /api/agent?action=scan&ticker=CRWD` through a live CI probe at [run 37994303713](https://github.com/wadezigh96/pronous/actions/runs/37994303713). The endpoint returned HTTP **200** with the normal scan keys (`agent`, `action`, `asset`, `market`, `signal`, `risk`, `plan`, `execution`); it did **not** return a radar-shaped payload (`monitor`, `assets`, or `summary` were absent). So the suspected response-shape bug was not reproduced.
+
+The real issue was the content of that scan: CRWD/Ondo came back with `tokenPrice=1097.07`, `referencePrice=274.2675`, raw spread **+300%**, but `shareRatio=null`, `adjustedSpreadPct=null`, `dataQuality=missing_ratio`, and `actionable=false`. The full assets endpoint had already reported CRWD's token-to-share ratio as **4** in the measured snapshot. The single-ticker path uses the search and price endpoints, and those responses did not carry a usable ratio in this request. That is an endpoint consistency problem: the list path knew the ratio, while the scan path discarded it.
+
+The fix now resolves a valid positive ratio in this order: price response, search result, then the cached full RWA token list matched by contract address and platform. It records `shareRatioSource` so we can see where the ratio came from. If no valid ratio exists in any source, the scan continues to return `missing_ratio` and remains non-actionable; it does not guess a ratio from the raw spread. Since the feed snapshot links token price to reference price through the ratio, a resolved CRWD ratio of 4 should result in an adjusted gap near **0%**, not +300%. I will only claim the production fix after the post-deploy scan probe confirms the actual response.
+
 ## 5. AI stack
 
 - Agentic Wallet: `agent/AGENTIC_WALLET.md` documents a gated flow—preflight, quote/build, chain simulation, explicit confirmation, transaction-binding hash verification, and final simulation before the user's wallet could sign. This is a documented/code-level flow, not proof of a live hosted Agentic Wallet runtime. Server-side broadcast remains off.
