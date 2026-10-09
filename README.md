@@ -14,14 +14,31 @@
 
 ---
 
-## Production boundaries
+## Verified state and production boundaries
 
-PRONOUS is a BSC Mainnet **spot desk**, not an unsupervised trading bot.
+PRONOUS is a BSC Mainnet spot desk, not an unsupervised trading bot. Read the status labels below as evidence boundaries—not roadmap language.
 
-- **Live:** market scan, preflight, Binance quote path, PancakeSwap **quote-preview only**, simulation, user confirmation, Proof of Action
-- **Read-only utilities:** `/utilities.html` (portfolio watcher, cross-venue compare — no signing)
-- **Not enabled:** x402 payments, autonomous broadcast without confirmation, public hosted MCP (use `npm run mcp` locally)
-- **Skills:** entries with `status: "live"` are wired; `status: "planned"` are catalog-only
+### Live / verified observations
+
+- The public RWA assets endpoint returned `mode: "live-data"` and **488 assets** in the saved measurement snapshot on 9 October 2026. This is a timestamped observation, not a guarantee that the upstream API is always available.
+- The production server uses its configured read-only Binance Web3 credentials for the RWA feed. Browser users do not need a wallet or paste API credentials to read the feed; if server credentials/feed access are unavailable, the API should return an explicit unavailable response, not demo prices.
+- The documented PoaAnchor contract and two example `PoaAnchored` transactions are independently verifiable on BSC mainnet; see [Submission evidence](docs/SUBMISSION.md).
+- Previous smoke checks returned preflight `READY_FOR_SIMULATION` and simulation `DRY_RUN` with `broadcast: false`. They do not establish that a live trade was signed or sent.
+
+### Quote-preview only
+
+- The quote evidence in [`docs/quote-measurements.json`](docs/quote-measurements.json) is from PancakeSwap's Unified Swap quote endpoint, with **USDT as the from-token**. It is a one-way buy quote. No calldata was requested, no wallet signed, and no transaction was broadcast.
+- `onchainGapPct` compares the quoted buy cost per token with `referencePrice × shareRatio`. A large positive value can be slippage/poor liquidity or a stale reference—not proof of arbitrage. Check price impact, quote size, route status, and market session.
+- The measurements include high-impact quotes and a `NO_ROUTE` result; those records are intentionally not converted into a zero spread or a trade recommendation.
+
+### Not enabled / not independently verified
+
+- **Not enabled:** server-side transaction broadcast, autonomous trading without explicit user confirmation, and x402 payments.
+- **Not independently verified as a live hosted service:** BNB Agent Studio deployment and Agentic Wallet runtime.
+- **Local-only interface:** `npm run pronous` starts the stdio MCP server. It is not a hosted/public MCP endpoint and does not grant unrestricted wallet authority.
+- **Not present in the 488-asset snapshot:** xStocks.
+
+Any preview/development changes remain subject to the linked CI run and the deployment status for the exact merge commit. The live URL must not be assumed to be running branch-preview code before that deployment is verified.
 
 ## About
 
