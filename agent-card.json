@@ -1,7 +1,7 @@
 {
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "PRONOUS",
-  "description": "BSC spot-only tokenized-stock market desk for bStocks, Ondo and xStocks. Reads Binance Web3 RWA prices, flags unreliable gaps, and keeps execution behind quote, simulation and confirmation.",
+  "description": "BSC spot-only tokenized-stock market desk for bStocks, Ondo and xStocks. Reads live RWA prices, flags unreliable gaps, offers quote and simulation, and never broadcasts without wallet, simulation, and explicit user confirmation.",
   "image": "https://pronous.vercel.app/",
   "services": [
     {
@@ -10,26 +10,33 @@
       "version": "1"
     },
     {
-      "name": "MCP",
-      "endpoint": "https://github.com/wadezigh96/pronous",
-      "version": "2025-06-18"
-    },
-    {
       "name": "API",
       "endpoint": "https://pronous.vercel.app/api/agent?action=authcheck",
       "version": "1"
+    },
+    {
+      "name": "UTILITIES",
+      "endpoint": "https://pronous.vercel.app/utilities.html",
+      "version": "1"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "https://github.com/wadezigh96/pronous",
+      "version": "2025-06-18",
+      "note": "Local MCP server via npm run mcp — not a public always-on MCP host"
     }
   ],
   "x402Support": false,
   "chainId": 56,
   "spotOnly": true,
+  "autonomousTrading": false,
   "assets": [
     "bstock",
     "ondo",
     "xstocks"
   ],
   "registrationStatus": "minted-verified",
-  "note": "ERC-8004 identity is minted and independently verified on BSC Mainnet. The trading execution path remains separately gated by wallet, simulation and explicit confirmation. x402 runtime remains disabled.",
+  "note": "ERC-8004 identity is minted and independently verified on BSC Mainnet. Trading remains gated by preflight, quote, simulation, and explicit confirmation. PancakeSwap integration is quote-preview only. x402 runtime remains disabled. MCP is available as a local process, not a hosted public endpoint.",
   "agentId": 367667,
   "agentWallet": "0x30ce2986c17BeF0496435809158E5F0a7aE77989",
   "registrationNetwork": "bsc-mainnet",
