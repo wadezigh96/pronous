@@ -30,7 +30,7 @@ function boundedInt(value, fallback, min, max) {
 function marketIsClosed(asset) {
   const status = String(asset.marketStatus || "").toLowerCase();
   const openState = asset.openState;
-  return status.includes("closed") || openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
+  return /closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(status) || openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
 }
 function marketHoursContext(asset) {
   if (marketIsClosed(asset)) return "MARKET_CLOSED_REFERENCE_MAY_BE_STALE";
