@@ -38,25 +38,25 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Set up Node.js 20 for npx package smoke test
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010')
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010')
         uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Verify npx install and MCP initialize/tools-list on clean Node 20
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010')
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010')
         run: node scripts/smoke-npx.mjs
         env:
           PRONOUS_NPX_SMOKE_TIMEOUT_MS: 180000
-          PRONOUS_NPX_PACKAGE: ${{ github.event_name == 'pull_request' && format('github:wadezigh96/pronous#{0}', github.head_ref) || 'github:wadezigh96/pronous' }}
+          PRONOUS_NPX_PACKAGE: ${{ (github.event_name == 'pull_request' && format('github:wadezigh96/pronous#{0}', github.head_ref)) || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010' && format('github:wadezigh96/pronous#{0}', github.ref_name)) || 'github:wadezigh96/pronous' }}
       - name: Measure npx cold start before and after dependency change
-        if: github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010'
+        if: (github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010')
         run: node scripts/benchmark-npx.mjs
         env:
           PRONOUS_NPX_BENCH_TIMEOUT_MS: 180000
           PRONOUS_NPX_BENCH_BEFORE: github:wadezigh96/pronous
           PRONOUS_NPX_BENCH_AFTER: github:wadezigh96/pronous#fix/radar-mid-gap-off-hours-20261010
       - name: Upload npx cold-start benchmark
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010'
+        if: always() && ((github.event_name == 'pull_request' && github.head_ref == 'fix/radar-mid-gap-off-hours-20261010') || (github.event_name == 'push' && github.ref == 'refs/heads/fix/radar-mid-gap-off-hours-20261010'))
         uses: actions/upload-artifact@v4
         with:
           name: npx-cold-start-benchmark
