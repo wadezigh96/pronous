@@ -96,7 +96,7 @@ function evaluateLoop(asset, opts={}) {
     {name:"confirmation_required",pass:Boolean(opts.confirmed),reason:"user confirmation is required for live execution"}
   ];
   const blocked=checks.filter(x=>!x.pass);
-  return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:Math.abs(spread)>=minSpread?(spread>0?"PREMIUM":"DISCOUNT"):"OBSERVE",next:blocked.length?blocked[0].name:"EXECUTE"};
+  return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:asset.dataQuality==="missing_ratio"?"MISSING_RATIO":asset.dataQuality!=="ok"?"UNRELIABLE":Math.abs(spread)>=minSpread?(spread>0?"PREMIUM":"DISCOUNT"):"OBSERVE",next:blocked.length?blocked[0].name:"EXECUTE"};
 }
 
 function makePlan(asset) {
