@@ -131,7 +131,7 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
   assert.match(live, /window\.__pronousRadarAssets/);
   assert.match(live, /NO REFERENCE/);
-  assert.match(live, /NO ROUTE/);
+  assert.match(live, /x\.routeStatus/);
   assert.match(live, /PancakeSwap quote-only/);
 });
 
