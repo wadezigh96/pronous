@@ -61,6 +61,19 @@ Those large raw spreads are explained by the share multiplier in these rows. Thi
 
 I changed the definition of `actionable` so that a valid adjusted gap has to clear a configurable absolute threshold (`PRONOUS_MIN_ACTIONABLE_GAP_PCT`, default **1%**). Missing/invalid ratios stay non-actionable. That is only the feed-quality gate; the Divergence Radar uses a separate quote-derived field, `onchainGapPct`, and a quote route must exist before it can display a numeric gap.
 
+Same-ticker feed/volume/route comparison from the quote snapshot at **2026-10-09 21:00:29 UTC**. `adjustedSpreadPct` is the old ratio-adjusted feed gap; it was 0% for these six venue rows. The `volume24H` unit is not documented, so keep these numbers as raw provider values—not USD liquidity.
+
+| Ticker | Venue | Feed adjusted spread | Raw `volume24H` | Routes for 10 / 100 / 1,000 USDT |
+|---|---|---:|---:|---|
+| NVDA | Ondo | 0% | 19,350,265,313.38 | ROUTE / ROUTE / ROUTE |
+| NVDA | bStocks | 0% | 16,983,993,569 | ROUTE / ROUTE / ROUTE |
+| TSLA | Ondo | 0% | 14,849,163,439.69 | ROUTE / ROUTE / ROUTE |
+| TSLA | bStocks | 0% | 14,026,076,005 | ROUTE / ROUTE / ROUTE |
+| SPY | Ondo | 0% | 17,481,297,510.00 | ROUTE / ROUTE / NO_ROUTE |
+| SPY | bStocks | 0% | 16,369,651,079 | ROUTE / ROUTE / ROUTE |
+
+This is the practical reason not to sort the market radar by `adjustedSpreadPct`: the feed gap is zero across these rows, while independent buy-quote results differ by venue and size. The numeric volume can be used as an upstream rank key, but it is not yet defensible to call it volume in USD without a documented unit.
+
 Measured same-ticker on-chain gaps from the actual quote run (all values are **buy-side quote** relative to `referencePrice × shareRatio`; price impact is reported by PancakeSwap):
 
 | Ticker | Size | Ondo gap / impact | bStocks gap / impact | Route |
