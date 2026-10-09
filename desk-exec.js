@@ -5,6 +5,7 @@
   const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 
   function el(id) { return document.getElementById(id); }
+
   function setHint(html) {
     let box = el("spendHint");
     if (!box) {
@@ -21,8 +22,16 @@
     box.innerHTML = html;
   }
 
+  function tokenLabel(addr) {
+    const a = String(addr || "").toLowerCase();
+    if (a === NATIVE.toLowerCase()) return "BNB (native)";
+    if (a === WBNB.toLowerCase()) return "WBNB";
+    if (a === USDT.toLowerCase()) return "USDT";
+    if (a === USDC.toLowerCase()) return "USDC";
+    return "token";
+  }
+
   function ensureBnbButton() {
-    const row = document.querySelector("#execution .row:has(button)");
     const buttons = document.querySelectorAll("#execution button.secondary");
     let hasBnb = false;
     buttons.forEach((b) => { if ((b.textContent || "").trim() === "BNB") hasBnb = true; });
@@ -33,46 +42,29 @@
     btn.type = "button";
     btn.style.width = "auto";
     btn.textContent = "BNB";
-    btn.onclick = function () { window.setSpendToken(NATIVE); window.applyDustAmount && window.applyDustAmount(); };
+    btn.onclick = function () { window.setSpendToken(NATIVE); };
     usdtBtn.parentNode.insertBefore(btn, usdtBtn);
   }
-
-  window.applyDustAmount = function applyDustAmount() {
-    const amount = el("amount");
-    const maxSpend = el("maxSpend");
-    if (amount) amount.value = "0.0003";
-    if (maxSpend) maxSpend.value = "1";
-    const from = el("fromTokenAddress");
-    if (from && !from.value) from.value = NATIVE;
-    setHint(
-      "<div><b>MICRO TEST</b> · 0.0003 BNB (~$0.20)</div>" +
-      "<div class=\"muted small\">NVDA tokenized ~$200+. $0.20 BNB cukup untuk gas + uji quote kecil, bukan 1 saham. Pakai BNB native, bukan USDT.</div>"
-    );
-  };
 
   const origSet = window.setSpendToken;
   window.setSpendToken = function (addr) {
     if (typeof origSet === "function") origSet(addr);
     else if (el("fromTokenAddress")) el("fromTokenAddress").value = addr;
-    const label = addr.toLowerCase() === NATIVE.toLowerCase() ? "BNB native" :
-      addr.toLowerCase() === WBNB.toLowerCase() ? "WBNB" :
-      addr.toLowerCase() === USDT.toLowerCase() ? "USDT (18 dec, BSC)" :
-      addr.toLowerCase() === USDC.toLowerCase() ? "USDC" : "token";
-    setHint("<div class=\"muted small\">Spend = <b>" + label + "</b>. Amount diisi human units (0.0003 BNB), API mengirim wei.</div>");
+    const label = tokenLabel(addr);
+    setHint(
+      "<div class=\"muted small\">Spend token: <b>" + label + "</b>. " +
+      "Enter the amount in human units (for example 1 or 0.5). " +
+      "Connect a wallet on <b>BSC Mainnet</b>, run preflight, then get a quote.</div>"
+    );
   };
 
   const origQuote = window.requestQuote;
   window.requestQuote = async function () {
     const box = el("quoteResult");
     const from = ((el("fromTokenAddress") && el("fromTokenAddress").value) || "").trim();
-    const amt = (el("amount") && el("amount").value) || "";
     if (!from) {
-      if (box) box.textContent = "Pilih spend token dulu. Kalau hanya punya BNB, klik BNB.";
-      window.setSpendToken(NATIVE);
+      if (box) box.textContent = "Choose a spend token first (USDT, USDC, WBNB, or BNB).";
       return;
-    }
-    if (from.toLowerCase() === USDT.toLowerCase() && Number(amt) >= 1 && Number(amt) <= 100) {
-      setHint("<div class=\"muted small\">USDT BSC = 18 decimals. Amount 10 artinya 10 USDT, dikirim sebagai 10000000000000000000.</div>");
     }
     if (typeof origQuote === "function") {
       try {
@@ -81,27 +73,26 @@
         if (box) box.textContent = "Quote error: " + (e.message || e);
       }
     }
-    const text = box && box.textContent || "";
-    if (/invalid amount/i.test(text)) {
-      box.innerHTML =
-        "<b>AMOUNT FORMAT</b><div class=\"muted small\">API minta integer wei. Desk sekarang konversi otomatis.</div>" +
-        "<div class=\"muted small\">Kalau hanya $0.20 BNB: klik <b>BNB</b> lalu amount <b>0.0003</b>, bukan 10 USDT.</div>";
-    }
   };
 
   function boot() {
     ensureBnbButton();
     const from = el("fromTokenAddress");
-    const amount = el("amount");
-    if (from && !from.value) from.value = NATIVE;
-    if (amount && (amount.value === "10" || amount.value === "")) {
-      window.applyDustAmount();
-    } else {
-      setHint(
-        "<div class=\"muted small\">Amount = human units. $0.20 BNB ≈ 0.0003 BNB. Cukup gas + micro quote. Tidak cukup beli 1 NVDA on-chain.</div>"
-      );
+    if (from && !String(from.value || "").trim()) {
+      from.value = USDT;
     }
+    setHint(
+      "<div class=\"muted small\">" +
+      "Enter an amount, select a spend token, then <b>Run preflight</b>. " +
+      "Quote stays locked until preflight passes. " +
+      "Execution requires wallet connection, simulation, and your confirmation on BSC Mainnet." +
+      "</div>"
+    );
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(boot, 400); });
-  else setTimeout(boot, 400);
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { setTimeout(boot, 400); });
+  } else {
+    setTimeout(boot, 400);
+  }
 })();
