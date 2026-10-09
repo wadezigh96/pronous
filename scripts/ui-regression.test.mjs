@@ -129,6 +129,10 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /onchainGapPct/);
   assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
+  assert.match(agent, /validReference&&gap!==null&&Math\.abs\(gap\)>=MIN_ACTIONABLE_GAP_PCT/);
+  assert.match(agent, /MARKET_CLOSED_REFERENCE_MAY_BE_STALE/);
+  assert.match(agent, /priceImpactPct/);
+  assert.match(agent, /\(quotePriceUSDTPerToken \/ \(referencePrice \* shareRatio\) - 1\) \* 100/);
   assert.match(live, /window\.__pronousRadarAssets/);
   assert.match(live, /NO REFERENCE/);
   assert.match(live, /x\.routeStatus/);
