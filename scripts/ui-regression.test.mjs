@@ -159,6 +159,15 @@ test("public quote preview remains available without wallet and shows API/chain 
   assert.match(app, /status:r\.status,data:j/);
 });
 
+test("market alias and unavailable server feed never turn into demo prices", () => {
+  assert.match(agent, /action==="assets" \|\| action==="market" \|\| action==="radar"/);
+  assert.match(agent, /!LIVE_ENABLED && \["scan","preflight","loop","simulate","pancakeQuote","quote","quoteBuild","build"\]/);
+  assert.match(agent, /LIVE_RWA_FEED_NOT_CONFIGURED/);
+  assert.match(agent, /No demo price is substituted/);
+  assert.match(agent, /asset\.actionable===true/);
+  assert.match(agent, /minActionableGapPct:MIN_ACTIONABLE_GAP_PCT/);
+});
+
 test("public read-only market endpoint is cached, paginated and bounded", () => {
   assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
   assert.match(agent, /Math\.max\(15000, Math\.min\(30000/);
