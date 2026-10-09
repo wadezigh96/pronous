@@ -167,6 +167,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="row"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount">
 <input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend">
 <button type="button" onclick="preflight()">Run preflight</button></div>
+<div class="row off-hours-ack-row"><label for="ackOffHours"><input id="ackOffHours" type="checkbox" onchange="resetExecutionState('off-hours acknowledgement changed')"> I understand the underlying market is closed and the reference price may be stale. Keep all trade signals non-actionable.</label></div>
 <div class="row"><input id="fromTokenAddress" placeholder="Spend token e.g. USDT">
 <button class="secondary" type="button" onclick="requestQuote()">Get quote</button></div>
 <div class="row">
