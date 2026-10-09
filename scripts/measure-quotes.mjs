@@ -120,6 +120,12 @@ export function deriveQuoteMetrics(asset, quote, latencyMs, routeStatus = "ROUTE
     onchainGapPct: onchainGapPct === null ? null : Number(onchainGapPct.toFixed(6)),
     priceImpactRawFraction: impactRaw,
     priceImpactPct: impactRaw === null ? null : Number((impactRaw * 100).toFixed(6)),
+    marketStatus: asset.marketStatus || null,
+    openState: asset.openState ?? null,
+    marketContext: /closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(String(asset.marketStatus || "")) ||
+      asset.openState === false || asset.openState === 0 || ["false","0","closed"].includes(String(asset.openState).toLowerCase())
+      ? "MARKET_CLOSED_REFERENCE_MAY_BE_STALE"
+      : "MARKET_HOURS_UNCONFIRMED_OR_OPEN",
     quoteLatencyMs: latencyMs,
     routeTypes: Array.isArray(quote?.routeTypes) ? quote.routeTypes : [],
     quoteId: quote?.quoteId || null,
