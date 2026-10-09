@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { assessQuote, calculateAdjustedSpreadPct, calculateSpreadPct, normalizeAsset, resolveShareRatio, resolveAssetShareRatio, isMarketClosed, classifyAssetSignal } = require("../lib/market");
+const { assessQuote, calculateAdjustedSpreadPct, calculateImpactAdjustedGapPct, calculateSpreadPct, normalizeAsset, resolveShareRatio, resolveAssetShareRatio, isMarketClosed, classifyAssetSignal } = require("../lib/market");
 const { buildGuardChecks } = require("../lib/policy");
 
 // CRWD/NOW/PPLT/GME use the ratio multipliers reported in the live RWA snapshot.
@@ -126,4 +126,13 @@ test("closed sessions expose OFF_HOURS_DRIFT and remain non-actionable", () => {
   assert.equal(asset.actionable,false);
   assert.equal(isMarketClosed({marketStatus:"open",openState:true}),false);
   assert.equal(classifyAssetSignal({dataQuality:"missing_ratio",marketStatus:"postmarket"}),"MISSING_RATIO");
+});
+
+
+test("impact-adjusted quote gap removes the quote's reported fractional price impact", () => {
+  assert.equal(calculateImpactAdjustedGapPct(102, 0.02, 100, 1), 0);
+  assert.equal(calculateImpactAdjustedGapPct(104, 0.02, 100, 1), 1.960784);
+  assert.equal(calculateImpactAdjustedGapPct(null, 0.02, 100, 1), null);
+  assert.equal(calculateImpactAdjustedGapPct(102, null, 100, 1), null);
+  assert.equal(calculateImpactAdjustedGapPct(102, -1, 100, 1), null);
 });
