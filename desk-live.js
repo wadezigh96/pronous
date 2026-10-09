@@ -32,9 +32,14 @@
       const top = rows.slice(0, 8);
       el.style.whiteSpace = "normal";
       if (!top.length) {
-        el.innerHTML = '<div class="muted small">On-chain quote radar unavailable. No executable price is inferred from token/reference feed fields.</div>';
+        const volumeUnavailable = window.__pronousRadarSummary?.volumeAvailable === false;
+        el.innerHTML = '<div class="muted small">' +
+          (volumeUnavailable
+            ? 'Radar paused: upstream feed has no measured 24h volume; no assets were quoted, so no top-by-volume ranking is claimed.'
+            : esc(window.__pronousRadarError || 'On-chain quote radar unavailable. No divergence is inferred from token/reference feed fields.')) +
+          '</div>';
         const tape = document.getElementById("liveGapTape");
-        if (tape) tape.textContent = "ON-CHAIN QUOTES UNAVAILABLE";
+        if (tape) tape.textContent = volumeUnavailable ? "24H VOLUME UNAVAILABLE" : "ON-CHAIN QUOTES UNAVAILABLE";
         return;
       }
       el.innerHTML =
@@ -168,7 +173,8 @@
         ".radar-gap-row{display:grid;grid-template-columns:1.2fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(245,197,66,.1);cursor:pointer}" +
         ".radar-gap-row:hover,.radar-gap-row:focus{background:rgba(245,197,66,.05)}.radar-gap-row:last-child{border-bottom:0}" +
         ".market tbody tr[tabindex]{cursor:pointer}.market tbody tr[tabindex]:focus{outline:1px solid rgba(217,184,76,.32);outline-offset:-1px;background:#11161b}" +
-        "#liveGapTape em{font-style:normal;margin-left:4px}#radarPulse{width:auto}";
+        "#liveGapTape em{font-style:normal;margin-left:4px}#radarPulse{width:auto}" +
+        "@media(max-width:560px){.radar-gap-row{grid-template-columns:minmax(0,1fr) auto!important;gap:6px!important}.radar-gap-row>div:nth-child(2){grid-column:1/-1;grid-row:2}.radar-gap-row>div:nth-child(3){grid-column:2;grid-row:1/3;text-align:right;max-width:42vw;overflow-wrap:anywhere}.radar-gap-row .small{font-size:10px}}";
       document.head.appendChild(style);
     }
 
