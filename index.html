@@ -1,16 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>PRONOUS</title></head>
-<body>
-<script>
-fetch("https://cdn.jsdelivr.net/gh/wadezigh96/pronous@f28c8ef1607e4b29f1b0119337838044010cb7c0/index.html")
-  .then(r=>r.text())
-  .then(html=>{
-    html = html.replace(
-      '<button class="execute-main-btn" id="executeOnchainBtn" type="button">Execute on-chain \u2192</button>',
-      '<button class="execute-main-btn" id="executeOnchainBtn" type="button" disabled title="Connect wallet, pass preflight, quote, simulate, and confirm before execute.">Execute on-chain \u2192</button>'
-    );
-    document.open(); document.write(html); document.close();
-  })
-  .catch(e=>{document.body.textContent="Failed to load PRONOUS shell: "+e;});
-</script>
-</body></html>
+<html lang="en">
+<head><meta charset="utf-8"><title>PRONOUS restoring…</title>
+<meta http-equiv="refresh" content="0;url=https://cdn.jsdelivr.net/gh/wadezigh96/pronous@f28c8ef1607e4b29f1b0119337838044010cb7c0/index.html">
+</head><body><p>Restoring PRONOUS…</p></body></html>
