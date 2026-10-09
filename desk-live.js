@@ -143,8 +143,10 @@
           }
           window.__pronousRadarAssets = radarPayload.assets;
           window.__pronousRadarSummary = radarPayload.summary || {};
+          window.__pronousRadarError = null;
         } catch (radarError) {
           window.__pronousRadarAssets = [];
+          window.__pronousRadarSummary = {};
           window.__pronousRadarError = radarError.message || "quote radar unavailable";
         }
         const pulse = document.getElementById("radarPulse");
@@ -163,6 +165,7 @@
         const pulse = document.getElementById("radarPulse");
         if (pulse) pulse.textContent = "API UNAVAILABLE";
         window.__pronousRadarAssets = [];
+        window.__pronousRadarSummary = {};
         window.__pronousRadarError = e.message || "market API unavailable";
         if (typeof renderRadar === "function") renderRadar();
       }
