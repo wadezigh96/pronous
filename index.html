@@ -1,5 +1,251 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>PRONOUS restoring…</title>
-<meta http-equiv="refresh" content="0;url=https://cdn.jsdelivr.net/gh/wadezigh96/pronous@f28c8ef1607e4b29f1b0119337838044010cb7c0/index.html">
-</head><body><p>Restoring PRONOUS…</p></body></html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRONOUS · Living Market OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/desk.css">
+<link rel="stylesheet" href="/desk-board.css">
+<style id="board-nuclear">
+html body.board-ui.fin-dash .wrap,html body.board-ui .board-wrap{display:block!important;grid:none!important;grid-template:none!important;max-width:1480px!important;padding:0 12px 24px!important}
+html body.board-ui .topbar-left{display:flex!important;align-items:center!important;gap:8px!important}
+html body.board-ui .topbar-crumb{margin-right:0!important}
+html body.board-ui .topbar-crumb:after{content:"·"!important;margin-left:8px!important;margin-right:0!important;color:#8a8374!important}
+html body.board-ui.fin-dash .wrap>*,html body.board-ui .board-wrap>*{grid-area:unset!important;grid-column:unset!important;grid-row:unset!important}
+html body.board-ui .board-grid{display:grid!important;grid-template-columns:minmax(280px,1.15fr) minmax(240px,.95fr) minmax(240px,.95fr)!important;grid-template-rows:auto auto auto auto auto!important;gap:10px!important;width:100%!important;align-items:start!important}
+html body.board-ui .board-card{align-self:start!important;margin:0!important}
+html body.board-ui .onchain-result{flex:0 1 auto!important;max-height:220px!important}
+html body.board-ui .skills-grid{flex:0 1 auto!important}
+html body.board-ui #tape{grid-column:1/2!important;grid-row:1/2!important;margin:0!important;min-height:0!important}
+html body.board-ui #agent{grid-column:2/3!important;grid-row:1/2!important;margin:0!important;min-height:0!important}
+html body.board-ui #market{grid-column:3/4!important;grid-row:1/2!important;margin:0!important;min-height:0!important}
+html body.board-ui #overview{grid-column:1/2!important;grid-row:2/3!important;margin:0!important}
+html body.board-ui #studio-section{grid-column:2/3!important;grid-row:2/3!important;margin:0!important}
+html body.board-ui #cmcRadarCard{grid-column:3/4!important;grid-row:2/3!important;margin:0!important}
+html body.board-ui #onchain-section{grid-column:1/3!important;grid-row:3/4!important;margin:0!important}
+html body.board-ui #skills-section{grid-column:3/4!important;grid-row:3/4!important;margin:0!important}
+html body.board-ui #execution{grid-column:1/3!important;grid-row:4/5!important;margin:0!important}
+html body.board-ui #poa-section{grid-column:3/4!important;grid-row:4/5!important;margin:0!important}
+html body.board-ui .cmc-table{display:table!important;width:100%!important;border-collapse:collapse!important}
+html body.board-ui .cmc-table thead{display:table-header-group!important}
+html body.board-ui .cmc-table tbody{display:table-row-group!important}
+html body.board-ui .cmc-table tr{display:table-row!important}
+html body.board-ui .cmc-table th,html body.board-ui .cmc-table td{display:table-cell!important;padding:7px 8px!important;white-space:nowrap!important;vertical-align:middle!important}
+html body.board-ui #cmcRadar{overflow:auto!important;max-height:240px!important}
+html body.board-ui .oc-table{width:100%!important;border-collapse:collapse!important;font-size:12px!important}
+html body.board-ui .oc-table th,html body.board-ui .oc-table td{padding:6px 8px!important;border-bottom:1px solid rgba(245,190,55,.08)!important;white-space:nowrap!important}
+html body.board-ui #radar-section,html body.board-ui .kpis,html body.board-ui .ticker-wrap,html body.board-ui .hero{display:none!important}
+html body.board-ui .app{display:grid!important;grid-template-columns:220px 1fr!important;min-height:100vh!important}
+html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!important;overflow-y:auto!important}
+@media(max-width:900px){html body.board-ui .app{display:block!important}html body.board-ui .side{display:none!important}html body.board-ui .board-grid{grid-template-columns:1fr!important;gap:8px!important}html body.board-ui #tape,html body.board-ui #agent,html body.board-ui #market,html body.board-ui #overview,html body.board-ui #studio-section,html body.board-ui #cmcRadarCard,html body.board-ui #onchain-section,html body.board-ui #skills-section,html body.board-ui #execution,html body.board-ui #poa-section{grid-column:1!important;grid-row:auto!important;min-height:0!important;margin:0!important}html body.board-ui .board-card{margin:0!important}}
+</style>
+</head>
+<body class="fin-dash board-ui">
+<div class="app">
+<aside class="side">
+<div class="side-brand"><span class="brand-mark">P</span><span class="brand-text">PRONOUS</span></div>
+<div class="navgroup"><div class="navlabel">WORKSPACE</div>
+<a class="navitem active" href="#overview">Overview</a>
+<a class="navitem" href="#market">Market</a>
+<a class="navitem" href="#radar-section">Radar</a>
+<a class="navitem" href="#agent">Agent</a>
+<a class="navitem" href="#execution">Execution</a>
+<a class="navitem" href="#poa-section">POA</a></div>
+<div class="navgroup"><div class="navlabel">TOOLS</div>
+<a class="navitem" href="#cmcRadarCard">RWA</a>
+<a class="navitem" href="#skills-section">Skills</a>
+<a class="navitem" href="#studio-section">Agent Studio</a>
+<a class="navitem" href="#onchain-section">On-chain</a></div>
+<div class="side-foot"><div class="tag live-tag">System Online</div><div class="muted small">BSC · Live Data</div></div>
+</aside>
+<main class="main"><div class="wrap board-wrap">
+<div class="topbar board-topbar">
+<div class="topbar-left" style="display:flex;align-items:center;gap:8px"><span class="topbar-crumb">PRONOUS</span><span class="topbar-title">Dashboard</span></div>
+<div class="topbar-search"><input type="search" placeholder="Find asset, chart, or moment…" onkeydown="if(event.key==='Enter'){const t=this.value.trim().toUpperCase();if(t){document.getElementById('ticker').value=t;scan();}}"></div>
+<div class="topbar-right"><span class="chain-badge">BSC</span>
+<div class="wallet-bar"><span id="walletSource" class="wallet-source">NO WALLET</span>
+<span id="walletStatus" class="wallet-status">WALLET NOT CONNECTED</span>
+<span id="walletAddressTop" class="wallet-address">Not connected</span>
+<button id="connectWalletBtn" class="secondary connect-btn" type="button" onclick="connectWallet()">Connect Wallet</button></div></div></div>
+<div class="board-grid">
+<section class="card board-card signal-card" id="tape">
+<div class="card-head"><div class="card-title-row"><h2>Market Signal</h2></div><small>Live token/reference divergence & market-state guard</small></div>
+<div class="signal-tabs"><button class="sig-tab active" type="button">All Assets</button><button class="sig-tab" type="button">Crypto</button><button class="sig-tab" type="button">Stocks</button><button class="sig-tab" type="button">RWA</button></div>
+<div class="signal-list" id="signalList"><div class="signal-row"><div class="sig-asset"><span class="sig-logo">•</span><div><b>LIVE FEED</b><span>Waiting for market assets…</span></div></div><div class="sig-price">—</div><div class="sig-spark">—</div><span class="sig-badge neutral">Loading</span></div></div>
+<div class="card-foot muted small">Live Binance Web3 asset feed · Last update <span id="signalUpdated">—</span></div>
+</section>
+<section class="card board-card scan-card" id="agent">
+<div class="card-head"><div class="card-title-row"><h2>Scan & Plan</h2></div><small>AI opportunity scanner</small></div>
+<div class="scan-row"><input id="ticker" value="NVDA" placeholder="Search asset or strategy…"><button type="button" onclick="scan()">Scan</button></div>
+<div class="scan-results" id="scan">Ready.</div>
+<div class="opp-list">
+<div class="opp-item"><div><b>Top Gainers</b><span>AI scan · 5m</span></div></div>
+<div class="opp-item"><div><b>RWA Opportunities</b><span>On-chain · 15m</span></div></div>
+<div class="opp-item"><div><b>Swing Setup</b><span>Technical · 15m</span></div></div>
+<div class="opp-item"><div><b>Portfolio Rebalance</b><span>Risk · 30m</span></div></div>
+</div>
+<div class="plan-box" id="plan">No plan yet.</div>
+<button class="secondary" type="button" onclick="simulate()">Simulate execution</button>
+</section>
+<section class="card board-card market-card" id="market">
+<div class="card-head"><div class="card-title-row"><h2>Market Watch</h2><span class="market-count" id="marketCount">—</span></div><small>Top Movers</small></div>
+<div class="mw-tabs"><button class="mw-tab active" type="button">Gainers</button><button class="mw-tab" type="button">Losers</button><button class="mw-tab" type="button">Volume</button></div>
+<div class="market-watch-body open" id="marketWatchBody">
+<div class="market-head"><span id="marketUpdated" class="muted small">—</span>
+<button class="secondary" type="button" onclick="loadMarket()">Refresh</button></div>
+<div class="row"><input id="marketSearch" placeholder="Search ticker…" oninput="renderMarket()">
+<button class="secondary" type="button" onclick="setFilter('all')">ALL</button>
+<button class="secondary" type="button" onclick="setFilter('ondo')">ONDO</button>
+<button class="secondary" type="button" onclick="setFilter('bstock')">bSTOCKS</button></div>
+<div id="marketTable" class="result market-table-wrap">Loading…</div></div>
+</section>
+<section class="card board-card chart-card" id="overview">
+<div class="card-head"><div class="card-title-row"><h2>Asset Chart</h2></div>
+<div class="chart-controls"><button class="chart-tf active" type="button">Candles</button><button class="chart-tf" type="button">Depth</button><button class="chart-tf" type="button">Indicators</button></div></div>
+<div class="chart-pair-row"><select id="chartPair" class="pair-select"><option>NVDA/USDT</option><option>AAPL/USDT</option><option>TSLA/USDT</option></select>
+<div class="tf-group"><button class="tf-btn" type="button">1m</button><button class="tf-btn active" type="button">5m</button><button class="tf-btn" type="button">15m</button><button class="tf-btn" type="button">1h</button><button class="tf-btn" type="button">4h</button><button class="tf-btn" type="button">1D</button></div></div>
+<div class="chart-price-line"><span class="chart-last" id="chartLast">—</span><span class="muted" id="chartChange">Waiting for live asset data…</span></div>
+<div class="chart-box gap-chart"><div class="chart-meta"><span id="tapeLabel">NVDA/USDT · 5m</span><span>SPOT · BSC</span></div>
+<canvas id="gapChart" width="980" height="210"></canvas></div>
+</section>
+<section class="card board-card studio-card" id="studio-section">
+<div class="card-head"><div class="card-title-row"><h2>Agent Studio</h2></div><span id="studioStatus" class="tag online-tag">Online</span></div>
+<div class="studio-desc muted small">AI Agent powered by BNB Chain</div>
+<div class="agent-list">
+<div class="agent-item"><span class="agent-dot active"></span><div><b>Market Analysis</b><span>Active · Scanning</span></div></div>
+<div class="agent-item"><span class="agent-dot active"></span><div><b>RWA Monitor</b><span>Active · Watchlist</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>Execution Planner</b><span>Idle · Ready</span></div></div>
+<div class="agent-item"><span class="agent-dot active"></span><div><b>Portfolio Guard</b><span>Active · Risk Control</span></div></div>
+</div>
+<button type="button" class="studio-open-btn" onclick="openAgentStudioDocs()">Open Agent Studio</button>
+<div class="studio-actions"><button class="secondary" type="button" onclick="copyAgentStudioPrompt()">Copy deploy prompt</button>
+<div id="studioFeedback" class="muted small">Prompt ready.</div></div>
+</section>
+<section class="card board-card cmc-card" id="cmcRadarCard">
+<div class="card-head"><div class="card-title-row"><h2>CMC RWA + Tokenisation</h2></div></div>
+<div class="cmc-tabs"><button class="cmc-tab active" type="button">RWA Assets</button><button class="cmc-tab" type="button">Tokenisation</button><button class="cmc-tab" type="button">Combined</button></div>
+<div id="cmcRadar" class="cmc-table-wrap"><table class="cmc-table"><thead><tr><th>#</th><th>Asset</th><th>Price</th><th>24h</th><th>Type</th></tr></thead>
+<tbody id="cmcBody"><tr><td colspan="5" class="muted small">Loading live CMC data…</td></tr></tbody></table></div>
+<div class="card-foot"><a href="#market" class="muted small">View All Assets →</a></div>
+</section>
+<section class="card board-card onchain-card" id="onchain-section">
+<div class="card-head"><div class="card-title-row"><h2>On-chain</h2></div><small>Live blockchain activity</small></div>
+<div class="oc-tabs"><button class="oc-tab active" type="button">Latest Transactions</button><button class="oc-tab" type="button">Top Holders</button><button class="oc-tab" type="button">Contracts</button></div>
+<div id="chain" class="result onchain-result"><div class="onchain-loading"><span class="onchain-pulse"></span> Loading live BSC indexed data…</div></div>
+</section>
+<section class="card board-card skills-card" id="skills-section">
+<div class="card-head"><div class="card-title-row"><h2>Skills</h2></div><small>Agent Skills</small></div>
+<div id="skills" class="skills-grid feature">
+<div class="skill-tile"><b>Market Sentinel</b><span>Real-time analysis</span></div>
+<div class="skill-tile"><b>Gap Guard</b><span>Arbitrage detection</span></div>
+<div class="skill-tile"><b>Cross-Venue Check</b><span>Liquidity scan</span></div>
+<div class="skill-tile"><b>Execution Planner</b><span>Trade planning</span></div>
+<div class="skill-tile"><b>Profit Guard</b><span>Risk management</span></div>
+<div class="skill-tile"><b>Portfolio Drift</b><span>Rebalance</span></div>
+<div class="skill-tile"><b>Agent Treasury</b><span>Treasury management</span></div>
+<div class="skill-tile"><b>Decision Ledger</b><span>On-chain record</span></div>
+</div></section>
+<section class="card board-card preflight-card" id="execution">
+<div class="card-head"><div class="card-title-row"><h2>Preflight</h2></div><span class="tag live-tag">Live</span></div>
+<div id="executionPipeline" class="exec-pipeline board-pipeline">
+<div data-step="preflight" class="exec-step active"><b>Preflight</b><em>CHECK</em></div>
+<div data-step="quote" class="exec-step"><b>Queue</b><em>WAIT</em></div>
+<div data-step="simulation" class="exec-step"><b>Simulation</b><em>LOCKED</em></div>
+<div data-step="confirmation" class="exec-step"><b>Confirmation</b><em>LOCKED</em></div>
+<div data-step="execution" class="exec-step"><b>Execution</b><em>LOCKED</em></div></div>
+<div class="wallet-context muted small">Execution wallet: <span id="walletAddress">Not connected</span> · BSC Mainnet (56)</div>
+<div class="preflight-body"><div>
+<div class="pf-row"><span>Current Contract</span><code id="contractDisplay">—</code></div>
+<div class="pf-row"><span>Action</span><span>Swap</span></div>
+<div class="pf-row"><span>Token In</span><span id="tokenInLabel">BNB</span></div>
+<div class="pf-row"><span>Token Out</span><span>USDT</span></div>
+<div class="pf-row"><span>Amount</span><span id="amountLabel">0.001</span></div></div><div>
+<div class="pf-row"><span>Expected Output</span><span id="expectedOut">—</span></div>
+<div class="pf-row"><span>Gas Fee</span><span id="gasFee">—</span></div></div></div>
+<div class="row"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount">
+<input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend">
+<button type="button" onclick="preflight()">Run preflight</button></div>
+<div class="row"><input id="fromTokenAddress" placeholder="Spend token e.g. USDT">
+<button class="secondary" type="button" onclick="requestQuote()">Get quote</button></div>
+<div class="row">
+<button class="secondary" type="button" onclick="setSpendToken('0x55d398326f99059fF775485246999027B3197955')">USDT</button>
+<button class="secondary" type="button" onclick="setSpendToken('0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c')">WBNB</button>
+<button class="secondary" type="button" onclick="setSpendToken('0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d')">USDC</button></div>
+<div id="quoteResult" class="result">Quote is locked until preflight passes.</div>
+<div id="preflight" class="result">Enter an amount and run preflight.</div>
+<div class="row poa-gate-row">
+<button class="execute-main-btn" id="executeOnchainBtn" type="button" disabled title="Connect wallet, pass simulation, and confirm before execution.">Execute on-chain →</button>
+<button class="secondary" id="confirmActionBtn" type="button" onclick="confirmAction()" disabled>Confirm action → POA</button>
+<span id="poaGateStatus" class="muted small">Connect wallet, then simulate before confirmation.</span></div>
+</section>
+<section class="card board-card poa-card" id="poa-section">
+<div class="card-head"><div class="card-title-row"><h2>Proof of Action</h2></div><span class="tag verified-tag">AWAITING EVIDENCE</span></div>
+<div class="poa-detail"><div class="poa-hash-row"><code id="poaStaticHash">No session proof</code></div>
+<div class="poa-meta"><div><span class="muted small">Block</span><b>—</b></div><div><span class="muted small">Time</span><b>—</b></div></div>
+<div class="poa-checks"><div class="check">Signature pending</div><div class="check">Integrity pending</div><div class="check">On-chain anchor pending</div></div>
+<a class="view-bscscan muted small" href="https://bscscan.com" target="_blank" rel="noopener">Open BscScan →</a></div>
+<div class="poa-banner"><button class="secondary" type="button" onclick="createCurrentPOA()">Create POA</button></div>
+<div id="poaCurrent" class="result">No POA generated for this session.</div>
+<div class="row"><input id="poaAnchorInput" value="0xD729eFf0E050195D464cC9597d7A5Cc7194911B5">
+<button class="secondary" type="button" onclick="savePoaAnchorFromInput()">Save</button></div>
+<div class="row"><button type="button" onclick="anchorCurrentPOA()">Anchor POA on-chain</button>
+<a id="poaAnchorTx" href="#" target="_blank" rel="noopener" style="display:none"></a></div>
+<div id="poaAnchorStatus" class="muted small">Anchor available after a valid session proof.</div>
+<div class="poa-ledger-head"><span class="muted small">LOCAL POA LEDGER</span>
+<button class="secondary" type="button" onclick="clearPOALedger()">Clear</button></div>
+<div id="poaLedger" class="poa-ledger">No evidence yet.</div>
+</section>
+<section id="radar-section" style="display:none"><div id="radar" class="result"></div><div id="clock" class="result"></div></section>
+<div class="kpis" style="display:none">
+<div class="kpi"><div class="kpi-value" id="kpiMode">LOADING</div></div>
+<div class="kpi"><div class="kpi-value" id="kpiAssets">—</div></div>
+<div class="kpi"><div class="kpi-value" id="kpiGap">—</div></div>
+<div class="kpi"><div class="kpi-value" id="kpiExec">LOCKED</div></div></div>
+</div>
+<input id="question" type="hidden"><div id="chatlog" hidden></div>
+</div>
+<nav class="mobile-nav"><a href="#overview">Home</a><a href="#market">Market</a><a href="#agent">Scan</a><a href="#execution">Execute</a></nav>
+</main></div>
+<div id="walletChooser" class="wallet-chooser" hidden aria-hidden="true">
+<div class="wallet-chooser-backdrop" onclick="closeWalletChooser()"></div>
+<section class="wallet-chooser-panel" role="dialog" aria-labelledby="walletChooserTitle">
+  <h2 id="walletChooserTitle">Connect Web3 Wallet</h2>
+  <p class="wallet-chooser-sub muted small">BSC Mainnet only · your keys stay in your wallet</p>
+  <div class="wallet-choice-grid">
+    <button type="button" class="wallet-choice-btn" onclick="connectBrowserWallet()">
+      <span class="wallet-choice-ico">⬡</span>
+      <span class="wallet-choice-label">Browser wallet</span>
+      <span class="wallet-choice-desc">MetaMask · Binance · Rabby</span>
+    </button>
+    <button type="button" class="wallet-choice-btn secondary" onclick="connectPrivyWallet()">
+      <span class="wallet-choice-ico">✉</span>
+      <span class="wallet-choice-label">Email / Google (Privy)</span>
+      <span class="wallet-choice-desc">Privy embedded wallet</span>
+    </button>
+  </div>
+  <p class="wallet-chooser-hint muted small">Mobile: use Privy, or open this site inside MetaMask / Binance Wallet browser.</p>
+  <button type="button" class="secondary wallet-cancel" onclick="closeWalletChooser()">Cancel</button>
+</section></div>
+<div id="assetDrawer" class="asset-drawer" aria-hidden="true">
+<div class="drawer-backdrop" onclick="closeAsset()"></div>
+<aside class="drawer-panel"><button class="drawer-close" onclick="closeAsset()">Close</button>
+<div id="drawerContent"></div>
+<canvas id="assetChart" width="760" height="260"></canvas></aside></div>
+<script src="/desk-charts.js"></script>
+<script src="/lib/execution-gates.js"></script>
+<script src="/lib/wallet-state.js"></script>
+<script src="/lib/tx-policy.js"></script>
+<script src="/lib/rpc-guard.js"></script>
+<script src="/wallet-connect.js"></script>
+<script src="/desk-app.js"></script>
+<script src="/desk-live.js"></script>
+<script src="/desk-exec.js"></script>
+<script src="/cmc-radar.js"></script>
+<script src="/lib/execution-result.js"></script>
+<script src="/desk-onchain.js"></script>
+<script src="/desk-parity.js"></script>
+<script src="/desk-bridge.js"></script>
+<script>document.querySelectorAll('.sig-tab,.mw-tab,.cmc-tab,.oc-tab,.chart-tf,.tf-btn').forEach(btn=>{btn.addEventListener('click',function(){const g=this.parentElement;if(g)g.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');});});</script>
+</body></html>
