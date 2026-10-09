@@ -18,7 +18,7 @@
 - The PoaAnchor address and both POA transactions above are the on-chain evidence for the attestation feature. They are not evidence that a swap was executed.
 
 ### Quote-preview only
-- The PancakeSwap Unified Swap API was queried with USDT input at 10, 100 and 1,000 USDT for NVDA, TSLA and SPY on Ondo and bStocks where listed. The recorded run produced 18 attempts: 17 routes and one `NO_ROUTE`, with no quote errors. See [quote-measurement CI run](https://github.com/wadezigh96/pronous/actions/runs/37990603018) and [saved measurements](./quote-measurements.json).
+- The PancakeSwap Unified Swap API was queried with USDT input at 10, 100 and 1,000 USDT for NVDA, TSLA and SPY on Ondo and bStocks where listed. The recorded run produced 18 attempts: 17 routes and one `NO_ROUTE`, with no quote errors. See [quote-measurement CI run](https://github.com/wadezigh96/pronous/actions/runs/37992545416) and [saved measurements](./quote-measurements.json).
 - `onchainGapPct` compares a one-way buy quote with `referencePrice × tokenToShareRatio`. It is a quote-preview metric, **not a round-trip arbitrage proof**. Large gaps that carry large price impact are treated as a route/liquidity warning. No quote request in that measurement asked for calldata or broadcast a transaction.
 
 ### Not enabled / not independently verified
