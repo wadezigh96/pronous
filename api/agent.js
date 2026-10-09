@@ -62,7 +62,7 @@ async function quoteRadarAsset(asset, sizeUSDT) {
     const gap=validReference&&price!==null?(price/expected-1)*100:null;
     return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:gap===null?null:Number(gap.toFixed(6)),
       priceImpactPct:q.priceImpact==null?null:Number((Number(q.priceImpact)*100).toFixed(6)),routeTypes:q.routeTypes||[],
-      actionable:validReference&&gap!==null&&Math.abs(gap)>=MIN_ACTIONABLE_GAP_PCT&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&!marketIsClosed(asset)};
+      actionable:validReference&&gap!==null&&Math.abs(gap)>=MIN_ACTIONABLE_GAP_PCT&&q.priceImpact!==null&&q.priceImpact!==undefined&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&!marketIsClosed(asset)};
   } catch(error) {
     const code=String(error?.code||error?.message||"QUOTE_ERROR"), noRoute=/NO_ROUTE/i.test(code);
     return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,
