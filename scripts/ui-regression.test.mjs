@@ -123,6 +123,27 @@ test("market signal is sourced from live assets and tabs are functional", () => 
   assert.doesNotMatch(html, /AI scanning 1,248 assets/);
 });
 
+test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route as null", () => {
+  assert.match(agent, /monitor:"onchain-vs-reference"/);
+  assert.match(agent, /onchainGapPct/);
+  assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
+  assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
+  assert.match(bridge, /window\.__pronousRadarAssets/);
+  assert.match(bridge, /NO REFERENCE/);
+  assert.match(bridge, /NO ROUTE/);
+  assert.match(bridge, /PancakeSwap quote-only/);
+});
+
+test("public read-only market endpoint is cached, paginated and bounded", () => {
+  assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
+  assert.match(agent, /Math\.max\(15000, Math\.min\(30000/);
+  assert.match(agent, /pagination:\{total:assets\.length,limit,offset,nextOffset,hasMore/);
+  assert.match(agent, /slice\(offset,offset\+limit\)/);
+  assert.match(agent, /\.slice\(0,limit\)/);
+  assert.match(bridge, /action=assets&limit=100&offset=/);
+  assert.match(bridge, /action=radar&limit=5&sizeUSDT=100/);
+});
+
 test("chart initial UI does not claim fabricated market values", () => {
   assert.doesNotMatch(html, /id="chartLast">181\\.24</);
   assert.doesNotMatch(html, /id="chartChange">\\+2\\.34% \\(\\+4\\.16\\)/);
