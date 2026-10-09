@@ -171,6 +171,8 @@ test("market alias and unavailable server feed never turn into demo prices", () 
 
 test("public read-only market endpoint is cached, paginated and bounded", () => {
   assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
+  assert.match(agent, /pancake-preview:/);
+  assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
   assert.match(agent, /Math\.max\(15000, Math\.min\(30000/);
   assert.match(agent, /pagination:\{total:assets\.length,limit,offset,nextOffset,hasMore/);
   assert.match(agent, /slice\(offset,offset\+limit\)/);
