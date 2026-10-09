@@ -70,7 +70,69 @@ async function loadMarket(){const box=document.getElementById('marketTable');if(
 async function scan(){const t=(document.getElementById('ticker').value||'').trim().toUpperCase();if(!t)return;document.getElementById('scan').textContent='Scanning…';try{const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));const j=await r.json();last=j;document.getElementById('scan').textContent=JSON.stringify(j,null,2);document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);if(j.asset){loadOnchain(j.asset);if(typeof window.loadRwaParity==='function')window.loadRwaParity(j.asset.ticker||t)}}catch(e){document.getElementById('scan').textContent='Error: '+e.message}}
 async function preflight(){resetExecutionState('preflight changed');const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(document.getElementById('amount').value)+'&maxSpend='+encodeURIComponent(document.getElementById('maxSpend').value));const j=await r.json();preflightReady=j.preflight&&j.preflight.status==='READY_FOR_SIMULATION';setExecutionStep('preflight',j.preflight&&j.preflight.status||'BLOCKED');box.innerHTML='<b>'+esc(j.preflight&&j.preflight.status||'UNKNOWN')+'</b>'}catch(e){box.textContent='Preflight error: '+e.message}}
 function bnbOnlyGuard(){const from=(document.getElementById('fromTokenAddress')?.value||'').trim().toLowerCase();if(from==='0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'||from==='0x0000000000000000000000000000000000000000'){const box=document.getElementById('quoteResult');if(box)box.textContent='Native BNB → NVDAon is not available in the current Binance route. Keep BNB for gas; use simulation/demo until a supported stablecoin balance exists.';return false}return true}
-async function requestQuote(){const box=document.getElementById('quoteResult');if(!bnbOnlyGuard())return;if(!preflightReady){box.textContent='Run preflight before quote.';return}if(!(await syncDeskWallet())){box.textContent='Connect wallet before quote.';return}const fromToken=(document.getElementById('fromTokenAddress').value||'').trim();if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken)){box.textContent='Enter spend token (USDT/WBNB), not the stock token.';return}const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===t)||(last&&last.asset)||null;const toToken=asset&&asset.tokenContractAddress?String(asset.tokenContractAddress).trim():'';if(toToken&&fromToken.toLowerCase()===toToken.toLowerCase()){box.textContent='from and to cannot be the same. from=USDT/WBNB; to='+t+' ('+toToken.slice(0,10)+'…).';return}try{const p=new URLSearchParams({action:'quote',ticker:t,fromTokenAddress:fromToken,amount:document.getElementById('amount').value,userWalletAddress:walletAddress});if(toToken)p.set('toTokenAddress',toToken);const r=await fetch('/api/agent?'+p.toString());const j=await r.json();if(!r.ok||j.error)throw new Error(j.error||'Quote failed');latestQuote=j;box.innerHTML='<b>QUOTE READY</b>';setExecutionStep('quote','READY')}catch(e){box.textContent='Quote error: '+e.message}}
+async function loadPancakeQuotePreview(ticker,fromTokenAddress,toTokenAddress,amount,maxSpend){
+  const p=new URLSearchParams({action:'pancakeQuote',ticker,fromTokenAddress,toTokenAddress,amount,maxSpend});
+  const r=await fetch('/api/agent?'+p.toString());
+  const j=await r.json();
+  window.__pronousPancakeQuote=j;
+  return {httpOk:r.ok,data:j};
+}
+async function requestQuote(){
+  const box=document.getElementById('quoteResult');
+  if(!bnbOnlyGuard())return;
+  if(!preflightReady){box.textContent='Run preflight before quote.';return}
+  if(!(await syncDeskWallet())){box.textContent='Connect wallet before quote.';return}
+  const fromToken=(document.getElementById('fromTokenAddress').value||'').trim();
+  if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken)){box.textContent='Enter a supported spend token (USDT/USDC for the PancakeSwap preview), not the stock token.';return}
+  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
+  const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===t)||(last&&last.asset)||null;
+  const toToken=asset&&asset.tokenContractAddress?String(asset.tokenContractAddress).trim():'';
+  if(!toToken){box.textContent='No verified live contract address for this RWA asset.';return}
+  if(fromToken.toLowerCase()===toToken.toLowerCase()){box.textContent='from and to token addresses must differ.';return}
+  const amount=(document.getElementById('amount').value||'').trim();
+  const maxSpend=(document.getElementById('maxSpend')?.value||'').trim();
+  box.textContent='Checking live quote sources…';
+  const requestBinance=async()=>{
+    const p=new URLSearchParams({action:'quote',ticker:t,fromTokenAddress:fromToken,amount,userWalletAddress:walletAddress,toTokenAddress:toToken});
+    const r=await fetch('/api/agent?'+p.toString());
+    const j=await r.json();
+    return {httpOk:r.ok,data:j};
+  };
+  const [binanceResult,pancakeResult]=await Promise.allSettled([
+    requestBinance(),
+    loadPancakeQuotePreview(t,fromToken,toToken,amount,maxSpend)
+  ]);
+  let html='';
+  let binanceLive=false;
+  if(binanceResult.status==='fulfilled'){
+    const j=binanceResult.value.data;
+    if(binanceResult.value.httpOk && j.mode==='live-quote' && j.quote){
+      binanceLive=true;
+      latestQuote=j;
+      html+='<div><b>BINANCE DEX LIVE QUOTE</b></div>';
+    }else{
+      const reason=String(j.error||j.status||j.mode||'quote unavailable');
+      html+='<div><b>Binance DEX quote unavailable</b> · '+esc(reason)+'</div>';
+    }
+  }else{
+    html+='<div><b>Binance DEX quote unavailable</b> · '+esc(binanceResult.reason?.message||'request failed')+'</div>';
+  }
+  if(pancakeResult.status==='fulfilled'){
+    const result=pancakeResult.value;
+    const j=result.data||{};
+    if(result.httpOk && j.quote && j.quote.status==='QUOTE_ONLY'){
+      const q=j.quote;
+      html+='<div style="margin-top:8px"><b>PancakeSwap quote preview</b> · '+esc(q.amountIn)+' → '+esc(q.amountOut)+' · price impact '+esc(q.priceImpact??'n/a')+' · '+esc((q.routeTypes||[]).join(' / '))+'</div><div class="muted small">Quote only; no calldata, signing or broadcast. Refresh before use.</div>';
+    }else{
+      html+='<div style="margin-top:8px"><b>PancakeSwap preview unavailable</b> · '+esc(j.status||j.error||j.mode||'no route')+'</div>';
+    }
+  }else{
+    html+='<div style="margin-top:8px"><b>PancakeSwap preview unavailable</b> · '+esc(pancakeResult.reason?.message||'request failed')+'</div>';
+  }
+  box.innerHTML=html;
+  if(binanceLive)setExecutionStep('quote','LIVE QUOTE');
+  else setExecutionStep('quote','PREVIEW ONLY');
+}
 function setSpendToken(addr){const el=document.getElementById('fromTokenAddress');if(el){el.value=addr;resetExecutionState('spend token changed');el.focus()}}
 function pickSimulationTx(root){const seen=new Set();function walk(x,depth){if(!x||typeof x!=='object'||depth>5||seen.has(x))return null;seen.add(x);for(const k of ['tx','evmTx','swapTransaction','transaction']){const v=x[k];if(v&&typeof v==='object'&&v.to)return v}for(const v of Object.values(x)){const hit=walk(v,depth+1);if(hit)return hit}return null}return walk(root,0)}
 async function simulate(){const el=document.getElementById('plan');const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();if(!(await syncDeskWallet())){el.textContent='Connect wallet before simulation.';return}if(!preflightReady){el.textContent='Run preflight first.';return}const fromToken=(document.getElementById('fromTokenAddress').value||'').trim();if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken)){el.textContent='Set spend token first (USDT / WBNB / USDC).';return}const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===t)||(last&&last.asset)||null;const toToken=asset&&asset.tokenContractAddress?String(asset.tokenContractAddress).trim():'';const amount=(document.getElementById('amount').value||'').trim();if(!toToken){el.textContent='Asset contract is unavailable.';return}el.textContent='Building unsigned transaction…';window.__pronousSimulated=false;try{const maxSpend=(document.getElementById('maxSpend')?.value||'').trim();
