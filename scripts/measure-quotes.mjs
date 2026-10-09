@@ -197,13 +197,27 @@ async function main() {
     for (const asset of group.assets) for (const sizeUSDT of SIZES_USDT) tasks.push({ group, asset, sizeUSDT });
   }
   const results = await parallelLimit(tasks, CONCURRENCY, (task) => measureOne(task.asset, task.sizeUSDT));
-  const reportRows = results.map((row, i) => ({
+  const initialRows = results.map((row, i) => ({
     ...row,
     selectedTickerGroup: tasks[i].group.ticker,
     expectedPriceBasis: "referencePrice * tokenToShareRatio",
     source: "PancakeSwap Unified Swap API quote endpoint (quote-only)",
-    broadcast: false
+    broadcast: false,
+    slippageVs10USDTPct: null
   }));
+  const reportRows = initialRows.map((row) => {
+    const baseline = initialRows.find((candidate) =>
+      candidate.ticker === row.ticker &&
+      candidate.platformId === row.platformId &&
+      candidate.sizeUSDT === 10 &&
+      candidate.routeAvailable &&
+      candidate.quotePriceUSDTPerToken > 0
+    );
+    const slippage = row.routeAvailable && baseline && row.quotePriceUSDTPerToken > 0
+      ? (row.quotePriceUSDTPerToken / baseline.quotePriceUSDTPerToken - 1) * 100
+      : null;
+    return { ...row, slippageVs10USDTPct: slippage === null ? null : Number(slippage.toFixed(6)) };
+  });
   const noRouteCount = reportRows.filter((x) => x.routeStatus === "NO_ROUTE").length;
   const errorCount = reportRows.filter((x) => x.routeStatus === "QUOTE_ERROR").length;
   const routedCount = reportRows.filter((x) => x.routeAvailable).length;
@@ -242,7 +256,7 @@ async function main() {
     ticker: row.ticker, platformId: row.platformId, sizeUSDT: row.sizeUSDT,
     routeStatus: row.routeStatus, quotePriceUSDTPerToken: row.quotePriceUSDTPerToken,
     expectedTokenPrice: row.expectedTokenPrice, onchainGapPct: row.onchainGapPct,
-    priceImpactPct: row.priceImpactPct, quoteLatencyMs: row.quoteLatencyMs, error: row.error
+    priceImpactPct: row.priceImpactPct, quoteLatencyMs: row.quoteLatencyMs, slippageVs10USDTPct: row.slippageVs10USDTPct, error: row.error
   }));
   console.log("Saved " + reportRows.length + " quote records to " + outputPath + "; broadcast=false");
 }
