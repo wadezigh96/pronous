@@ -142,6 +142,7 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(live, /x\.routeStatus/);
   assert.match(live, /PancakeSwap quote-only/);
   assert.match(live, /BUY-QUOTE vs REFERENCE/);
+  assert.match(live, /const threshold = Number\(window\.__pronousRadarSummary\?\.minActionableGapPct \|\| 1\)/);
   assert.match(live, /HIGH IMPACT · REVIEW/);
   assert.match(live, /IMPACT UNKNOWN · REVIEW/);
   assert.match(live, /@media\(max-width:560px\)/);
