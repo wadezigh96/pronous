@@ -36,8 +36,8 @@ This report is the actual build log. It is not a compliment sheet.
 
 - Platforms seen live on BSC: **Ondo** (majority) and **bStocks**. xStocks was in the allowlist but did not appear in the 488-asset snapshot we pulled.
 - Tokenized vs reference: the evidence now points to a semantic problem in the feed fields, not proof that the feed itself is broken. The script run against `https://pronous.vercel.app/api/agent?action=assets` on **2026-10-09 20:47:58 UTC** received **488** live assets: **442 Ondo, 46 bStocks, 0 xStocks**. All **488/488** had valid positive token/reference/ratio fields; all **488/488** were in the `≤0.000001%` deviation histogram bucket for `abs(tokenPrice - referencePrice × ratio) / tokenPrice × 100`; median, P90, and maximum deviation were all **0%**, and there were **0** outliers above the configured **0.1%** threshold. The run and full per-asset artifact are linked here: https://github.com/wadezigh96/pronous/actions/runs/37989233347.
-- Liquidity / slippage: I measured PancakeSwap quote previews for **NVDA, TSLA, and SPY**, each on Ondo and bStocks where listed, at **10 / 100 / 1,000 USDT**. The 18 quote attempts produced **17 routes, 1 no-route, 0 quote errors**. Quote latency ranged **231–755 ms** (median **278 ms**); reported price impact ranged **0–30.96%** (median **0.01%**). This is an indicative one-way buy quote, not a sell quote or a round-trip arbitrage calculation. The largest number—SPY/Ondo at 100 USDT—was **+62.752842% onchainGapPct with 30.96% price impact and 62.278069% worse price than the 10 USDT baseline**. I treat that as a route/liquidity warning, not an opportunity. One SPY/Ondo 1,000 USDT request returned `NO_ROUTE`, so the gap is null, never zero. Full raw measurements and same-ticker comparisons are saved in [`docs/quote-measurements.json`](./quote-measurements.json); the run's original log and artifacts are in [CI run 37990603018](https://github.com/wadezigh96/pronous/actions/runs/37990603018). No quote requested calldata, signed, or broadcast a transaction.
-- The numeric upstream `volume24H` field was present in the quote snapshot, but its unit is not documented; values were around **14–19 billion** for the sampled assets. Radar sorts by that reported field only when present. I recommend the API add an explicit `volume24HUsd` and `volumeUnit` instead of asking clients to guess what the raw number means.
+- Liquidity / slippage: I measured PancakeSwap quote previews for **NVDA, TSLA, and SPY**, each on Ondo and bStocks where listed, at **10 / 100 / 1,000 USDT**. The snapshot at **2026-10-09 21:19:33 UTC** produced **18 attempts: 17 routes, 1 no-route, 0 quote errors**. Quote latency ranged **231–1,069 ms** (median **313 ms**); price impact ranged **0–30.96%** (median **0%**). This is an indicative one-way buy quote, not a sell quote or round-trip arbitrage calculation. SPY/Ondo at 100 USDT showed **+62.745719% onchainGapPct, 30.96% impact, and 62.278069% worse price than the 10 USDT baseline**. I treat this as a route/liquidity warning, not an opportunity. SPY/Ondo at 1,000 USDT returned `NO_ROUTE`, so its gap is null, never zero. Full raw measurements and same-ticker comparisons are saved in [`docs/quote-measurements.json`](./quote-measurements.json); source log and artifact: [CI run 37992545416](https://github.com/wadezigh96/pronous/actions/runs/37992545416). No quote requested calldata, signed, or broadcast a transaction.
+- The numeric upstream `volume24H` field was present in the quote snapshot, but its unit is not documented; values were around **14.0–19.4 billion** for the sampled assets. Radar sorts by that reported field only when present. I recommend the API add an explicit `volume24HUsd` and `volumeUnit` instead of asking clients to guess what the raw number means.
 - Rate-limit caveat: `guardRequest` allows **60 requests per 60 seconds per IP per warm function instance**, then returns `429` with `Retry-After: 60`. On Vercel, these in-memory counters do not coordinate across serverless instances. This is a useful local guard, not a globally enforceable IP limit; production-wide enforcement needs a shared store or edge rate-limit service.
 - Market hours: token can stay available while the reference session is closed. The desk therefore shows `marketStatus` / `openState` before treating a gap as a plan.
 - Platform differences: Ondo dominated the universe. bStocks appeared as a smaller set. Comparing the same ticker across venues still depends on search results including more than one `platformId`.
@@ -62,7 +62,7 @@ Those large raw spreads are explained by the share multiplier in these rows. Thi
 
 I changed the definition of `actionable` so that a valid adjusted gap has to clear a configurable absolute threshold (`PRONOUS_MIN_ACTIONABLE_GAP_PCT`, default **1%**). Missing/invalid ratios stay non-actionable. That is only the feed-quality gate; the Divergence Radar uses a separate quote-derived field, `onchainGapPct`, and a quote route must exist before it can display a numeric gap.
 
-Same-ticker feed/volume/route comparison from the quote snapshot at **2026-10-09 21:00:29 UTC**. `adjustedSpreadPct` is the old ratio-adjusted feed gap; it was 0% for these six venue rows. The `volume24H` unit is not documented, so keep these numbers as raw provider values—not USD liquidity.
+Same-ticker feed/volume/route comparison from the quote snapshot at **2026-10-09 21:19:33 UTC**. `adjustedSpreadPct` is the old ratio-adjusted feed gap; it was 0% for these six venue rows. The `volume24H` unit is not documented, so keep these numbers as raw provider values—not USD liquidity.
 
 | Ticker | Venue | Feed adjusted spread | Raw `volume24H` | Routes for 10 / 100 / 1,000 USDT |
 |---|---|---:|---:|---|
@@ -75,19 +75,19 @@ Same-ticker feed/volume/route comparison from the quote snapshot at **2026-10-09
 
 This is the practical reason not to sort the market radar by `adjustedSpreadPct`: the feed gap is zero across these rows, while independent buy-quote results differ by venue and size. The numeric volume can be used as an upstream rank key, but it is not yet defensible to call it volume in USD without a documented unit.
 
-Measured same-ticker on-chain gaps from the actual quote run (all values are **buy-side quote** relative to `referencePrice × shareRatio`; price impact is reported by PancakeSwap):
+Measured same-ticker on-chain gaps from that quote snapshot (all values are **buy-side quotes** relative to `referencePrice × shareRatio`; impact is returned by PancakeSwap):
 
 | Ticker | Size | Ondo gap / impact | bStocks gap / impact | Route |
 |---|---:|---:|---:|---|
-| NVDA | 10 USDT | +1.026828% / 0.94% | +0.006079% / 0% | Both |
-| NVDA | 100 USDT | +1.781797% / 1.09% | +0.006079% / 0% | Both |
-| NVDA | 1,000 USDT | +2.857447% / 2.12% | +0.006079% / 0% | Both |
-| TSLA | 10 USDT | +0.517309% / 3.68% | +0.038757% / 0% | Both |
-| TSLA | 100 USDT | +6.203777% / 6.50% | +0.038757% / 0% | Both |
-| TSLA | 1,000 USDT | +10.141729% / 3.25% | +0.043413% / 0% | Both |
-| SPY | 10 USDT | +0.292568% / 0.69% | −0.029489% / 0.01% | Both |
-| SPY | 100 USDT | +62.752842% / 30.96% | −0.028641% / 0.01% | Both |
-| SPY | 1,000 USDT | `NO_ROUTE` | −0.021914% / 0% | bStocks only |
+| NVDA | 10 USDT | +1.046490% / 0.94% | −0.000435% / 0% | Both |
+| NVDA | 100 USDT | +1.801605% / 1.09% | −0.000435% / 0% | Both |
+| NVDA | 1,000 USDT | +2.877465% / 2.12% | −0.000435% / 0% | Both |
+| TSLA | 10 USDT | +0.512738% / 3.68% | +0.002536% / 0% | Both |
+| TSLA | 100 USDT | +6.177667% / 6.50% | +0.002536% / 0% | Both |
+| TSLA | 1,000 USDT | +10.114651% / 3.25% | +0.007189% / 0% | Both |
+| SPY | 10 USDT | +0.288178% / 0.69% | −0.040212% / 0% | Both |
+| SPY | 100 USDT | +62.745719% / 30.96% | −0.040212% / 0% | Both |
+| SPY | 1,000 USDT | `NO_ROUTE` | −0.036053% / 0% | bStocks only |
 
 The differences between Ondo and bStocks are materially different, but the high-impact Ondo quotes are not evidence of executable arbitrage. At the adjacent source snapshot, Ondo records for these tickers reported `marketStatus: "postmarket"`; after-hours reference staleness is an additional reason not to promote the observed gap to an action. The radar now treats premarket/postmarket/closed states as stale-reference risk and requires a configured meaningful gap **and** a known price impact no greater than **1%** before marking a quote actionable. The code is intentionally conservative.
 
