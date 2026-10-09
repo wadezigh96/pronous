@@ -1,4 +1,4 @@
-const { assessQuote, isSupportedPlatform, resolveAssetShareRatio, isMarketClosed, classifyAssetSignal, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
+const { assessQuote, isSupportedPlatform, resolveAssetShareRatio, isMarketClosed, classifyAssetSignal, calculateImpactAdjustedGapPct, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
 const { getPancakeQuote, USDT } = require("../lib/pancakeswap-quote");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
@@ -54,39 +54,50 @@ async function quoteRadarAsset(asset, sizeUSDT) {
   const address=String(asset.tokenContractAddress||"").trim();
   const expected=Number(asset.referencePrice)*Number(asset.shareRatio??asset.tokenToShareRatio);
   const validReference=Number.isFinite(expected)&&expected>0;
-  const smallestQuoteSizeUSDT=Math.min(10,sizeUSDT);
+  const lowImpactQuoteSizeUSDT=Math.min(10,sizeUSDT);
   const gapBasis="REQUESTED_SIZE_BUY_QUOTE_INCLUDES_PRICE_IMPACT";
-  const midGapMethod="SMALLEST_SIZE_BUY_QUOTE_PROXY";
-  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",quoteSizeUSDT:sizeUSDT,marketContext:marketHoursContext(asset),gapBasis,midGapMethod,broadcast:false};
-  if(!/^0x[a-fA-F0-9]{40}$/.test(address)) return {...base,routeStatus:"NO TOKEN ADDRESS",quotePriceUSDTPerToken:null,onchainGapPct:null,requestedSizeGapPct:null,midGapPct:null,midQuotePriceUSDTPerToken:null,midQuoteSizeUSDT:smallestQuoteSizeUSDT,midQuoteStatus:"NO ROUTE",priceImpactPct:null,actionable:false};
+  const lowImpactGapMethod="SMALLEST_SIZE_BUY_QUOTE_PROXY";
+  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",quoteSizeUSDT:sizeUSDT,
+    marketContext:marketHoursContext(asset),gapBasis,lowImpactGapMethod,broadcast:false};
+  if(!/^0x[a-fA-F0-9]{40}$/.test(address)) return {...base,routeStatus:"NO TOKEN ADDRESS",
+    quotePriceUSDTPerToken:null,onchainGapPct:null,requestedSizeGapPct:null,impactAdjustedGapPct:null,
+    lowImpactGapPct:null,lowImpactQuotePriceUSDTPerToken:null,lowImpactQuoteSizeUSDT,lowImpactQuoteStatus:"NO ROUTE",
+    priceImpactPct:null,actionable:false};
   try {
-    const q=await cachedValue("pancake-radar:"+address.toLowerCase()+":"+sizeUSDT,()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(sizeUSDT)}));
+    const q=await cachedValue("pancake-radar:"+address.toLowerCase()+":"+sizeUSDT,
+      ()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(sizeUSDT)}));
     const input=Number(q.amountIn), output=Number(q.amountOut);
     const price=input>0&&output>0&&Number.isFinite(input)&&Number.isFinite(output)?input/output:null;
     const gap=validReference&&price!==null?(price/expected-1)*100:null;
-    let midPrice=null,midGap=null,midQuoteStatus="QUOTE ERROR";
+    const impactAdjustedGapPct=calculateImpactAdjustedGapPct(price,q.priceImpact,asset.referencePrice,asset.shareRatio??asset.tokenToShareRatio);
+    let lowImpactPrice=null,lowImpactGap=null,lowImpactQuoteStatus="QUOTE ERROR";
     try {
-      const small=sizeUSDT<=10?q:await cachedValue("pancake-radar:"+address.toLowerCase()+":"+smallestQuoteSizeUSDT,()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(smallestQuoteSizeUSDT)}));
+      const small=sizeUSDT<=10?q:await cachedValue("pancake-radar:"+address.toLowerCase()+":"+lowImpactQuoteSizeUSDT,
+        ()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(lowImpactQuoteSizeUSDT)}));
       const si=Number(small.amountIn),so=Number(small.amountOut);
-      midPrice=si>0&&so>0&&Number.isFinite(si)&&Number.isFinite(so)?si/so:null;
-      midGap=validReference&&midPrice!==null?(midPrice/expected-1)*100:null;
-      midQuoteStatus=midPrice===null?"NO PRICE":"ROUTE";
+      lowImpactPrice=si>0&&so>0&&Number.isFinite(si)&&Number.isFinite(so)?si/so:null;
+      lowImpactGap=validReference&&lowImpactPrice!==null?(lowImpactPrice/expected-1)*100:null;
+      lowImpactQuoteStatus=lowImpactPrice===null?"NO PRICE":"ROUTE";
     } catch(smallError) {
       const sc=String(smallError?.code||smallError?.message||"QUOTE_ERROR");
-      midQuoteStatus=/NO_ROUTE/i.test(sc)?"NO ROUTE":"QUOTE ERROR";
+      lowImpactQuoteStatus=/NO_ROUTE/i.test(sc)?"NO ROUTE":"QUOTE ERROR";
     }
     const normalizedGap=gap===null?null:Number(gap.toFixed(6));
-    const normalizedMidGap=midGap===null?null:Number(midGap.toFixed(6));
+    const normalizedLowImpactGap=lowImpactGap===null?null:Number(lowImpactGap.toFixed(6));
     const priceImpactPct=q.priceImpact==null?null:Number((Number(q.priceImpact)*100).toFixed(6));
-    const actionable=asset.dataQuality==="ok"&&validReference&&normalizedMidGap!==null&&Math.abs(normalizedMidGap)>=MIN_ACTIONABLE_GAP_PCT&&
+    const actionable=asset.dataQuality==="ok"&&validReference&&normalizedLowImpactGap!==null&&
+      Math.abs(normalizedLowImpactGap)>=MIN_ACTIONABLE_GAP_PCT&&
       q.priceImpact!==null&&q.priceImpact!==undefined&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&
       marketHoursContext(asset)==="MARKET_STATUS_REPORTED"&&!marketIsClosed(asset);
-    return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:normalizedGap,requestedSizeGapPct:normalizedGap,priceImpactPct,
-      midGapPct:normalizedMidGap,midQuotePriceUSDTPerToken:midPrice,midQuoteSizeUSDT:smallestQuoteSizeUSDT,midQuoteStatus,routeTypes:q.routeTypes||[],actionable};
+    return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:normalizedGap,requestedSizeGapPct:normalizedGap,
+      impactAdjustedGapPct,priceImpactPct,lowImpactGapPct:normalizedLowImpactGap,lowImpactQuotePriceUSDTPerToken:lowImpactPrice,
+      lowImpactQuoteSizeUSDT,lowImpactQuoteStatus,routeTypes:q.routeTypes||[],actionable};
   } catch(error) {
     const code=String(error?.code||error?.message||"QUOTE_ERROR"), noRoute=/NO_ROUTE/i.test(code);
-    return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,requestedSizeGapPct:null,midGapPct:null,
-      midQuotePriceUSDTPerToken:null,midQuoteSizeUSDT:smallestQuoteSizeUSDT,midQuoteStatus:noRoute?"NO ROUTE":"QUOTE ERROR",priceImpactPct:null,quoteError:noRoute?null:code,actionable:false};
+    return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,
+      requestedSizeGapPct:null,impactAdjustedGapPct:null,lowImpactGapPct:null,lowImpactQuotePriceUSDTPerToken:null,
+      lowImpactQuoteSizeUSDT,lowImpactQuoteStatus:noRoute?"NO ROUTE":"QUOTE ERROR",priceImpactPct:null,
+      quoteError:noRoute?null:code,actionable:false};
   }
 }
 async function liveRadar(sizeUSDT, limit) {
@@ -104,7 +115,7 @@ async function liveRadar(sizeUSDT, limit) {
       candidatesQuoted:0,volumeAvailable:false,noVolumeData:assets.length,
       reason:"UPSTREAM_24H_VOLUME_UNAVAILABLE",
       routeAvailable:0,noRoute:0,quoteErrors:0,actionable:0,quoteSizeUSDT:sizeUSDT,
-      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",midQuoteSizeUSDT:Math.min(10,sizeUSDT),midGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY",volumeBasis:"upstream reported 24h volume; units unverified unless volume24HUnit is supplied",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
+      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",lowImpactQuoteSizeUSDT:Math.min(10,sizeUSDT),lowImpactGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY",volumeBasis:"upstream reported 24h volume; units unverified unless volume24HUnit is supplied",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
     }};
     const selected=volumeCandidates.slice(0,limit);
     const rows=await mapWithConcurrency(selected,2,a=>quoteRadarAsset(a,sizeUSDT));
@@ -114,7 +125,7 @@ async function liveRadar(sizeUSDT, limit) {
       noRoute:rows.filter(x=>x.routeStatus==="NO ROUTE").length,
       quoteErrors:rows.filter(x=>x.routeStatus==="QUOTE ERROR").length,
       actionable:rows.filter(x=>x.actionable).length,quoteSizeUSDT:sizeUSDT,
-      quoteSource:"PancakeSwap Unified Swap API",midQuoteSizeUSDT:Math.min(10,sizeUSDT),midGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
+      quoteSource:"PancakeSwap Unified Swap API",lowImpactQuoteSizeUSDT:Math.min(10,sizeUSDT),lowImpactGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
     }};
   });
 }
@@ -179,11 +190,13 @@ function buildPreflight(asset, params={}) {
   const amount=Number(params.amount||0),maxSpend=Number(params.maxSpend||100);
   const checks=buildGuardChecks(asset,{amount,maxSpend});
   const offHours=marketIsClosed(asset);
-  if(offHours) checks.push({id:"market_session",label:"Underlying market session",pass:false,reason:"OFF_HOURS_DRIFT is informational only; the reference price may be stale."});
+  const ackOffHours=params.ackOffHours===true;
+  const warning=offHours&&!ackOffHours?"ACK_REQUIRED":null;
+  const referenceWarning=offHours?"Underlying market is closed; reference price may be stale.":null;
   return {status:preflightStatus(checks),amount,maxSpend,spreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,
     adjustedSpreadPct:asset.adjustedSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
     signal:classifyAssetSignal(asset),actionable:asset.actionable===true&&!offHours,
-    referenceWarning:offHours?"Underlying market is closed; reference price may be stale.":null,
+    ackOffHours,warning,referenceWarning,
     checks,next:checks.find(x=>!x.pass)?.id||"simulation"};
 }
 
@@ -417,8 +430,9 @@ module.exports = async function handler(req,res) {
             mode:"live-data",network:"BSC",updatedAt:Date.now(),feedUpdatedAt:liveAssetsFetchedAt,spotOnly:true,
             monitor:"onchain-vs-reference",
             formula:"onchainGapPct = (quotePriceUSDTPerToken / (referencePrice * shareRatio) - 1) * 100",
-            midGapFormula:"midGapPct uses the smallest-size buy quote (10 USDT by default) as a lower-impact proxy; it is not a true bid/ask midpoint.",
-            gapSemantics:"onchainGapPct/requestedSizeGapPct is the requested-size buy-quote price gap including price impact; it is a quote-based execution-price estimate, not an actual fill.",
+            impactAdjustedGapFormula:"impactAdjustedGapPct = ((quotePriceUSDTPerToken / (1 + priceImpact)) / (referencePrice * shareRatio) - 1) * 100; priceImpact is a decimal fraction.",
+            lowImpactGapFormula:"lowImpactGapPct uses the smallest-size buy quote (10 USDT by default) as a lower-impact proxy; it is not a true bid/ask midpoint.",
+            gapSemantics:"onchainGapPct/requestedSizeGapPct is the requested-size buy-quote price gap including price impact; it is an execution-price estimate from a quote, not an actual fill.",
             referenceBasis:"USDT is treated as approximately USD; stablecoin depeg risk is not modeled.",quoteSide:"BUY; quote-only and not a round-trip arbitrage estimate",maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,
             marketHoursNote:"OFF_HOURS_DRIFT is informational and non-actionable. When the underlying exchange is closed, the reference may be stale.",
             summary:result.summary,assets:result.assets,broadcast:false
@@ -518,10 +532,9 @@ module.exports = async function handler(req,res) {
       const spend=validateSpendCap(input.amount, maxSpend);
       if(!spend.ok) return res.status(400).json({error:spend.error});
 
-      const preflight=buildPreflight(asset,{
-        amount:input.amount,
-        maxSpend
-      });
+      const ackOffHours=url.searchParams.get("ackOffHours")==="true";
+      const preflight=buildPreflight(asset,{amount:input.amount,maxSpend,ackOffHours});
+      if(preflight.warning==="ACK_REQUIRED") return res.status(409).json({error:"OFF_HOURS_ACK_REQUIRED",preflight});
       if(preflight.status!=="READY_FOR_SIMULATION"){
         return res.status(409).json({
           error:"PRE_FLIGHT_BLOCKED",
@@ -558,6 +571,8 @@ module.exports = async function handler(req,res) {
     }
 
     if(action==="build") {
+      const ackOffHours=url.searchParams.get("ackOffHours")==="true";
+      if(marketIsClosed(asset)&&!ackOffHours) return res.status(409).json({error:"OFF_HOURS_ACK_REQUIRED",warning:"ACK_REQUIRED",signal:classifyAssetSignal(asset),actionable:false,referenceWarning:"Underlying market is closed; reference price may be stale.",broadcast:false});
       const input={fromTokenAddress:url.searchParams.get("fromTokenAddress"),toTokenAddress:url.searchParams.get("toTokenAddress"),amount:url.searchParams.get("amount"),userWalletAddress:url.searchParams.get("userWalletAddress"),quoteId:url.searchParams.get("quoteId"),slippagePercent:url.searchParams.get("slippagePercent"),approveTransaction:url.searchParams.get("approveTransaction")};
       if(!isAmount(input.amount)) return res.status(400).json({error:"Invalid amount"});
       if(input.fromTokenAddress && !isAddress(input.fromTokenAddress)) return res.status(400).json({error:"Invalid fromTokenAddress"});
@@ -617,7 +632,8 @@ module.exports = async function handler(req,res) {
       if(!isAmount(amount) || !isAmount(maxSpend)) return res.status(400).json({error:"Invalid amount or maxSpend"});
       const spend=validateSpendCap(amount,maxSpend);
       if(!spend.ok) return res.status(400).json({error:spend.error});
-      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend}),broadcast:false});
+      const ackOffHours=url.searchParams.get("ackOffHours")==="true";
+      return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,preflight:buildPreflight(asset,{amount,maxSpend,ackOffHours}),broadcast:false});
     }
     if(action==="loop") {
       const simulated=url.searchParams.get("simulated")==="true";
@@ -630,3 +646,5 @@ module.exports = async function handler(req,res) {
     return safeError(res, Number(e.status) >= 400 ? Number(e.status) : 500, "AGENT_REQUEST_FAILED");
   }
 };
+
+module.exports.__testables = { buildPreflight, evaluateLoop };
