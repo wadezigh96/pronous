@@ -142,8 +142,8 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /onchainGapPct/);
   assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
-  assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&normalizedMidGap!==null&&/);
-  assert.match(agent, /Math\.abs\(normalizedMidGap\)>=MIN_ACTIONABLE_GAP_PCT/);
+  assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&normalizedLowImpactGap!==null&&/);
+  assert.match(agent, /Math\.abs\(normalizedLowImpactGap\)>=MIN_ACTIONABLE_GAP_PCT/);
   assert.match(agent, /lowImpactGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY"/);
   assert.match(agent, /const gapBasis="REQUESTED_SIZE_BUY_QUOTE_INCLUDES_PRICE_IMPACT"/);
   assert.match(agent, /impactAdjustedGapFormula:"impactAdjustedGapPct =/);
@@ -152,9 +152,10 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(live, /x\.impactAdjustedGapPct/);
   assert.match(live, /Impact-adjusted estimate \(removes reported price impact\)/);
   assert.match(live, /x\.lowImpactGapPct/);
-  assert.match(live, /Execution-price estimate \(requested size; impact included; quote only, not an actual fill\)/);
+  assert.match(live, /Requested-size quote gap \(execution-price estimate; impact included, quote only, not an actual fill\)/);
   assert.match(live, /OFF_HOURS_DRIFT · STALE REF/);
   assert.match(market, /function classifyAssetSignal\(asset = \{\}\)/);
+  assert.match(market, /function calculateImpactAdjustedGapPct\(/);
   assert.match(live, /LOW-IMPACT GAP vs REFERENCE/);
   assert.match(agent, /marketHoursContext\(asset\)==="MARKET_STATUS_REPORTED"/);
   assert.match(market, /const status = \[asset\.marketStatus, asset\.openState\]/);
