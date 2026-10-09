@@ -18,6 +18,7 @@ async function benchmark(packageSpec, label) {
   try {
     result = await new Promise((resolve) => {
       const child = spawn("npx", ["-y", packageSpec], {
+        detached: process.platform !== "win32",
         stdio: ["pipe", "pipe", "pipe"],
         env: {
           ...process.env,
@@ -34,13 +35,24 @@ async function benchmark(packageSpec, label) {
       let sawInitialize = false;
       let settled = false;
       let timeout;
+      const stopChildProcessGroup = () => {
+        try {
+          if (process.platform !== "win32" && child.pid) process.kill(-child.pid, "SIGTERM");
+          else child.kill("SIGTERM");
+        } catch (_) {
+          try { child.kill("SIGTERM"); } catch {}
+        }
+        // A timed-out npx process can leave npm/node descendants holding these
+        // pipes open. Close our ends so the benchmark process and CI step exit.
+        for (const stream of [child.stdin, child.stdout, child.stderr]) {
+          try { stream.destroy(); } catch {}
+        }
+      };
       const finish = (ok, error = null, tools = []) => {
         if (settled) return;
         settled = true;
         clearTimeout(timeout);
-        if (!ok) {
-          try { child.kill("SIGTERM"); } catch {}
-        }
+        stopChildProcessGroup();
         resolve({
           label, packageSpec, startedAt,
           elapsedMs: Math.round(performance.now() - start),
