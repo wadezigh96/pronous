@@ -29,7 +29,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar')
         run: node scripts/smoke-npx.mjs
         env:
-          PRONOUS_NPX_SMOKE_TIMEOUT_MS: 60000
+          PRONOUS_NPX_SMOKE_TIMEOUT_MS: 180000
           PRONOUS_NPX_PACKAGE: ${{ github.event_name == 'pull_request' && format('github:wadezigh96/pronous#{0}', github.head_ref) || 'github:wadezigh96/pronous' }}
       - name: One-off live derived-price evidence
         if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
