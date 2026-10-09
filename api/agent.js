@@ -1,4 +1,4 @@
-const { assessQuote, isSupportedPlatform, resolveShareRatio, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
+const { assessQuote, isSupportedPlatform, resolveAssetShareRatio, isMarketClosed, classifyAssetSignal, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
 const { getPancakeQuote, USDT } = require("../lib/pancakeswap-quote");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
@@ -31,12 +31,7 @@ function boundedInt(value, fallback, min, max) {
   const n = Number(value);
   return Number.isInteger(n) ? Math.max(min, Math.min(max, n)) : fallback;
 }
-function marketIsClosed(asset) {
-  const status = [asset.marketStatus, asset.openState].map((x) => String(x ?? "")).join(" ").toLowerCase();
-  const openState = asset.openState;
-  return /closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(status) ||
-    openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
-}
+const marketIsClosed = isMarketClosed;
 function marketHoursContext(asset) {
   if (marketIsClosed(asset)) return "MARKET_CLOSED_REFERENCE_MAY_BE_STALE";
   // openState can describe token/contract availability (the snapshot shows
@@ -59,21 +54,39 @@ async function quoteRadarAsset(asset, sizeUSDT) {
   const address=String(asset.tokenContractAddress||"").trim();
   const expected=Number(asset.referencePrice)*Number(asset.shareRatio??asset.tokenToShareRatio);
   const validReference=Number.isFinite(expected)&&expected>0;
-  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",quoteSizeUSDT:sizeUSDT,marketContext:marketHoursContext(asset),broadcast:false};
-  if(!/^0x[a-fA-F0-9]{40}$/.test(address)) return {...base,routeStatus:"NO TOKEN ADDRESS",quotePriceUSDTPerToken:null,onchainGapPct:null,priceImpactPct:null,actionable:false};
+  const smallestQuoteSizeUSDT=Math.min(10,sizeUSDT);
+  const gapBasis="REQUESTED_SIZE_BUY_QUOTE_INCLUDES_PRICE_IMPACT";
+  const midGapMethod="SMALLEST_SIZE_BUY_QUOTE_PROXY";
+  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",quoteSizeUSDT:sizeUSDT,marketContext:marketHoursContext(asset),gapBasis,midGapMethod,broadcast:false};
+  if(!/^0x[a-fA-F0-9]{40}$/.test(address)) return {...base,routeStatus:"NO TOKEN ADDRESS",quotePriceUSDTPerToken:null,onchainGapPct:null,requestedSizeGapPct:null,midGapPct:null,midQuotePriceUSDTPerToken:null,midQuoteSizeUSDT:smallestQuoteSizeUSDT,midQuoteStatus:"NO ROUTE",priceImpactPct:null,actionable:false};
   try {
-    const q=await cachedValue("pancake-radar:"+address.toLowerCase()+":"+sizeUSDT,
-      ()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(sizeUSDT)}));
+    const q=await cachedValue("pancake-radar:"+address.toLowerCase()+":"+sizeUSDT,()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(sizeUSDT)}));
     const input=Number(q.amountIn), output=Number(q.amountOut);
     const price=input>0&&output>0&&Number.isFinite(input)&&Number.isFinite(output)?input/output:null;
     const gap=validReference&&price!==null?(price/expected-1)*100:null;
-    return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:gap===null?null:Number(gap.toFixed(6)),
-      priceImpactPct:q.priceImpact==null?null:Number((Number(q.priceImpact)*100).toFixed(6)),routeTypes:q.routeTypes||[],
-      actionable:asset.dataQuality==="ok"&&validReference&&gap!==null&&Math.abs(gap)>=MIN_ACTIONABLE_GAP_PCT&&q.priceImpact!==null&&q.priceImpact!==undefined&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&marketHoursContext(asset)==="MARKET_STATUS_REPORTED"&&!marketIsClosed(asset)};
+    let midPrice=null,midGap=null,midQuoteStatus="QUOTE ERROR";
+    try {
+      const small=sizeUSDT<=10?q:await cachedValue("pancake-radar:"+address.toLowerCase()+":"+smallestQuoteSizeUSDT,()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(smallestQuoteSizeUSDT)}));
+      const si=Number(small.amountIn),so=Number(small.amountOut);
+      midPrice=si>0&&so>0&&Number.isFinite(si)&&Number.isFinite(so)?si/so:null;
+      midGap=validReference&&midPrice!==null?(midPrice/expected-1)*100:null;
+      midQuoteStatus=midPrice===null?"NO PRICE":"ROUTE";
+    } catch(smallError) {
+      const sc=String(smallError?.code||smallError?.message||"QUOTE_ERROR");
+      midQuoteStatus=/NO_ROUTE/i.test(sc)?"NO ROUTE":"QUOTE ERROR";
+    }
+    const normalizedGap=gap===null?null:Number(gap.toFixed(6));
+    const normalizedMidGap=midGap===null?null:Number(midGap.toFixed(6));
+    const priceImpactPct=q.priceImpact==null?null:Number((Number(q.priceImpact)*100).toFixed(6));
+    const actionable=asset.dataQuality==="ok"&&validReference&&normalizedMidGap!==null&&Math.abs(normalizedMidGap)>=MIN_ACTIONABLE_GAP_PCT&&
+      q.priceImpact!==null&&q.priceImpact!==undefined&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&
+      marketHoursContext(asset)==="MARKET_STATUS_REPORTED"&&!marketIsClosed(asset);
+    return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:normalizedGap,requestedSizeGapPct:normalizedGap,priceImpactPct,
+      midGapPct:normalizedMidGap,midQuotePriceUSDTPerToken:midPrice,midQuoteSizeUSDT:smallestQuoteSizeUSDT,midQuoteStatus,routeTypes:q.routeTypes||[],actionable};
   } catch(error) {
     const code=String(error?.code||error?.message||"QUOTE_ERROR"), noRoute=/NO_ROUTE/i.test(code);
-    return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,
-      priceImpactPct:null,quoteError:noRoute?null:code,actionable:false};
+    return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,requestedSizeGapPct:null,midGapPct:null,
+      midQuotePriceUSDTPerToken:null,midQuoteSizeUSDT:smallestQuoteSizeUSDT,midQuoteStatus:noRoute?"NO ROUTE":"QUOTE ERROR",priceImpactPct:null,quoteError:noRoute?null:code,actionable:false};
   }
 }
 async function liveRadar(sizeUSDT, limit) {
@@ -91,7 +104,7 @@ async function liveRadar(sizeUSDT, limit) {
       candidatesQuoted:0,volumeAvailable:false,noVolumeData:assets.length,
       reason:"UPSTREAM_24H_VOLUME_UNAVAILABLE",
       routeAvailable:0,noRoute:0,quoteErrors:0,actionable:0,quoteSizeUSDT:sizeUSDT,
-      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",volumeBasis:"upstream reported 24h volume; units unverified unless volume24HUnit is supplied",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
+      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",midQuoteSizeUSDT:Math.min(10,sizeUSDT),midGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY",volumeBasis:"upstream reported 24h volume; units unverified unless volume24HUnit is supplied",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
     }};
     const selected=volumeCandidates.slice(0,limit);
     const rows=await mapWithConcurrency(selected,2,a=>quoteRadarAsset(a,sizeUSDT));
@@ -101,7 +114,7 @@ async function liveRadar(sizeUSDT, limit) {
       noRoute:rows.filter(x=>x.routeStatus==="NO ROUTE").length,
       quoteErrors:rows.filter(x=>x.routeStatus==="QUOTE ERROR").length,
       actionable:rows.filter(x=>x.actionable).length,quoteSizeUSDT:sizeUSDT,
-      quoteSource:"PancakeSwap Unified Swap API",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
+      quoteSource:"PancakeSwap Unified Swap API",midQuoteSizeUSDT:Math.min(10,sizeUSDT),midGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
     }};
   });
 }
@@ -163,20 +176,15 @@ function demoAsset(ticker) {
 }
 
 function buildPreflight(asset, params={}) {
-  const amount=Number(params.amount||0);
-  const maxSpend=Number(params.maxSpend||100);
+  const amount=Number(params.amount||0),maxSpend=Number(params.maxSpend||100);
   const checks=buildGuardChecks(asset,{amount,maxSpend});
-  return {
-    status:preflightStatus(checks),
-    amount,
-    maxSpend,
-    spreadPct:asset.adjustedSpreadPct ?? null,
-    rawSpreadPct:asset.rawSpreadPct ?? null,
-    adjustedSpreadPct:asset.adjustedSpreadPct ?? null,
-    shareRatio:asset.shareRatio ?? asset.tokenToShareRatio ?? null,
-    checks,
-    next:checks.find(x=>!x.pass)?.id||"simulation"
-  };
+  const offHours=marketIsClosed(asset);
+  if(offHours) checks.push({id:"market_session",label:"Underlying market session",pass:false,reason:"OFF_HOURS_DRIFT is informational only; the reference price may be stale."});
+  return {status:preflightStatus(checks),amount,maxSpend,spreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,
+    adjustedSpreadPct:asset.adjustedSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
+    signal:classifyAssetSignal(asset),actionable:asset.actionable===true&&!offHours,
+    referenceWarning:offHours?"Underlying market is closed; reference price may be stale.":null,
+    checks,next:checks.find(x=>!x.pass)?.id||"simulation"};
 }
 
 function evaluateLoop(asset, opts={}) {
@@ -188,6 +196,7 @@ function evaluateLoop(asset, opts={}) {
     {name:"spot_only",pass:true,reason:"perpetuals/leverage are excluded"},
     {name:"bsc_mainnet",pass:true,reason:"execution target is BSC mainnet"},
     {name:"fresh_data",pass:fresh,reason:"stale market data blocks execution"},
+    {name:"market_session",pass:!marketIsClosed(asset),reason:"OFF_HOURS_DRIFT is informational only; reference may be stale while the underlying market is closed"},
     {name:"share_ratio",pass:Number.isFinite(Number(asset.shareRatio ?? asset.tokenToShareRatio))&&Number(asset.shareRatio ?? asset.tokenToShareRatio)>0,reason:"valid token-to-share ratio is required"},
     {name:"data_quality",pass:asset.dataQuality==="ok",reason:"only a valid ratio-adjusted spread with acceptable quality is eligible"},
     {name:"spread_threshold",pass:Math.abs(spread)>=minSpread,reason:"gap below configured threshold"},
@@ -195,17 +204,18 @@ function evaluateLoop(asset, opts={}) {
     {name:"confirmation_required",pass:Boolean(opts.confirmed),reason:"user confirmation is required for live execution"}
   ];
   const blocked=checks.filter(x=>!x.pass);
-  return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:asset.dataQuality==="missing_ratio"?"MISSING_RATIO":asset.dataQuality!=="ok"?"UNRELIABLE":Math.abs(spread)>=minSpread?(spread>0?"PREMIUM":"DISCOUNT"):"OBSERVE",next:blocked.length?blocked[0].name:"EXECUTE"};
+  return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:classifyAssetSignal(asset),actionable:asset.actionable===true&&!marketIsClosed(asset),referenceWarning:marketIsClosed(asset)?"Underlying market is closed; reference price may be stale.":null,next:blocked.length?blocked[0].name:"EXECUTE"};
 }
 
 function makePlan(asset) {
   const spread = Number(asset.adjustedSpreadPct ?? asset.spreadPct ?? 0);
   let action = "HOLD / OBSERVE";
   if (asset.dataQuality === "missing_ratio") action = "BLOCK — MISSING SHARE RATIO";
+  else if (asset.dataQuality === "ok" && marketIsClosed(asset)) action = "HOLD — OFF_HOURS_DRIFT / REFERENCE MAY BE STALE";
   else if (asset.dataQuality !== "ok") action = "HOLD — DATA QUALITY REVIEW";
   else if (asset.actionable === true && spread > 0) action = "WATCH PREMIUM";
   else if (asset.actionable === true && spread < 0) action = "WATCH DISCOUNT";
-  return {action,rationale:"Feed spread is ratio-adjusted but may be derived from the reference price; it is not independent market evidence. Use the quote-based radar and inspect impact/session before interpreting a gap.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,actionable:asset.actionable===true,
+  return {action,rationale:"Feed spread is ratio-adjusted but may be derived from the reference price; it is not independent market evidence. OFF_HOURS_DRIFT is informational and non-actionable because the reference may be stale. Use the quote-based radar and inspect impact/session before interpreting a gap.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,actionable:asset.actionable===true&&!marketIsClosed(asset),referenceWarning:marketIsClosed(asset)?"Underlying market is closed; reference price may be stale.":null,
     guardrails:["spot only","BSC mainnet only","simulate before broadcast","spend cap required","ondo/bstock/xstocks only"]};
 }
 
@@ -215,6 +225,9 @@ async function fetchLiveAssets() {
     .filter(x => x.underlyingTicker && x.tokenContractAddress && isSupportedPlatform(x.platformId))
     .map(x => {
       const quality = assessQuote(x.tokenPrice, x.referencePrice, x.tokenToShareRatio);
+      const marketStatus=x.statusInfo?.marketStatus || null;
+      const openState=x.statusInfo?.openState ?? null;
+      const offHours=marketIsClosed({marketStatus,openState});
       return {
         ticker:x.underlyingTicker,
         companyName:x.underlyingName || x.tokenName || "",
@@ -228,9 +241,10 @@ async function fetchLiveAssets() {
         spreadPct:quality.adjustedSpreadPct,
         shareRatio:quality.shareRatio,
         dataQuality:quality.dataQuality,
-        actionable:quality.actionable,
-        marketStatus:x.statusInfo?.marketStatus || null,
-        openState:x.statusInfo?.openState ?? null,
+        actionable:quality.actionable&&!offHours,
+        marketStatus,
+        openState,
+        referenceStaleWarning:offHours?"Underlying market is closed; reference price may be stale.":null,
         nextOpenTime:x.statusInfo?.nextOpenTime ?? null,
         nextCloseTime:x.statusInfo?.nextCloseTime ?? null,
         volume24H:x.volume24H ?? x.volume24h ?? x.volume24HUsd ?? x.volume24hUsd ?? null,
@@ -266,39 +280,29 @@ async function findLiveAsset(ticker) {
     });
     market=m.data||{};
   } catch (_) {}
-  let feedAsset=null;
-  const priceRatio=resolveShareRatio(quote.tokenToShareRatio);
-  const searchRatio=resolveShareRatio(asset.tokenToShareRatio,asset.shareRatio);
-  let shareRatio=priceRatio??searchRatio;
-  let shareRatioSource=priceRatio!==null?"price":searchRatio!==null?"search":null;
-  // The search/price endpoints can omit tokenToShareRatio even when the full RWA
-  // token list has it. Reuse the 20s cached list as a safe fallback rather than
-  // falsely marking a known-ratio asset as missing_ratio.
-  if(shareRatio===null){
-    try{
-      const rows=await liveAssets();
-      const address=String(asset.tokenContractAddress||"").toLowerCase();
-      const platform=String(asset.platformId||"").toLowerCase();
-      feedAsset=rows.find(x=>String(x.tokenContractAddress||"").toLowerCase()===address&&String(x.platformId||"").toLowerCase()===platform)
-        ||rows.find(x=>String(x.ticker||"").toUpperCase()===String(asset.ticker||ticker).toUpperCase()&&String(x.platformId||"").toLowerCase()===platform)
-        ||null;
-      shareRatio=resolveShareRatio(feedAsset?.tokenToShareRatio,feedAsset?.shareRatio);
-      if(shareRatio!==null)shareRatioSource="rwa-tokens-list";
-    }catch(_){}
+  const context={price:quote,search:asset,tokenAddress:asset.tokenContractAddress,platformId:asset.platformId,ticker:asset.ticker||asset.underlyingTicker||ticker};
+  let resolution=resolveAssetShareRatio(context);
+  if(resolution.shareRatio===null){
+    try{const rows=await liveAssets();resolution=resolveAssetShareRatio({...context,tokenList:rows});}catch(_){}
   }
+  let shareRatio=resolution.shareRatio;
+  let shareRatioSource=resolution.source;
+  let feedAsset=resolution.feedAsset;
   const tokenPrice=Number(quote.tokenPrice||feedAsset?.tokenPrice||0);
   const referencePrice=Number(quote.referencePrice||feedAsset?.referencePrice||0);
+  const marketStatus=market.statusInfo?.marketStatus||feedAsset?.marketStatus||asset.statusInfo?.marketStatus||null;
+  const openState=market.statusInfo?.openState??feedAsset?.openState??asset.statusInfo?.openState??null;
+  const offHours=marketIsClosed({marketStatus,openState});
   const quality=assessQuote(tokenPrice,referencePrice,shareRatio);
-  return {demo:false,ticker:asset.ticker||ticker,companyName:asset.companyName||asset.underlyingName||feedAsset?.companyName||"",
+  return {demo:false,ticker:asset.ticker||asset.underlyingTicker||ticker,companyName:asset.companyName||asset.underlyingName||feedAsset?.companyName||"",
     platformId:asset.platformId||feedAsset?.platformId,tokenSymbol:asset.tokenSymbol||feedAsset?.tokenSymbol,
     tokenContractAddress:asset.tokenContractAddress||feedAsset?.tokenContractAddress,
     tokenPrice:String(tokenPrice),referencePrice:String(referencePrice),
     rawSpreadPct:quality.rawSpreadPct,adjustedSpreadPct:quality.adjustedSpreadPct,
     spreadPct:quality.adjustedSpreadPct,shareRatio:quality.shareRatio,
-    tokenToShareRatio:shareRatio,shareRatioSource,dataQuality:quality.dataQuality,actionable:quality.actionable,
+    tokenToShareRatio:shareRatio,shareRatioSource,dataQuality:quality.dataQuality,actionable:quality.actionable&&!offHours,
     volume24H:feedAsset?.volume24H??asset.volume24H??null,
-    marketStatus:market.statusInfo?.marketStatus||feedAsset?.marketStatus||null,
-    openState:market.statusInfo?.openState??feedAsset?.openState??null,
+    marketStatus,openState,referenceStaleWarning:offHours?"Underlying market is closed; reference price may be stale.":null,
     nextOpenTime:market.statusInfo?.nextOpenTime??feedAsset?.nextOpenTime??null,
     nextCloseTime:market.statusInfo?.nextCloseTime??feedAsset?.nextCloseTime??null};
 }
@@ -413,8 +417,10 @@ module.exports = async function handler(req,res) {
             mode:"live-data",network:"BSC",updatedAt:Date.now(),feedUpdatedAt:liveAssetsFetchedAt,spotOnly:true,
             monitor:"onchain-vs-reference",
             formula:"onchainGapPct = (quotePriceUSDTPerToken / (referencePrice * shareRatio) - 1) * 100",
+            midGapFormula:"midGapPct uses the smallest-size buy quote (10 USDT by default) as a lower-impact proxy; it is not a true bid/ask midpoint.",
+            gapSemantics:"onchainGapPct/requestedSizeGapPct is the requested-size buy-quote price gap including price impact; it is a quote-based execution-price estimate, not an actual fill.",
             referenceBasis:"USDT is treated as approximately USD; stablecoin depeg risk is not modeled.",quoteSide:"BUY; quote-only and not a round-trip arbitrage estimate",maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,
-            marketHoursNote:"When the underlying exchange is closed, a gap can mean an opportunity or a stale reference. Do not treat it as actionable without checking session status.",
+            marketHoursNote:"OFF_HOURS_DRIFT is informational and non-actionable. When the underlying exchange is closed, the reference may be stale.",
             summary:result.summary,assets:result.assets,broadcast:false
           });
         }
@@ -589,61 +595,19 @@ module.exports = async function handler(req,res) {
 
     if(action==="scan") {
       const spread=Number(asset.adjustedSpreadPct ?? asset.spreadPct ?? 0);
-      const signal = asset.dataQuality==="missing_ratio"
-        ? "MISSING_RATIO"
-        : asset.dataQuality!=="ok"
-          ? "UNRELIABLE"
-          : asset.actionable===true
-            ? (spread>0 ? "PREMIUM" : "DISCOUNT")
-            : "OBSERVE";
-      const risk = asset.dataQuality==="missing_ratio"
-        ? "MISSING_SHARE_RATIO"
-        : asset.dataQuality!=="ok"
-          ? "HIGH_DATA_QUALITY_RISK"
-          : Math.abs(spread)>=1
-            ? "SPREAD_REQUIRES_REVIEW"
-            : "NORMAL_OBSERVATION";
-      const execution = {
-        broadcast:false,
-        simulationRequired:true,
-        confirmationRequired:true,
-        spotOnly:true,
-        network:"BSC"
-      };
+      const signal=classifyAssetSignal(asset),offHours=marketIsClosed(asset);
+      const risk=asset.dataQuality==="missing_ratio"?"MISSING_SHARE_RATIO":asset.dataQuality!=="ok"?"HIGH_DATA_QUALITY_RISK":offHours?"REFERENCE_MAY_BE_STALE":Math.abs(spread)>=1?"SPREAD_REQUIRES_REVIEW":"NORMAL_OBSERVATION";
+      const execution={broadcast:false,simulationRequired:true,confirmationRequired:true,spotOnly:true,network:"BSC"};
       return res.status(200).json({
-        agent:"PRONOUS",
-        action:"scan",
-        mode:asset.demo?"demo":"live-data",
-        network:"BSC",
-        ticker,
-        scannedAt:new Date().toISOString(),
-        asset,
-        market:{
-          tokenPrice:asset.tokenPrice,
-          referencePrice:asset.referencePrice,
-          spreadPct:asset.adjustedSpreadPct ?? null,
-          rawSpreadPct:asset.rawSpreadPct ?? null,
-          adjustedSpreadPct:asset.adjustedSpreadPct ?? null,
-          shareRatio:asset.shareRatio ?? asset.tokenToShareRatio ?? null,
-          dataQuality:asset.dataQuality||"demo",
-          actionable:asset.actionable??false,
-          marketStatus:asset.marketStatus??null,
-          openState:asset.openState??null,
-          nextOpenTime:asset.nextOpenTime??null,
-          nextCloseTime:asset.nextCloseTime??null
-        },
-        signal:{
-          type:signal,
-          spreadPct:asset.adjustedSpreadPct ?? null,
-          actionable:asset.dataQuality==="ok"&&asset.actionable===true&&(signal==="PREMIUM"||signal==="DISCOUNT")
-        },
-        risk:{
-          status:risk,
-          dataQuality:asset.dataQuality||"demo"
-        },
-        plan:makePlan(asset),
-        execution,
-        next:"Run simulation before any wallet execution."
+        agent:"PRONOUS",action:"scan",mode:asset.demo?"demo":"live-data",network:"BSC",ticker,scannedAt:new Date().toISOString(),asset,
+        market:{tokenPrice:asset.tokenPrice,referencePrice:asset.referencePrice,spreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,
+          adjustedSpreadPct:asset.adjustedSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,dataQuality:asset.dataQuality||"demo",
+          actionable:asset.actionable===true&&!offHours,marketStatus:asset.marketStatus??null,openState:asset.openState??null,
+          referenceStale:offHours,referenceWarning:offHours?"Underlying market is closed; reference price may be stale.":null,
+          nextOpenTime:asset.nextOpenTime??null,nextCloseTime:asset.nextCloseTime??null},
+        signal:{type:signal,spreadPct:asset.adjustedSpreadPct??null,actionable:asset.dataQuality==="ok"&&!offHours&&asset.actionable===true&&(signal==="PREMIUM"||signal==="DISCOUNT")},
+        risk:{status:risk,dataQuality:asset.dataQuality||"demo",referenceWarning:offHours?"Underlying market is closed; reference price may be stale.":null},
+        plan:makePlan(asset),execution,next:"Run simulation before any wallet execution."
       });
     }
 
@@ -660,7 +624,7 @@ module.exports = async function handler(req,res) {
       const confirmed=url.searchParams.get("confirmed")==="true";
       return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",ticker,asset,plan:makePlan(asset),loop:evaluateLoop(asset,{simulated,confirmed}),broadcast:false});
     }
-    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-dry-run",simulationMode:"DRY_RUN",ticker,asset,plan:makePlan(asset),simulated:true,broadcast:false,next:"No blockchain transaction was sent. Build a transaction and run a chain-level simulation before live execution."});
+    if(action==="simulate") return res.status(200).json({mode:asset.demo?"demo":"live-dry-run",simulationMode:"DRY_RUN",ticker,asset,plan:makePlan(asset),signal:classifyAssetSignal(asset),actionable:asset.actionable===true&&!marketIsClosed(asset),referenceWarning:marketIsClosed(asset)?"Underlying market is closed; reference price may be stale.":null,simulated:true,broadcast:false,next:"No blockchain transaction was sent. Build a transaction and run a chain-level simulation before live execution."});
     return res.status(200).json({agent:"PRONOUS",mode:asset.demo?"demo":"live-data",asset,plan:makePlan(asset),next:"Run simulation before any wallet execution."});
   } catch(e) {
     return safeError(res, Number(e.status) >= 400 ? Number(e.status) : 500, "AGENT_REQUEST_FAILED");
