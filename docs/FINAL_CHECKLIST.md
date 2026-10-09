@@ -27,7 +27,7 @@ npm run build
 npx -y github:wadezigh96/pronous
 ```
 
-The exact `npx` MCP command is interactive/stdio; confirm that the client initializes and lists `market_assets`, `scan_asset`, and `preflight`. The CI smoke-test result should be linked here after it is green. Do not write “tested on Node 20” without a green Node 20 job.
+The exact `npx` MCP command is interactive/stdio; the CI smoke script initializes it and checks `market_assets`, `scan_asset`, and `preflight`. Do not mark this check complete until the Node 20 CI step prints `NPM_NPX_SMOKE_PASS`.
 
 ## Read-only API smoke checks
 
@@ -42,7 +42,7 @@ Expected behavior:
 - The radar gap is computed from the quote-derived buy price versus `referencePrice × shareRatio`.
 - The radar is not an arbitrage proof: it is a one-way quote comparison. Price impact and market session must be read alongside the gap.
 - When the live feed is not configured or unavailable: a clear unavailable response, no fabricated live prices.
-- More than the configured IP rate limit should return HTTP 429 with `Retry-After: 60`.
+- More than 60 requests/minute from one IP should return HTTP 429 with `Retry-After: 60` when requests hit the same warm function instance. The in-memory counter is per instance, not a shared global serverless limit.
 
 ## Manual browser checks (mobile and desktop)
 
