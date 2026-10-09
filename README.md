@@ -22,6 +22,7 @@ PRONOUS is a BSC Mainnet spot desk, not an unsupervised trading bot. Read the st
 
 - The public RWA assets endpoint returned `mode: "live-data"` and **488 assets** in the saved measurement snapshot on 9 October 2026. This is a timestamped observation, not a guarantee that the upstream API is always available.
 - The production server uses its configured read-only Binance Web3 credentials for the RWA feed. Browser users do not need a wallet or paste API credentials to read the feed; if server credentials/feed access are unavailable, the API should return an explicit unavailable response, not demo prices.
+- The current `api/agent.js` request guard allows 60 requests per 60 seconds per IP **per warm serverless instance**. It returns 429 with `Retry-After: 60`, but buckets are in memory and are not shared across Vercel instances; this is not a globally coordinated rate limit.
 - The documented PoaAnchor contract and two example `PoaAnchored` transactions are independently verifiable on BSC mainnet; see [Submission evidence](docs/SUBMISSION.md).
 - Previous smoke checks returned preflight `READY_FOR_SIMULATION` and simulation `DRY_RUN` with `broadcast: false`. They do not establish that a live trade was signed or sent.
 
