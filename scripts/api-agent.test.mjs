@@ -54,4 +54,5 @@ test("API routes pass the acknowledgement flag and block quote-build when it is 
   assert.match(source, /ackOffHours=url\.searchParams\.get\("ackOffHours"\)==="true"/);
   assert.match(source, /if\(preflight\.warning==="ACK_REQUIRED"\) return res\.status\(409\)\.json\(\{error:"OFF_HOURS_ACK_REQUIRED"/);
   assert.match(source, /if\(marketIsClosed\(asset\)&&!ackOffHours\) return res\.status\(409\)\.json\(\{error:"OFF_HOURS_ACK_REQUIRED"/);
+  assert.match(source, /preflight:buildPreflight/);
 });
