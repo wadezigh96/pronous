@@ -143,6 +143,7 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(live, /PancakeSwap quote-only/);
   assert.match(live, /BUY-QUOTE vs REFERENCE/);
   assert.match(live, /HIGH IMPACT · REVIEW/);
+  assert.match(live, /IMPACT UNKNOWN · REVIEW/);
   assert.match(live, /@media\(max-width:560px\)/);
   assert.match(live, /upstream feed has no measured 24h volume/);
 });
