@@ -189,7 +189,7 @@ PRONOUS has a minted BSC Mainnet ERC-8004 identity:
 
 ## Status
 
-**Active build.** Live market intelligence, read-only user utilities, guarded client-wallet execution and POA are implemented. x402 remains pending production merchant credentials/settlement verification.
+**Active build.** PancakeSwap integration is **quote-preview only** via the public Unified Swap API (`swap.pancakeswap.com/v1/quote`, BSC). It does not build calldata, request approvals, or broadcast. Some tokenized stocks have no PancakeSwap route; those are shown as unavailable. Live market intelligence, read-only user utilities, guarded client-wallet execution and POA are implemented. x402 remains pending production merchant credentials/settlement verification.
 
 ## License
 
