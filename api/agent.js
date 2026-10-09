@@ -267,10 +267,10 @@ async function findLiveAsset(ticker) {
     market=m.data||{};
   } catch (_) {}
   let feedAsset=null;
-  let shareRatio=resolveShareRatio(quote.tokenToShareRatio,asset.tokenToShareRatio,asset.shareRatio);
-  let shareRatioSource=shareRatio===null?null:
-    quote.tokenToShareRatio!==null&&quote.tokenToShareRatio!==undefined&&resolveShareRatio(quote.tokenToShareRatio)!==null?"price":
-    asset.tokenToShareRatio!==null&&asset.tokenToShareRatio!==undefined&&resolveShareRatio(asset.tokenToShareRatio)!==null?"search":"search";
+  const priceRatio=resolveShareRatio(quote.tokenToShareRatio);
+  const searchRatio=resolveShareRatio(asset.tokenToShareRatio,asset.shareRatio);
+  let shareRatio=priceRatio??searchRatio;
+  let shareRatioSource=priceRatio!==null?"price":searchRatio!==null?"search":null;
   // The search/price endpoints can omit tokenToShareRatio even when the full RWA
   // token list has it. Reuse the 20s cached list as a safe fallback rather than
   // falsely marking a known-ratio asset as missing_ratio.
