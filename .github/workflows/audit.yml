@@ -20,6 +20,16 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - name: Set up Node.js 20 for npx package smoke test
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Verify npx install and MCP initialize/tools-list on clean Node 20
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        run: node scripts/smoke-npx.mjs
+        env:
+          PRONOUS_NPX_SMOKE_TIMEOUT_MS: 60000
       - name: One-off live derived-price evidence
         if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
         run: node scripts/verify-derived-price.mjs
