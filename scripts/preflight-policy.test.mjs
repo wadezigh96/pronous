@@ -10,10 +10,12 @@ const demoAsset = {
   referencePrice: '181.20'
 };
 
-test('demo RWA asset can reach simulation gate without a fake contract', () => {
+test('demo RWA asset without a share ratio cannot reach simulation', () => {
   const checks = buildGuardChecks(demoAsset, { amount: '0.0003', maxSpend: '1' });
-  assert.equal(preflightStatus(checks), 'READY_FOR_SIMULATION');
+  assert.equal(preflightStatus(checks), 'BLOCKED');
   assert.equal(checks.find(x => x.id === 'asset').pass, true);
+  assert.equal(checks.find(x => x.id === 'share_ratio').pass, false);
+  assert.equal(checks.find(x => x.id === 'data_quality').pass, false);
   assert.equal(checks.find(x => x.id === 'spend_cap').pass, true);
   assert.equal(checks.find(x => x.id === 'simulation').pass, false);
 });
