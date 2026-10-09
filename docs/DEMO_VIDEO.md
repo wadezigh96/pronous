@@ -1,36 +1,29 @@
-# PRONOUS demo video (judge-facing)
+# Demo Video Storyboard (maximum 4 minutes)
 
-**Recommended file:** `PRONOUS-demo-with-voice.mp4` (~3:34)  
-English tutorial voice-over aligned to the slide deck + live repo evidence.
+**Target runtime:** 3:30–3:50  
+**Recording link:** [ADD FINAL VIDEO URL BEFORE SUBMISSION]  
+**App:** https://pronous.vercel.app/  
+**Repo:** https://github.com/wadezigh96/pronous
 
-## What judges should hear / see
+Record only after the exact merge commit has successful CI and Vercel shows its deployment as `READY`. Use a fresh browser session and visible timestamps. Do not stage or imply that a transaction was sent.
 
-| Time (approx) | Topic | Maps to repo |
-|---------------|--------|----------------|
-| 0:00–0:20 | Intro + MCP one-paste | `README.md`, `docs/MCP.md` |
-| 0:20–0:50 | Product thesis: signal ≠ spend | `docs/PRODUCT.md` |
-| 0:50–1:20 | Core loop Watch→Confirm | Desk pipeline |
-| 1:20–1:50 | Market desk + divergence radar | Live app market/radar |
-| 1:50–2:20 | Agent console + execution cockpit | `api/agent.js`, preflight/sim |
-| 2:20–2:50 | Architecture + repo layers | `docs/ARCHITECTURE.md` |
-| 2:50–3:15 | Safety gates + gated broadcast | Safety table in README |
-| 3:15–3:34 | Deploy, live URL, **on-chain POA** | `docs/SUBMISSION.md`, PoaAnchor |
+| Time | Screen / action | Narration point |
+|---|---|---|
+| 0:00–0:25 | Open the app and show the saved raw token/reference spread examples. | “A +900% raw spread looked like a dislocation, but it was not independent price evidence.” |
+| 0:25–0:55 | Open `docs/derived-price-analysis.json` and [the derived-price CI run](https://github.com/wadezigh96/pronous/actions/runs/37992545416). Show 488/488 in the smallest histogram bucket and zero outliers above 0.1%. | “The measured rows matched `referencePrice × tokenToShareRatio`; the raw ratio is not a market opportunity by itself.” |
+| 0:55–1:40 | Open Divergence Radar. Show the “BUY-QUOTE vs REFERENCE” label, quote size, quote price, `onchainGapPct`, impact and session context. | “This is a one-way buy quote, not a round-trip arbitrage calculation. Route, impact and market hours must be read together.” |
+| 1:40–2:15 | Show the NVDA / TSLA / SPY venue comparison. Highlight SPY/Ondo at 100 USDT (+62.75% gap, 30.96% impact) and SPY/Ondo at 1,000 USDT (`NO_ROUTE`). | “A huge gap with huge impact is a liquidity warning, not an instruction to trade. A missing route has no numeric gap.” |
+| 2:15–2:45 | Show the market-session warning and the measured `postmarket` state. If the feed is unavailable, show the unavailable status rather than refreshing into demo values. | “After regular hours, the reference can be stale. The signal must remain guarded.” |
+| 2:45–3:15 | Run a read-only preflight or show a known missing-ratio rejection. Then show a dry-run simulation result with `broadcast: false`. | “Preflight and simulation are gates, not evidence of a completed order.” |
+| 3:15–3:40 | Show the explicit confirmation control but do not approve a real wallet transaction. End with the status boundaries in README/SUBMISSION. | “The user remains the signing boundary. This recording sends no swap.” |
 
-## Live links (spoken + written)
+## Capture checklist
 
-- App: https://pronous.vercel.app  
-- Repo: https://github.com/wadezigh96/pronous  
-- Submission pack: https://github.com/wadezigh96/pronous/blob/main/docs/SUBMISSION.md  
-- PoaAnchor: https://bscscan.com/address/0xD729eFf0E050195D464cC9597d7A5Cc7194911B5  
-- Example anchor txs: see `docs/SUBMISSION.md`
-
-## Voice-over notes
-
-- Language: **English** (hackathon judges)
-- Style: tutorial / product walkthrough (male voice “Atlas”)
-- Video without audio was ~2:56; VO extends to ~3:34 with last-frame hold so narration finishes cleanly
-- Explicitly mentions: MCP, spot-only, simulation before confirm, off-chain POA + on-chain gas-only anchor
-
-## Upload tips
-
-Upload `PRONOUS-demo-with-voice.mp4` to YouTube/Loom unlisted and paste the URL in the hackathon form. Keep this doc linked from the repo so judges can follow along.
+- [ ] Confirm production URL is running the intended merged commit.
+- [ ] Use only values visible in committed JSON or linked CI logs.
+- [ ] Show quote size, route status and price impact beside any quote gap.
+- [ ] Keep `NO_ROUTE` as a missing value, never 0%.
+- [ ] Show the stale-reference warning for closed/premarket/postmarket data.
+- [ ] Show preflight, dry-run simulation and the confirmation UI, then stop before signing/broadcast.
+- [ ] Do not claim Agent Studio, x402 or hosted Agentic Wallet functionality without separate evidence.
+- [ ] Keep the final cut under four minutes.

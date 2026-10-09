@@ -27,8 +27,19 @@ test("ratio-adjusted spread removes token-to-share multiplier from seven RWA exa
     assert.equal(quote.spreadPct, quote.adjustedSpreadPct, item.ticker + " compatibility field is adjusted");
     assert.equal(quote.shareRatio, item.ratio, item.ticker + " share ratio retained");
     assert.equal(quote.dataQuality, "ok", item.ticker + " quality");
-    assert.equal(quote.actionable, true, item.ticker + " can be evaluated after adjustment");
+    assert.equal(quote.actionable, false, item.ticker + " zero/rounding-only gap is not actionable");
+    assert.equal(quote.minActionableGapPct, 1, item.ticker + " reports configurable threshold");
   }
+});
+
+test("actionable requires a meaningful configured gap", () => {
+  const zero = assessQuote(100, 100, 1);
+  assert.equal(zero.adjustedSpreadPct, 0);
+  assert.equal(zero.actionable, false);
+  const atThreshold = assessQuote(101, 100, 1);
+  assert.equal(atThreshold.adjustedSpreadPct, 1);
+  assert.equal(atThreshold.actionable, true);
+  assert.equal(atThreshold.minActionableGapPct, 1);
 });
 
 test("raw and adjusted spread helpers have explicit semantics", () => {

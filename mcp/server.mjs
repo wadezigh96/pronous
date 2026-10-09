@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import * as z from "zod/v4";
@@ -7,13 +8,13 @@ const API = process.env.PRONOUS_API_URL || "https://pronous.vercel.app";
 
 const SUPPORTED_PLATFORMS = new Set(["ondo", "bstock", "xstocks"]);
 
-const DEMO_ASSETS = {
-  NVDA: { ticker: "NVDA", companyName: "NVIDIA", tokenPrice: "182.6496", referencePrice: "181.20" },
-  AAPL: { ticker: "AAPL", companyName: "Apple", tokenPrice: "254.4192", referencePrice: "252.40" },
-  TSLA: { ticker: "TSLA", companyName: "Tesla", tokenPrice: "435.1536", referencePrice: "431.70" },
-  MSFT: { ticker: "MSFT", companyName: "Microsoft", tokenPrice: "516.3984", referencePrice: "512.30" },
-  AMZN: { ticker: "AMZN", companyName: "Amazon", tokenPrice: "228.7152", referencePrice: "226.90" },
-  GOOGL: { ticker: "GOOGL", companyName: "Alphabet", tokenPrice: "253.8144", referencePrice: "251.80" }
+const ASSET_LABELS = {
+  NVDA: { ticker: "NVDA", companyName: "NVIDIA" },
+  AAPL: { ticker: "AAPL", companyName: "Apple" },
+  TSLA: { ticker: "TSLA", companyName: "Tesla" },
+  MSFT: { ticker: "MSFT", companyName: "Microsoft" },
+  AMZN: { ticker: "AMZN", companyName: "Amazon" },
+  GOOGL: { ticker: "GOOGL", companyName: "Alphabet" }
 };
 
 function isEvmAddress(value = "") {
@@ -87,67 +88,50 @@ function localPreflightStatus(checks = []) {
 }
 
 function localAsset(ticker) {
-  const key = ticker.toUpperCase();
-  const base =
-    DEMO_ASSETS[key] || {
-      ticker: key,
-      companyName: "Demo Tokenized Asset",
-      tokenPrice: "100.80",
-      referencePrice: "100.00"
-    };
-  const tokenPrice = Number(base.tokenPrice);
-  const referencePrice = Number(base.referencePrice);
+  const key = String(ticker || "").trim().toUpperCase();
+  const label = ASSET_LABELS[key] || { ticker: key, companyName: "Unknown asset" };
   return {
     demo: true,
     network: "BSC",
     chainId: 56,
-    platformId: "demo",
-    dataQuality: "missing_ratio",
+    platformId: "unavailable",
     venue: "spot",
-    ...base,
-    tokenPrice: String(tokenPrice),
-    referencePrice: String(referencePrice),
-    rawSpreadPct: Number(((tokenPrice / referencePrice - 1) * 100).toFixed(6)),
+    ...label,
+    tokenPrice: null,
+    referencePrice: null,
+    rawSpreadPct: null,
     adjustedSpreadPct: null,
     spreadPct: null,
     shareRatio: null,
     tokenToShareRatio: null,
-    marketStatus: "STALE DEMO — NOT LIVE DATA"
+    dataQuality: "unavailable",
+    actionable: false,
+    marketStatus: "STALE DEMO REMOVED — NO PRICE FIELDS"
   };
 }
 
 function localScan(ticker) {
   const asset = localAsset(ticker);
-  const spreadPct = asset.adjustedSpreadPct;
-  const direction = asset.dataQuality === "missing_ratio" ? "MISSING_RATIO" : spreadPct > 0 ? "PREMIUM" : spreadPct < 0 ? "DISCOUNT" : "PAR";
   return {
     agent: "PRONOUS",
-    mode: "mcp-local-demo",
+    mode: "unavailable",
     network: "BSC",
     scan: {
       ticker: asset.ticker,
       companyName: asset.companyName,
-      tokenPrice: asset.tokenPrice,
-      referencePrice: asset.referencePrice,
-      spreadPct: spreadPct ?? null,
-      rawSpreadPct: asset.rawSpreadPct ?? null,
-      adjustedSpreadPct: asset.adjustedSpreadPct ?? null,
-      shareRatio: asset.shareRatio ?? null,
-      dataQuality: asset.dataQuality,
-      direction,
+      tokenPrice: null,
+      referencePrice: null,
+      rawSpreadPct: null,
+      adjustedSpreadPct: null,
+      spreadPct: null,
+      shareRatio: null,
+      dataQuality: "unavailable",
+      direction: "DATA_UNAVAILABLE",
       marketStatus: asset.marketStatus,
-      assessment:
-        direction === "MISSING_RATIO"
-          ? "Share ratio is missing; no market-gap conclusion is safe."
-          : direction === "PREMIUM"
-            ? "Ratio-adjusted token price is above the reference."
-            : direction === "DISCOUNT"
-              ? "Ratio-adjusted token price is below the reference."
-              : "Ratio-adjusted token price is aligned with the reference."
+      assessment: "The live market API failed. No price or divergence is inferred from stale demo values."
     },
     execution: { broadcast: false },
-    fallbackReason:
-      "PRONOUS live API was unavailable; deterministic market-gap scan was evaluated locally. No transaction was executed."
+    fallbackReason: "PRONOUS live API unavailable; no price-bearing demo fallback was substituted."
   };
 }
 
@@ -157,7 +141,7 @@ function localPreflight(ticker, amount, maxSpend) {
   const status = localPreflightStatus(checks);
   return {
     agent: "PRONOUS",
-    mode: "mcp-local-demo",
+    mode: "unavailable",
     network: "BSC",
     ticker: asset.ticker,
     asset,
@@ -174,7 +158,7 @@ function localPreflight(ticker, amount, maxSpend) {
     },
     broadcast: false,
     fallbackReason:
-      "PRONOUS live API was unavailable; deterministic preflight was evaluated locally (mirrors lib/policy.js). No transaction was executed."
+      "PRONOUS live API unavailable; preflight is blocked because live price data is missing. No transaction was executed."
   };
 }
 
@@ -201,35 +185,55 @@ function createServer() {
   server.registerTool(
     "market_assets",
     {
-      description: "Get tokenized-stock market assets monitored by PRONOUS.",
+      description: "Get live tokenized-stock market assets monitored by PRONOUS. If live API data is unavailable, no price-bearing demo values are substituted.",
       inputSchema: z.object({ ticker: z.string().optional() })
     },
     async ({ ticker }) => {
-      const path =
-        "/api/agent?action=assets" +
-        (ticker ? "&ticker=" + encodeURIComponent(ticker.toUpperCase()) : "");
       try {
-        return { content: [{ type: "text", text: JSON.stringify(await getJSON(path), null, 2) }] };
-      } catch {
-        const assets = ticker ? [localAsset(ticker)] : Object.keys(DEMO_ASSETS).map(localAsset);
+        const allAssets = [];
+        let offset = 0;
+        let pages = 0;
+        let meta = null;
+        do {
+          const page = await getJSON("/api/agent?action=assets&limit=100&offset=" + offset);
+          if (page.mode !== "live-data" || !Array.isArray(page.assets)) {
+            throw new Error(page.error || "LIVE_ASSET_DATA_UNAVAILABLE");
+          }
+          if (!meta) meta = page;
+          allAssets.push(...page.assets);
+          offset = page.pagination?.nextOffset;
+          pages += 1;
+        } while (offset !== null && offset !== undefined && pages < 10);
+        const selected = ticker
+          ? allAssets.filter((asset) => String(asset.ticker || "").toUpperCase() === ticker.toUpperCase())
+          : allAssets;
         return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(
-                {
-                  agent: "PRONOUS",
-                  mode: "mcp-local-demo",
-                  network: "BSC",
-                  assets,
-                  fallbackReason:
-                    "PRONOUS live API was unavailable; deterministic demo market assets were returned locally. No transaction was executed."
-                },
-                null,
-                2
-              )
-            }
-          ]
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              ...(meta || {}),
+              assets: selected,
+              pagination: { total: selected.length, complete: offset == null && pages <= 10 },
+              source: "live PRONOUS RWA feed",
+              broadcast: false
+            }, null, 2)
+          }]
+        };
+      } catch (error) {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              agent: "PRONOUS",
+              mode: "unavailable",
+              network: "BSC",
+              assets: [],
+              error: "LIVE_ASSET_DATA_UNAVAILABLE",
+              fallbackReason: "Live API failed or was rate-limited. Stale demo prices were removed; retry later.",
+              details: String(error?.message || error),
+              broadcast: false
+            }, null, 2)
+          }]
         };
       }
     }

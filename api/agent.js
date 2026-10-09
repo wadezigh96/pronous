@@ -1,11 +1,110 @@
-const { assessQuote, isSupportedPlatform } = require("../lib/market");
-const { getPancakeQuote } = require("../lib/pancakeswap-quote");
+const { assessQuote, isSupportedPlatform, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
+const { getPancakeQuote, USDT } = require("../lib/pancakeswap-quote");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
 const { buildQuoteParams, buildSwapParams } = require("../lib/execution");
 const { signedGet, normalizeCredential, publicKeyFingerprint } = require("../lib/binance-web3");
 
 const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
+const configuredCacheTtl = Number(process.env.PRONOUS_CACHE_TTL_MS);
+const CACHE_TTL_MS = Number.isFinite(configuredCacheTtl) ? Math.max(15000, Math.min(30000, configuredCacheTtl)) : 20000;
+const configuredMaxActionableImpact = Number(process.env.PRONOUS_MAX_ACTIONABLE_PRICE_IMPACT_PCT);
+const MAX_ACTIONABLE_PRICE_IMPACT_PCT = Number.isFinite(configuredMaxActionableImpact) && configuredMaxActionableImpact > 0
+  ? configuredMaxActionableImpact
+  : 1;
+const responseCache = new Map();
+let liveAssetsFetchedAt = null;
+async function cachedValue(key, factory, ttlMs = CACHE_TTL_MS) {
+  const now = Date.now(), hit = responseCache.get(key);
+  if (hit && hit.expiresAt > now) return hit.promise;
+  for (const [cacheKey, entry] of responseCache) if (entry.expiresAt <= now) responseCache.delete(cacheKey);
+  const promise = Promise.resolve().then(factory);
+  responseCache.set(key, { expiresAt: now + ttlMs, promise });
+  while (responseCache.size > 256) responseCache.delete(responseCache.keys().next().value);
+  try { return await promise; } catch (error) {
+    const current = responseCache.get(key);
+    if (current?.promise === promise) responseCache.delete(key);
+    throw error;
+  }
+}
+function boundedInt(value, fallback, min, max) {
+  const n = Number(value);
+  return Number.isInteger(n) ? Math.max(min, Math.min(max, n)) : fallback;
+}
+function marketIsClosed(asset) {
+  const status = [asset.marketStatus, asset.openState].map((x) => String(x ?? "")).join(" ").toLowerCase();
+  const openState = asset.openState;
+  return /closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(status) ||
+    openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
+}
+function marketHoursContext(asset) {
+  if (marketIsClosed(asset)) return "MARKET_CLOSED_REFERENCE_MAY_BE_STALE";
+  // openState can describe token/contract availability (the snapshot shows
+  // openState=true while marketStatus=postmarket); only marketStatus confirms
+  // the underlying exchange session.
+  const status = String(asset.marketStatus ?? "").trim().toLowerCase();
+  if (/^(open|trading|market[_ ]open|regular[_ ]session)$/.test(status)) {
+    return "MARKET_STATUS_REPORTED";
+  }
+  return "MARKET_HOURS_UNCONFIRMED";
+}
+async function mapWithConcurrency(items, concurrency, worker) {
+  const out = new Array(items.length); let cursor = 0;
+  await Promise.all(Array.from({length:Math.min(concurrency,items.length)},async()=>{
+    while (true) { const index=cursor++; if(index>=items.length)return; out[index]=await worker(items[index],index); }
+  }));
+  return out;
+}
+async function quoteRadarAsset(asset, sizeUSDT) {
+  const address=String(asset.tokenContractAddress||"").trim();
+  const expected=Number(asset.referencePrice)*Number(asset.shareRatio??asset.tokenToShareRatio);
+  const validReference=Number.isFinite(expected)&&expected>0;
+  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",quoteSizeUSDT:sizeUSDT,marketContext:marketHoursContext(asset),broadcast:false};
+  if(!/^0x[a-fA-F0-9]{40}$/.test(address)) return {...base,routeStatus:"NO TOKEN ADDRESS",quotePriceUSDTPerToken:null,onchainGapPct:null,priceImpactPct:null,actionable:false};
+  try {
+    const q=await cachedValue("pancake-radar:"+address.toLowerCase()+":"+sizeUSDT,
+      ()=>getPancakeQuote({assetAddress:address,tokenInAddress:USDT,tokenOutAddress:address,amount:String(sizeUSDT)}));
+    const input=Number(q.amountIn), output=Number(q.amountOut);
+    const price=input>0&&output>0&&Number.isFinite(input)&&Number.isFinite(output)?input/output:null;
+    const gap=validReference&&price!==null?(price/expected-1)*100:null;
+    return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:gap===null?null:Number(gap.toFixed(6)),
+      priceImpactPct:q.priceImpact==null?null:Number((Number(q.priceImpact)*100).toFixed(6)),routeTypes:q.routeTypes||[],
+      actionable:asset.dataQuality==="ok"&&validReference&&gap!==null&&Math.abs(gap)>=MIN_ACTIONABLE_GAP_PCT&&q.priceImpact!==null&&q.priceImpact!==undefined&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&marketHoursContext(asset)==="MARKET_STATUS_REPORTED"&&!marketIsClosed(asset)};
+  } catch(error) {
+    const code=String(error?.code||error?.message||"QUOTE_ERROR"), noRoute=/NO_ROUTE/i.test(code);
+    return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,
+      priceImpactPct:null,quoteError:noRoute?null:code,actionable:false};
+  }
+}
+async function liveRadar(sizeUSDT, limit) {
+  return cachedValue("onchain-radar:"+sizeUSDT+":"+limit,async()=>{
+    const assets=await liveAssets();
+    const volumeCandidates=assets.filter(a=>{
+      const volume=Number(a.volume24H);
+      return /^0x[a-fA-F0-9]{40}$/.test(String(a.tokenContractAddress||"")) &&
+        a.volume24H!==null && a.volume24H!==undefined && a.volume24H!=="" &&
+        Number.isFinite(volume) && volume>=0;
+    }).sort((a,b)=>Number(b.volume24H)-Number(a.volume24H));
+    // Do not substitute ticker order or market cap for missing volume. That would
+    // not satisfy the top-by-volume promise and would invent a ranking.
+    if(!volumeCandidates.length) return {assets:[],summary:{
+      candidatesQuoted:0,volumeAvailable:false,noVolumeData:assets.length,
+      reason:"UPSTREAM_24H_VOLUME_UNAVAILABLE",
+      routeAvailable:0,noRoute:0,quoteErrors:0,actionable:0,quoteSizeUSDT:sizeUSDT,
+      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",volumeBasis:"upstream reported 24h volume; units unverified unless volume24HUnit is supplied",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
+    }};
+    const selected=volumeCandidates.slice(0,limit);
+    const rows=await mapWithConcurrency(selected,2,a=>quoteRadarAsset(a,sizeUSDT));
+    return {assets:rows,summary:{
+      candidatesQuoted:rows.length,volumeAvailable:true,volumeCandidates:volumeCandidates.length,
+      routeAvailable:rows.filter(x=>x.routeStatus==="ROUTE").length,
+      noRoute:rows.filter(x=>x.routeStatus==="NO ROUTE").length,
+      quoteErrors:rows.filter(x=>x.routeStatus==="QUOTE ERROR").length,
+      actionable:rows.filter(x=>x.actionable).length,quoteSizeUSDT:sizeUSDT,
+      quoteSource:"PancakeSwap Unified Swap API",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
+    }};
+  });
+}
 
 const AGENT_ALLOWED_ORIGIN = String(
   process.env.ALLOWED_ORIGIN || process.env.APP_ORIGIN || "https://pronous.vercel.app"
@@ -104,13 +203,13 @@ function makePlan(asset) {
   let action = "HOLD / OBSERVE";
   if (asset.dataQuality === "missing_ratio") action = "BLOCK — MISSING SHARE RATIO";
   else if (asset.dataQuality !== "ok") action = "HOLD — DATA QUALITY REVIEW";
-  else if (spread > 1) action = "WATCH PREMIUM";
-  else if (spread < -1) action = "WATCH DISCOUNT";
-  return {action,rationale:"Plan uses the ratio-adjusted token/reference spread; raw price difference is not a market signal.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
+  else if (asset.actionable === true && spread > 0) action = "WATCH PREMIUM";
+  else if (asset.actionable === true && spread < 0) action = "WATCH DISCOUNT";
+  return {action,rationale:"Feed spread is ratio-adjusted but may be derived from the reference price; it is not independent market evidence. Use the quote-based radar and inspect impact/session before interpreting a gap.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,actionable:asset.actionable===true,
     guardrails:["spot only","BSC mainnet only","simulate before broadcast","spend cap required","ondo/bstock/xstocks only"]};
 }
 
-async function liveAssets() {
+async function fetchLiveAssets() {
   const data = await binanceGet("/api/v1/dex/market/rwa/tokens",{binanceChainId:"56"});
   return (data.data || [])
     .filter(x => x.underlyingTicker && x.tokenContractAddress && isSupportedPlatform(x.platformId))
@@ -134,11 +233,20 @@ async function liveAssets() {
         openState:x.statusInfo?.openState ?? null,
         nextOpenTime:x.statusInfo?.nextOpenTime ?? null,
         nextCloseTime:x.statusInfo?.nextCloseTime ?? null,
-        volume24H:x.volume24H ?? null,
+        volume24H:x.volume24H ?? x.volume24h ?? x.volume24HUsd ?? x.volume24hUsd ?? null,
+        volume24HUnit:x.volume24HUnit ?? x.volumeUnit ?? null,
         marketCap:x.marketCap ?? null,
         tokenToShareRatio:x.tokenToShareRatio ?? null
       };
     });
+}
+
+async function liveAssets() {
+  return cachedValue("live-rwa-assets", async () => {
+    const assets = await fetchLiveAssets();
+    liveAssetsFetchedAt = Date.now();
+    return assets;
+  });
 }
 
 async function findLiveAsset(ticker) {
@@ -258,34 +366,59 @@ module.exports = async function handler(req,res) {
       });
     }
 
-    if(action==="assets" || action==="radar") {
-      if(LIVE_ENABLED) {
-        try {
-          const assets=await liveAssets();
-          if(assets.length) {
-            const summary={
-              total:assets.length,
-              ondo:assets.filter(x=>x.platformId==="ondo").length,
-              bstock:assets.filter(x=>x.platformId==="bstock").length,
-              xstocks:assets.filter(x=>x.platformId==="xstocks").length,
-              actionable:assets.filter(x=>x.actionable).length,
-              unreliable:assets.filter(x=>x.dataQuality==="unreliable").length,
-              missingRatio:assets.filter(x=>x.dataQuality==="missing_ratio").length
-            };
-            const rows=action==="radar"
-              ? assets.filter(x=>x.actionable).sort((a,b)=>Math.abs(b.adjustedSpreadPct||0)-Math.abs(a.adjustedSpreadPct||0)).slice(0,20)
-              : assets;
-            return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),spotOnly:true,summary,assets:rows});
-          }
-        } catch (e) {
-          return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.message||"Live RWA data unavailable",details:undefined,authDebug:undefined});
+    if(action==="assets" || action==="market" || action==="radar") {
+      res.setHeader("Cache-Control", "public, s-maxage=20, stale-while-revalidate=10");
+      try {
+        if (!LIVE_ENABLED) return res.status(503).json({
+          mode:"unavailable",network:"BSC",error:"LIVE_RWA_FEED_NOT_CONFIGURED",
+          message:"Server-side read-only Binance feed is not configured. Demo prices are not presented as live.",
+          assets:[],summary:{total:0,actionable:0},broadcast:false
+        });
+        const assets=await liveAssets();
+        const summary={
+          total:assets.length,ondo:assets.filter(x=>x.platformId==="ondo").length,
+          bstock:assets.filter(x=>x.platformId==="bstock").length,xstocks:assets.filter(x=>x.platformId==="xstocks").length,
+          actionable:assets.filter(x=>x.actionable).length,unreliable:assets.filter(x=>x.dataQuality==="unreliable").length,
+          missingRatio:assets.filter(x=>x.dataQuality==="missing_ratio").length,minActionableGapPct:MIN_ACTIONABLE_GAP_PCT
+        };
+        if(action==="radar") {
+          const sizeUSDT=boundedInt(url.searchParams.get("sizeUSDT"),100,10,1000);
+          const limit=boundedInt(url.searchParams.get("limit"),5,1,5);
+          const result=await liveRadar(sizeUSDT,limit);
+          return res.status(200).json({
+            mode:"live-data",network:"BSC",updatedAt:Date.now(),feedUpdatedAt:liveAssetsFetchedAt,spotOnly:true,
+            monitor:"onchain-vs-reference",
+            formula:"onchainGapPct = (quotePriceUSDTPerToken / (referencePrice * shareRatio) - 1) * 100",
+            referenceBasis:"USDT is treated as approximately USD; stablecoin depeg risk is not modeled.",quoteSide:"BUY; quote-only and not a round-trip arbitrage estimate",maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,
+            marketHoursNote:"When the underlying exchange is closed, a gap can mean an opportunity or a stale reference. Do not treat it as actionable without checking session status.",
+            summary:result.summary,assets:result.assets,broadcast:false
+          });
         }
+        const limit=boundedInt(url.searchParams.get("limit"),100,1,200);
+        const offset=boundedInt(url.searchParams.get("offset"),0,0,Math.max(0,assets.length));
+        const rows=assets.slice(offset,offset+limit);
+        const nextOffset=offset+rows.length<assets.length?offset+rows.length:null;
+        return res.status(200).json({
+          mode:"live-data",network:"BSC",updatedAt:Date.now(),feedUpdatedAt:liveAssetsFetchedAt,spotOnly:true,summary,
+          pagination:{total:assets.length,limit,offset,nextOffset,hasMore:nextOffset!==null},assets:rows
+        });
+      } catch(e) {
+        return res.status(e.status||502).json({mode:"live-error",network:"BSC",error:e.code||"LIVE_RWA_FEED_FAILED",
+          message:"Live RWA data is temporarily unavailable. Retry after a short delay.",broadcast:false});
       }
-      return res.status(200).json({mode:"demo",network:"BSC",updatedAt:Date.now(),assets:demoAssets.map(x=>demoAsset(x[0]))});
     }
 
+    if (!LIVE_ENABLED && ["scan","preflight","loop","simulate","pancakeQuote","quote","quoteBuild","build"].includes(action)) {
+      return res.status(503).json({
+        mode:"unavailable",network:"BSC",ticker,error:"LIVE_RWA_FEED_NOT_CONFIGURED",
+        message:"The server-side read-only Binance feed is not configured. No demo price is substituted.",
+        asset:{ticker,tokenPrice:null,referencePrice:null,shareRatio:null,dataQuality:"unavailable",actionable:false},
+        broadcast:false,calldataAvailable:false
+      });
+    }
     const asset=LIVE_ENABLED?await findLiveAsset(ticker):demoAsset(ticker);
     if(action==="pancakeQuote") {
+      res.setHeader("Cache-Control", "public, s-maxage=20, stale-while-revalidate=10");
       const input={
         fromTokenAddress:String(url.searchParams.get("fromTokenAddress")||"").trim(),
         toTokenAddress:String(url.searchParams.get("toTokenAddress")||"").trim(),
@@ -307,12 +440,19 @@ module.exports = async function handler(req,res) {
       if(!asset.tokenContractAddress)
         return res.status(409).json({error:"SUPPORTED_RWA_TOKEN_ADDRESS_REQUIRED",broadcast:false});
       try {
-        const quote=await getPancakeQuote({
+        const cacheKey = "pancake-preview:" + [
+          asset.tokenContractAddress,
+          input.fromTokenAddress.toLowerCase(),
+          input.toTokenAddress.toLowerCase(),
+          input.amount,
+          input.maxSpend
+        ].join(":");
+        const quote=await cachedValue(cacheKey,()=>getPancakeQuote({
           assetAddress:asset.tokenContractAddress,
           tokenInAddress:input.fromTokenAddress,
           tokenOutAddress:input.toTokenAddress,
           amount:input.amount
-        });
+        }));
         return res.status(200).json({
           mode:"live-pancakeswap-quote",network:"BSC",ticker,
           asset:{ticker:asset.ticker,platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,
@@ -429,7 +569,7 @@ module.exports = async function handler(req,res) {
         ? "MISSING_RATIO"
         : asset.dataQuality!=="ok"
           ? "UNRELIABLE"
-          : Math.abs(spread)>=1
+          : asset.actionable===true
             ? (spread>0 ? "PREMIUM" : "DISCOUNT")
             : "OBSERVE";
       const risk = asset.dataQuality==="missing_ratio"
@@ -471,7 +611,7 @@ module.exports = async function handler(req,res) {
         signal:{
           type:signal,
           spreadPct:asset.adjustedSpreadPct ?? null,
-          actionable:asset.dataQuality==="ok"&&(signal==="PREMIUM"||signal==="DISCOUNT")
+          actionable:asset.dataQuality==="ok"&&asset.actionable===true&&(signal==="PREMIUM"||signal==="DISCOUNT")
         },
         risk:{
           status:risk,

@@ -20,3 +20,39 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - name: Set up Node.js 20 for npx package smoke test
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar')
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Verify npx install and MCP initialize/tools-list on clean Node 20
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar')
+        run: node scripts/smoke-npx.mjs
+        env:
+          PRONOUS_NPX_SMOKE_TIMEOUT_MS: 180000
+          PRONOUS_NPX_PACKAGE: ${{ github.event_name == 'pull_request' && format('github:wadezigh96/pronous#{0}', github.head_ref) || 'github:wadezigh96/pronous' }}
+      - name: One-off live derived-price evidence
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        run: node scripts/verify-derived-price.mjs
+        env:
+          PRONOUS_ASSETS_URL: https://pronous.vercel.app/api/agent?action=assets
+      - name: One-off PancakeSwap quote measurements
+        if: github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        run: node scripts/measure-quotes.mjs
+        env:
+          PRONOUS_ASSETS_URL: https://pronous.vercel.app/api/agent?action=assets
+          PRONOUS_QUOTE_MAX_TICKERS: 3
+      - name: Upload read-only measurement evidence
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        uses: actions/upload-artifact@v4
+        with:
+          name: derived-price-analysis
+          path: docs/derived-price-analysis.json
+          if-no-files-found: warn
+      - name: Upload quote measurement evidence
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quote-measurements
+          path: docs/quote-measurements.json
+          if-no-files-found: warn

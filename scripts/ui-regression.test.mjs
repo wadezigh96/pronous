@@ -13,6 +13,7 @@ const app = readFileSync("desk-app.js", "utf8");
 const walletState = readFileSync("lib/wallet-state.js", "utf8");
 const walletConnect = readFileSync("wallet-connect.js", "utf8");
 const bridge = readFileSync("desk-bridge.js", "utf8");
+const live = readFileSync("desk-live.js", "utf8");
 const gates = readFileSync("lib/execution-gates.js", "utf8");
 const txPolicy = readFileSync("lib/tx-policy.js", "utf8");
 
@@ -121,6 +122,68 @@ test("market signal is sourced from live assets and tabs are functional", () => 
   assert.match(bridge, /dataQuality !== 'unreliable'/);
   assert.match(html, /Ratio-adjusted token\/reference divergence/);
   assert.doesNotMatch(html, /AI scanning 1,248 assets/);
+});
+
+test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route as null", () => {
+  assert.match(agent, /monitor:"onchain-vs-reference"/);
+  assert.match(agent, /onchainGapPct/);
+  assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
+  assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
+  assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&gap!==null&&Math\.abs\(gap\)>=MIN_ACTIONABLE_GAP_PCT/);
+  assert.match(agent, /marketHoursContext\(asset\)==="MARKET_STATUS_REPORTED"/);
+  assert.match(agent, /const status = String\(asset\.marketStatus/);
+  assert.doesNotMatch(agent, /asset\.openState === true/);
+  assert.match(agent, /MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
+  assert.match(agent, /Number\(q\.priceImpact\)\*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
+  assert.match(agent, /quoteSide:"BUY"/);
+  assert.match(agent, /MARKET_CLOSED_REFERENCE_MAY_BE_STALE/);
+  assert.match(agent, /priceImpactPct/);
+  assert.match(agent, /\(quotePriceUSDTPerToken \/ \(referencePrice \* shareRatio\) - 1\) \* 100/);
+  assert.match(live, /window\.__pronousRadarAssets/);
+  assert.match(live, /NO REFERENCE/);
+  assert.match(live, /x\.routeStatus/);
+  assert.match(live, /PancakeSwap quote-only/);
+  assert.match(live, /BUY-QUOTE vs REFERENCE/);
+  assert.match(live, /const threshold = Number\(window\.__pronousRadarSummary\?\.minActionableGapPct \|\| 1\)/);
+  assert.match(live, /HIGH IMPACT · REVIEW/);
+  assert.match(live, /IMPACT UNKNOWN · REVIEW/);
+  assert.match(live, /@media\(max-width:560px\)/);
+  assert.match(live, /upstream feed has no measured 24h volume/);
+});
+
+test("public quote preview remains available without wallet and shows API/chain errors", () => {
+  assert.match(app, /await syncDeskWallet\(\);\s*const walletReady=!!walletAddress&&Number\(walletChainId\)===56/);
+  assert.match(app, /PancakeSwap read-only preview is still available/);
+  assert.match(app, /Wrong wallet chain \(not BSC Mainnet, chain ID 56\)/);
+  assert.match(app, /chain ID 56\) before simulation/);
+  assert.match(app, /chain ID 56\) before confirmation/);
+  assert.match(app, /Rate limited\. Wait 60 seconds before retrying\./);
+  assert.match(app, /Market API unavailable/);
+  assert.match(app, /WALLET CONNECTED · WRONG CHAIN/);
+  assert.match(app, /status:r\.status,data:j/);
+});
+
+test("market alias and unavailable server feed never turn into demo prices", () => {
+  assert.match(agent, /action==="assets" \|\| action==="market" \|\| action==="radar"/);
+  assert.match(agent, /!LIVE_ENABLED && \["scan","preflight","loop","simulate","pancakeQuote","quote","quoteBuild","build"\]/);
+  assert.match(agent, /LIVE_RWA_FEED_NOT_CONFIGURED/);
+  assert.match(agent, /No demo price is substituted/);
+  assert.match(agent, /asset\.actionable===true/);
+  assert.match(agent, /minActionableGapPct:MIN_ACTIONABLE_GAP_PCT/);
+});
+
+test("public read-only market endpoint is cached, paginated and bounded", () => {
+  assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
+  assert.match(agent, /pancake-preview:/);
+  assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
+  assert.match(agent, /Math\.max\(15000, Math\.min\(30000/);
+  assert.match(agent, /pagination:\{total:assets\.length,limit,offset,nextOffset,hasMore/);
+  assert.match(agent, /slice\(offset,offset\+limit\)/);
+  assert.match(agent, /\.slice\(0,limit\)/);
+  assert.match(agent, /Number\(b\.volume24H\)-Number\(a\.volume24H\)/);
+  assert.match(agent, /UPSTREAM_24H_VOLUME_UNAVAILABLE/);
+  assert.match(live, /action=assets&limit=100&offset=/);
+  assert.match(live, /action=radar&limit=5&sizeUSDT=100/);
 });
 
 test("chart initial UI does not claim fabricated market values", () => {

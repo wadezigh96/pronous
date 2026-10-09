@@ -10,6 +10,25 @@
 
 ---
 
+## Capability status — evidence boundary
+
+### Live / verified observations
+- The public assets endpoint returned `mode: "live-data"` and 488 tokenized-stock rows in a timestamped snapshot on 9 October 2026. See the source run at [derived-price analysis CI](https://github.com/wadezigh96/pronous/actions/runs/37992545416). This is a measured snapshot, not an uptime guarantee.
+- The existing production feed relies on server-side Binance Web3 credentials. A browser reader does not need to connect a wallet or provide API credentials. If the server-side feed is unavailable, the revised endpoint returns an explicit unavailable response rather than pretending demo values are live.
+- The PoaAnchor address and both POA transactions above are the on-chain evidence for the attestation feature. They are not evidence that a swap was executed.
+
+### Quote-preview only
+- The PancakeSwap Unified Swap API was queried with USDT input at 10, 100 and 1,000 USDT for NVDA, TSLA and SPY on Ondo and bStocks where listed. The recorded run produced 18 attempts: 17 routes and one `NO_ROUTE`, with no quote errors. See [quote-measurement CI run](https://github.com/wadezigh96/pronous/actions/runs/37992545416) and [saved measurements](./quote-measurements.json).
+- `onchainGapPct` compares a one-way buy quote with `referencePrice × tokenToShareRatio`. It is a quote-preview metric, **not a round-trip arbitrage proof**. Large gaps that carry large price impact are treated as a route/liquidity warning. No quote request in that measurement asked for calldata or broadcast a transaction.
+
+### Not enabled / not independently verified
+- Server-side transaction broadcast and autonomous execution without explicit user confirmation are not enabled by this verification.
+- The live hosted BNB Agent Studio runtime and Agentic Wallet execution were not independently verified as working hosted services.
+- x402 payments are not enabled.
+- xStocks did not appear in the 488-asset snapshot.
+
+---
+
 ## One-liner
 
 PRONOUS is a BSC mainnet desk for tokenized equities: live RWA feeds, guarded preflight → simulate → confirm, and **Proof of Action (POA)** that can stay off-chain or be **anchored on-chain** with the user paying **BNB gas only** (no swap broadcast).
@@ -43,11 +62,11 @@ Verified `poaHash` values from BSC mainnet transaction logs:
 ```
 Market (bStocks / Ondo / xStocks)
   → Scan / gap radar
-  → Quote (from ≠ to token)
+  → Quote preview (buy-side, quote-only)
   → Preflight (policy, spend caps)
   → Simulation (dry-run)
   → Explicit user confirmation
-  → Gated broadcast (only after required checks; not used in this verification)
+  → Wallet-owned signing/broadcast only behind gates (not used in these measurements)
   → POA create (off-chain SHA-256, free)
   → Optional POA Anchor (on-chain, user pays BNB gas)
   → Execution only after gates (spot only)
@@ -65,7 +84,7 @@ See also: [CHECKLIST.md](./CHECKLIST.md) · [POA_ONCHAIN.md](./POA_ONCHAIN.md) �
 
 Verified production checks: `/api/agent` and the assets/radar actions returned HTTP 200; the assets action returned 488 live assets. Preflight with `amount=1` and `maxSpend=2` returned `READY_FOR_SIMULATION`. The simulation endpoint returned HTTP 200 with `simulationMode: DRY_RUN` and `broadcast: false`.
 
-The following POA verification steps are now complete: the documented PoaAnchor contract was verified on BSC mainnet, both referenced anchor transactions were independently verified with successful receipts and expected `PoaAnchored` logs, and the documented actor, POA IDs, and `poaHash` values matched the on-chain records. Agent Studio hosted runtime and Agentic Wallet live execution have not been independently verified as live.
+The following POA verification steps are complete: the documented PoaAnchor contract was verified on BSC mainnet, both referenced anchor transactions were independently verified with successful receipts and expected `PoaAnchored` logs, and the documented actor, POA IDs, and `poaHash` values matched the on-chain records. The market data and quote values in the linked JSON files are timestamped read-only measurements. They do not imply that an order was signed, broadcast, or filled. Agent Studio hosted runtime and Agentic Wallet live execution have not been independently verified as live.
 
 ---
 
