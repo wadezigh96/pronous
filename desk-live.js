@@ -51,6 +51,7 @@
           const gap = x.onchainGapPct == null ? null : Number(x.onchainGapPct);
           const context = String(x.marketContext || "MARKET_HOURS_UNCONFIRMED");
           const state = x.marketStatus || x.openState || "hours unconfirmed";
+          const threshold = Number(window.__pronousRadarSummary?.minActionableGapPct || 1);
           const gapText = !routed ? String(x.routeStatus || "QUOTE ERROR") :
             gap == null || !Number.isFinite(gap) ? "NO REFERENCE" : ((gap > 0 ? "+" : "") + gap.toFixed(2) + "%");
           const signal = !routed ? {label:gapText,cls:"muted"} :
@@ -59,7 +60,7 @@
             x.priceImpactPct == null || !Number.isFinite(Number(x.priceImpactPct)) ? {label:"IMPACT UNKNOWN · REVIEW",cls:"muted"} :
             Number(x.priceImpactPct) > Number(window.__pronousRadarSummary?.maxActionablePriceImpactPct || 1) ? {label:"HIGH IMPACT · REVIEW",cls:"muted"} :
             context !== "MARKET_STATUS_REPORTED" ? {label:"HOURS UNCONFIRMED · REVIEW",cls:"muted"} :
-            Math.abs(gap) >= 1 ? {label:gap > 0 ? "PREMIUM" : "DISCOUNT",cls:gap > 0 ? "pos" : "neg"} :
+            Math.abs(gap) >= threshold ? {label:gap > 0 ? "PREMIUM" : "DISCOUNT",cls:gap > 0 ? "pos" : "neg"} :
             {label:"BELOW THRESHOLD",cls:"muted"};
           const shownGap = routed && gap != null && Number.isFinite(gap);
           return (
