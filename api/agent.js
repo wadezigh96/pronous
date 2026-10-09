@@ -106,7 +106,7 @@ function makePlan(asset) {
   else if (asset.dataQuality !== "ok") action = "HOLD — DATA QUALITY REVIEW";
   else if (spread > 1) action = "WATCH PREMIUM";
   else if (spread < -1) action = "WATCH DISCOUNT";
-  return {action,rationale:"Plan uses the ratio-adjusted token/reference spread; raw price difference is not a market signal.",spreadPct:spread,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
+  return {action,rationale:"Plan uses the ratio-adjusted token/reference spread; raw price difference is not a market signal.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
     guardrails:["spot only","BSC mainnet only","simulate before broadcast","spend cap required","ondo/bstock/xstocks only"]};
 }
 
