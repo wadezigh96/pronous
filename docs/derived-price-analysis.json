@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "analysis": "derived-price-consistency",
+  "measuredAt": "2026-10-09T20:47:58.008Z",
+  "source": {
+    "endpoint": "https://pronous.vercel.app/api/agent?action=assets",
+    "mode": "live-data",
+    "apiUpdatedAt": 1791578877549,
+    "totalReported": 488,
+    "uniqueAssetsAnalyzed": 488,
+    "formula": "abs(tokenPrice - referencePrice * shareRatio) / tokenPrice * 100",
+    "outlierThresholdPct": 0.1,
+    "platformCounts": {
+      "ondo": 442,
+      "bstock": 46,
+      "xstocks": 0
+    },
+    "ciRun": "https://github.com/wadezigh96/pronous/actions/runs/37989233347",
+    "fullPerAssetArtifact": "https://github.com/wadezigh96/pronous/actions/runs/37989233347",
+    "interpretation": "Numerical consistency supports that tokenPrice equals referencePrice * shareRatio for this snapshot; this does not prove the provider's internal methodology."
+  },
+  "summary": {
+    "assetsAnalyzed": 488,
+    "validRatioAndPrices": 488,
+    "invalidInputs": 0,
+    "within001Pct": 488,
+    "within01Pct": 488,
+    "outlierCount": 0,
+    "minDeviationPct": 0,
+    "medianDeviationPct": 0,
+    "p90DeviationPct": 0,
+    "maxDeviationPct": 0
+  },
+  "histogram": {
+    "≤0.000001% (rounding/equal)": 488,
+    "≤0.001%": 0,
+    "≤0.01%": 0,
+    "≤0.1%": 0,
+    "≤1%": 0,
+    "≤5%": 0,
+    ">5%": 0,
+    "invalid": 0
+  },
+  "outliers": [],
+  "note": "This committed file records the actual run summary. The linked CI artifact contains the complete per-asset JSON output; running node scripts/verify-derived-price.mjs refreshes this file with full row-level results."
+}
