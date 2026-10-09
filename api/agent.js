@@ -30,7 +30,7 @@ function boundedInt(value, fallback, min, max) {
 function marketIsClosed(asset) {
   const status = String(asset.marketStatus || "").toLowerCase();
   const openState = asset.openState;
-  return status.includes("closed") || openState === false || openState === 0 || String(openState).toLowerCase() === "closed";
+  return status.includes("closed") || openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
 }
 function marketHoursContext(asset) {
   if (marketIsClosed(asset)) return "MARKET_CLOSED_REFERENCE_MAY_BE_STALE";
@@ -362,7 +362,7 @@ module.exports = async function handler(req,res) {
           return res.status(200).json({
             mode:"live-data",network:"BSC",updatedAt:Date.now(),feedUpdatedAt:liveAssetsFetchedAt,spotOnly:true,
             monitor:"onchain-vs-reference",
-            formula:"onchainGapPct = quotePriceUSDTPerToken / (referencePrice * shareRatio) - 1",
+            formula:"onchainGapPct = (quotePriceUSDTPerToken / (referencePrice * shareRatio) - 1) * 100",
             referenceBasis:"USDT is treated as approximately USD; stablecoin depeg risk is not modeled.",
             marketHoursNote:"When the underlying exchange is closed, a gap can mean an opportunity or a stale reference. Do not treat it as actionable without checking session status.",
             summary:result.summary,assets:result.assets,broadcast:false
