@@ -196,9 +196,9 @@ function makePlan(asset) {
   let action = "HOLD / OBSERVE";
   if (asset.dataQuality === "missing_ratio") action = "BLOCK — MISSING SHARE RATIO";
   else if (asset.dataQuality !== "ok") action = "HOLD — DATA QUALITY REVIEW";
-  else if (spread > 1) action = "WATCH PREMIUM";
-  else if (spread < -1) action = "WATCH DISCOUNT";
-  return {action,rationale:"Plan uses the ratio-adjusted token/reference spread; raw price difference is not a market signal.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
+  else if (asset.actionable === true && spread > 0) action = "WATCH PREMIUM";
+  else if (asset.actionable === true && spread < 0) action = "WATCH DISCOUNT";
+  return {action,rationale:"Feed spread is ratio-adjusted but may be derived from the reference price; it is not independent market evidence. Use the quote-based radar and inspect impact/session before interpreting a gap.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,actionable:asset.actionable===true,
     guardrails:["spot only","BSC mainnet only","simulate before broadcast","spend cap required","ondo/bstock/xstocks only"]};
 }
 
