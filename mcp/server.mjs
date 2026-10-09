@@ -137,11 +137,13 @@ function localScan(ticker) {
       direction,
       marketStatus: asset.marketStatus,
       assessment:
-        direction === "PREMIUM"
-          ? "Tokenized stock is trading above the reference price."
-          : direction === "DISCOUNT"
-            ? "Tokenized stock is trading below the reference price."
-            : "Tokenized stock is aligned with the reference price."
+        direction === "MISSING_RATIO"
+          ? "Share ratio is missing; no market-gap conclusion is safe."
+          : direction === "PREMIUM"
+            ? "Ratio-adjusted token price is above the reference."
+            : direction === "DISCOUNT"
+              ? "Ratio-adjusted token price is below the reference."
+              : "Ratio-adjusted token price is aligned with the reference."
     },
     execution: { broadcast: false },
     fallbackReason:
