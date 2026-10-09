@@ -359,7 +359,7 @@ module.exports = async function handler(req,res) {
       });
     }
 
-    if(action==="assets" || action==="radar") {
+    if(action==="assets" || action==="market" || action==="radar") {
       res.setHeader("Cache-Control", "public, s-maxage=20, stale-while-revalidate=10");
       try {
         if (!LIVE_ENABLED) return res.status(503).json({
