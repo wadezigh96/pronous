@@ -55,7 +55,7 @@ The saved run summary is **488 analysed, 488 valid, 488 within 0.000001%, 0 outl
 | NOW / Ondo | 3,522.5 | 704.5 | 5 | +400% |
 | CRWD / Ondo | 4,400.8 | 1,100.2 | 4 | +300% |
 | KLAC / Ondo | 19,662.802529607463 | 1,961.1684819027985 | 10.026064925604905 | +902.6065% |
-| SOXS / Ondo | ratio multiplier 0.1016956630866353 | — | 0.1016956630866353 | −89.8304% |
+| SOXS / Ondo | 0.35624080380065615 | 3.50300881068224 | 0.1016956630866353 | −89.8304% |
 
 Those large raw spreads are explained by the share multiplier in these rows. This supports the derived-price hypothesis; it does not prove how Binance internally produced the field. The full measurement JSON was uploaded as the `derived-price-analysis` artifact in [CI run 37989233347](https://github.com/wadezigh96/pronous/actions/runs/37989233347); the compact checked-in summary is `docs/derived-price-analysis.json`.
 
