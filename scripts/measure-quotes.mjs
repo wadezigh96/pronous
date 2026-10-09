@@ -18,7 +18,7 @@ const DEFAULT_ASSETS_URL = "https://pronous.vercel.app/api/agent?action=assets";
 const PAGE_SIZE = 100;
 const MAX_ASSETS = 2000;
 const SIZES_USDT = [10, 100, 1000];
-const MAX_TICKERS = Math.max(1, Math.min(5, Number(process.env.PRONEOUS_QUOTE_MAX_TICKERS || 3)));
+const MAX_TICKERS = Math.max(1, Math.min(5, Number(process.env.PRONOUS_QUOTE_MAX_TICKERS || 3)));
 const CONCURRENCY = 2;
 
 function n(value) {
