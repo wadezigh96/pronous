@@ -1,4 +1,4 @@
-const { assessQuote, isSupportedPlatform, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
+const { assessQuote, isSupportedPlatform, resolveShareRatio, MIN_ACTIONABLE_GAP_PCT } = require("../lib/market");
 const { getPancakeQuote, USDT } = require("../lib/pancakeswap-quote");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
@@ -266,17 +266,41 @@ async function findLiveAsset(ticker) {
     });
     market=m.data||{};
   } catch (_) {}
-  const tokenPrice=Number(quote.tokenPrice||0), referencePrice=Number(quote.referencePrice||0);
-  const shareRatio=quote.tokenToShareRatio ?? asset.tokenToShareRatio ?? asset.shareRatio ?? null;
-  const quality=assessQuote(tokenPrice, referencePrice, shareRatio);
-  return {demo:false,ticker:asset.ticker||ticker,companyName:asset.companyName||asset.underlyingName,
-    platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,tokenContractAddress:asset.tokenContractAddress,
+  let feedAsset=null;
+  let shareRatio=resolveShareRatio(quote.tokenToShareRatio,asset.tokenToShareRatio,asset.shareRatio);
+  let shareRatioSource=shareRatio===null?null:
+    quote.tokenToShareRatio!==null&&quote.tokenToShareRatio!==undefined&&resolveShareRatio(quote.tokenToShareRatio)!==null?"price":
+    asset.tokenToShareRatio!==null&&asset.tokenToShareRatio!==undefined&&resolveShareRatio(asset.tokenToShareRatio)!==null?"search":"search";
+  // The search/price endpoints can omit tokenToShareRatio even when the full RWA
+  // token list has it. Reuse the 20s cached list as a safe fallback rather than
+  // falsely marking a known-ratio asset as missing_ratio.
+  if(shareRatio===null){
+    try{
+      const rows=await liveAssets();
+      const address=String(asset.tokenContractAddress||"").toLowerCase();
+      const platform=String(asset.platformId||"").toLowerCase();
+      feedAsset=rows.find(x=>String(x.tokenContractAddress||"").toLowerCase()===address&&String(x.platformId||"").toLowerCase()===platform)
+        ||rows.find(x=>String(x.ticker||"").toUpperCase()===String(asset.ticker||ticker).toUpperCase()&&String(x.platformId||"").toLowerCase()===platform)
+        ||null;
+      shareRatio=resolveShareRatio(feedAsset?.tokenToShareRatio,feedAsset?.shareRatio);
+      if(shareRatio!==null)shareRatioSource="rwa-tokens-list";
+    }catch(_){}
+  }
+  const tokenPrice=Number(quote.tokenPrice||feedAsset?.tokenPrice||0);
+  const referencePrice=Number(quote.referencePrice||feedAsset?.referencePrice||0);
+  const quality=assessQuote(tokenPrice,referencePrice,shareRatio);
+  return {demo:false,ticker:asset.ticker||ticker,companyName:asset.companyName||asset.underlyingName||feedAsset?.companyName||"",
+    platformId:asset.platformId||feedAsset?.platformId,tokenSymbol:asset.tokenSymbol||feedAsset?.tokenSymbol,
+    tokenContractAddress:asset.tokenContractAddress||feedAsset?.tokenContractAddress,
     tokenPrice:String(tokenPrice),referencePrice:String(referencePrice),
     rawSpreadPct:quality.rawSpreadPct,adjustedSpreadPct:quality.adjustedSpreadPct,
     spreadPct:quality.adjustedSpreadPct,shareRatio:quality.shareRatio,
-    tokenToShareRatio:shareRatio,dataQuality:quality.dataQuality,actionable:quality.actionable,
-    marketStatus:market.statusInfo?.marketStatus||null,openState:market.statusInfo?.openState??null,
-    nextOpenTime:market.statusInfo?.nextOpenTime??null,nextCloseTime:market.statusInfo?.nextCloseTime??null};
+    tokenToShareRatio:shareRatio,shareRatioSource,dataQuality:quality.dataQuality,actionable:quality.actionable,
+    volume24H:feedAsset?.volume24H??asset.volume24H??null,
+    marketStatus:market.statusInfo?.marketStatus||feedAsset?.marketStatus||null,
+    openState:market.statusInfo?.openState??feedAsset?.openState??null,
+    nextOpenTime:market.statusInfo?.nextOpenTime??feedAsset?.nextOpenTime??null,
+    nextCloseTime:market.statusInfo?.nextCloseTime??feedAsset?.nextCloseTime??null};
 }
 
 
