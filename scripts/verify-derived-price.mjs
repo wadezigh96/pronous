@@ -184,6 +184,8 @@ async function main() {
   await fs.writeFile(outputPath, JSON.stringify(report, null, 2) + "\n");
   console.log("DERIVED_PRICE_ANALYSIS_JSON=" + JSON.stringify({
     output: outputPath,
+    measuredAt: report.measuredAt,
+    source: report.source,
     mode: report.source.mode,
     apiUpdatedAt: report.source.apiUpdatedAt,
     totalReported: report.source.totalReported,
@@ -204,6 +206,9 @@ async function main() {
       shareRatio: item.shareRatio, derivedPrice: item.derivedPrice, qualityFlag: item.qualityFlag
     }));
   }
+  // Emit each measured row so the exact snapshot can be reconstructed from
+  // the CI log without relying only on an expiring artifact download.
+  for (const item of report.assets) console.log("DERIVED_PRICE_RECORD " + JSON.stringify(item));
   console.log("Saved " + report.summary.assetsAnalyzed + " asset rows to " + outputPath);
 }
 
