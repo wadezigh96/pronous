@@ -252,6 +252,7 @@ async function main() {
     crossVenuePairs: selected.filter((x) => x.paired).map((x) => x.ticker),
     xstocksPresentInSnapshot: xstocksPresent
   }));
+  for (const row of reportRows) console.log("QUOTE_RECORD " + JSON.stringify(row));
   for (const row of reportRows) console.log("QUOTE " + JSON.stringify({
     ticker: row.ticker, platformId: row.platformId, sizeUSDT: row.sizeUSDT,
     routeStatus: row.routeStatus, quotePriceUSDTPerToken: row.quotePriceUSDTPerToken,
