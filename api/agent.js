@@ -32,13 +32,20 @@ function boundedInt(value, fallback, min, max) {
   return Number.isInteger(n) ? Math.max(min, Math.min(max, n)) : fallback;
 }
 function marketIsClosed(asset) {
-  const status = String(asset.marketStatus || "").toLowerCase();
+  const status = [asset.marketStatus, asset.openState].map((x) => String(x ?? "")).join(" ").toLowerCase();
   const openState = asset.openState;
-  return /closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(status) || openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
+  return /closed|post.?market|pre.?market|after.?hours|overnight|extended.?hours/i.test(status) ||
+    openState === false || openState === 0 || ["false","0","closed"].includes(String(openState).toLowerCase());
 }
 function marketHoursContext(asset) {
   if (marketIsClosed(asset)) return "MARKET_CLOSED_REFERENCE_MAY_BE_STALE";
-  if (/open|trading/i.test(String(asset.marketStatus || asset.openState || ""))) return "MARKET_STATUS_REPORTED";
+  const status = String(asset.marketStatus ?? "").trim().toLowerCase();
+  const openState = String(asset.openState ?? "").trim().toLowerCase();
+  if (asset.openState === true || asset.openState === 1 ||
+      ["true","1","open","trading"].includes(openState) ||
+      /^(open|trading|market[_ ]open|regular[_ ]session)$/.test(status)) {
+    return "MARKET_STATUS_REPORTED";
+  }
   return "MARKET_HOURS_UNCONFIRMED";
 }
 async function mapWithConcurrency(items, concurrency, worker) {
