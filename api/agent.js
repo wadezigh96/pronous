@@ -159,7 +159,7 @@ async function findLiveAsset(ticker) {
     market=m.data||{};
   } catch (_) {}
   const tokenPrice=Number(quote.tokenPrice||0), referencePrice=Number(quote.referencePrice||0);
-  const shareRatio=asset.tokenToShareRatio ?? asset.shareRatio ?? null;
+  const shareRatio=quote.tokenToShareRatio ?? asset.tokenToShareRatio ?? asset.shareRatio ?? null;
   const quality=assessQuote(tokenPrice, referencePrice, shareRatio);
   return {demo:false,ticker:asset.ticker||ticker,companyName:asset.companyName||asset.underlyingName,
     platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,tokenContractAddress:asset.tokenContractAddress,
