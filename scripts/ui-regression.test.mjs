@@ -13,6 +13,7 @@ const app = readFileSync("desk-app.js", "utf8");
 const walletState = readFileSync("lib/wallet-state.js", "utf8");
 const walletConnect = readFileSync("wallet-connect.js", "utf8");
 const bridge = readFileSync("desk-bridge.js", "utf8");
+const live = readFileSync("desk-live.js", "utf8");
 const gates = readFileSync("lib/execution-gates.js", "utf8");
 const txPolicy = readFileSync("lib/tx-policy.js", "utf8");
 
@@ -128,10 +129,10 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /onchainGapPct/);
   assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
-  assert.match(bridge, /window\.__pronousRadarAssets/);
-  assert.match(bridge, /NO REFERENCE/);
-  assert.match(bridge, /NO ROUTE/);
-  assert.match(bridge, /PancakeSwap quote-only/);
+  assert.match(live, /window\.__pronousRadarAssets/);
+  assert.match(live, /NO REFERENCE/);
+  assert.match(live, /NO ROUTE/);
+  assert.match(live, /PancakeSwap quote-only/);
 });
 
 test("public read-only market endpoint is cached, paginated and bounded", () => {
@@ -140,8 +141,8 @@ test("public read-only market endpoint is cached, paginated and bounded", () => 
   assert.match(agent, /pagination:\{total:assets\.length,limit,offset,nextOffset,hasMore/);
   assert.match(agent, /slice\(offset,offset\+limit\)/);
   assert.match(agent, /\.slice\(0,limit\)/);
-  assert.match(bridge, /action=assets&limit=100&offset=/);
-  assert.match(bridge, /action=radar&limit=5&sizeUSDT=100/);
+  assert.match(live, /action=assets&limit=100&offset=/);
+  assert.match(live, /action=radar&limit=5&sizeUSDT=100/);
 });
 
 test("chart initial UI does not claim fabricated market values", () => {
