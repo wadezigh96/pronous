@@ -113,6 +113,7 @@ export function deriveQuoteMetrics(asset, quote, latencyMs, routeStatus = "ROUTE
     expectedTokenPrice: expectedPrice === null ? null : Number(expectedPrice.toFixed(8)),
     adjustedSpreadPct: n(asset.adjustedSpreadPct),
     routeStatus,
+    quoteSide: "BUY",
     routeAvailable: routeStatus === "ROUTE",
     quotedInputUSDT: amountIn,
     quotedOutputTokens: amountOut,
