@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { assessQuote, calculateAdjustedSpreadPct, calculateSpreadPct, normalizeAsset, resolveShareRatio } = require("../lib/market");
+const { assessQuote, calculateAdjustedSpreadPct, calculateSpreadPct, normalizeAsset, resolveShareRatio, resolveAssetShareRatio, isMarketClosed, classifyAssetSignal } = require("../lib/market");
 const { buildGuardChecks } = require("../lib/policy");
 
 // CRWD/NOW/PPLT/GME use the ratio multipliers reported in the live RWA snapshot.
@@ -90,4 +90,40 @@ test("execution policy blocks missing ratio even when prices and spend cap are v
   }, { amount: 10, maxSpend: 100 });
   assert.equal(checks.find((x) => x.id === "share_ratio").pass, false);
   assert.equal(checks.find((x) => x.id === "data_quality").pass, false);
+});
+
+
+test("NVDA and CRWD recover share ratios when price and search fixtures omit them", () => {
+  const fixtures = [
+    { ticker: "NVDA", platformId: "ondo", address: "0x1111111111111111111111111111111111111111", ratio: 1, listAddressMatches: true },
+    { ticker: "CRWD", platformId: "ondo", address: "0x2222222222222222222222222222222222222222", ratio: 4, listAddressMatches: false }
+  ];
+  for (const f of fixtures) {
+    const price = { tokenPrice: f.ticker === "CRWD" ? 1100 : 100, referencePrice: f.ticker === "CRWD" ? 275 : 100, tokenToShareRatio: null, shareRatio: null };
+    const search = { ticker: f.ticker, platformId: f.platformId, tokenContractAddress: f.address, tokenToShareRatio: null, shareRatio: null };
+    const tokenList = [{ ticker:f.ticker,underlyingTicker:f.ticker,platformId:f.platformId,
+      tokenContractAddress:f.listAddressMatches?f.address:"0x3333333333333333333333333333333333333333",tokenToShareRatio:f.ratio }];
+    const result = resolveAssetShareRatio({price,search,tokenList,tokenAddress:f.address,platformId:f.platformId,ticker:f.ticker});
+    assert.equal(result.shareRatio,f.ratio,f.ticker+" fallback ratio");
+    assert.equal(result.source,"rwa-tokens-list",f.ticker+" fallback source");
+    assert.equal(result.feedAsset.ticker,f.ticker);
+    const quality=assessQuote(price.tokenPrice,price.referencePrice,result.shareRatio);
+    assert.equal(quality.dataQuality,"ok",f.ticker+" no longer missing_ratio");
+    assert.equal(quality.actionable,false);
+  }
+});
+
+test("price and search ratio precedence is maintained before full-list fallback", () => {
+  const tokenList=[{ticker:"NVDA",platformId:"ondo",tokenToShareRatio:9}];
+  assert.deepEqual(resolveAssetShareRatio({price:{tokenToShareRatio:2},search:{tokenToShareRatio:3},tokenList,ticker:"NVDA",platformId:"ondo"}),{shareRatio:2,source:"price",feedAsset:null});
+  assert.equal(resolveAssetShareRatio({price:{},search:{shareRatio:3},tokenList,ticker:"NVDA",platformId:"ondo"}).source,"search");
+});
+
+test("closed sessions expose OFF_HOURS_DRIFT and remain non-actionable", () => {
+  const asset={ticker:"NVDA",dataQuality:"ok",adjustedSpreadPct:2.5,shareRatio:1,actionable:false,marketStatus:"postmarket",openState:true};
+  assert.equal(isMarketClosed(asset),true);
+  assert.equal(classifyAssetSignal(asset),"OFF_HOURS_DRIFT");
+  assert.equal(asset.actionable,false);
+  assert.equal(isMarketClosed({marketStatus:"open",openState:true}),false);
+  assert.equal(classifyAssetSignal({dataQuality:"missing_ratio",marketStatus:"postmarket"}),"MISSING_RATIO");
 });
