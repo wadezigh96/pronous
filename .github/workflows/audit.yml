@@ -20,6 +20,11 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - name: Verify the live CRWD scan response is not a radar payload
+        if: github.event_name == 'pull_request' && github.head_ref == 'verify/production-scan-contract'
+        run: node scripts/verify-production-scan.mjs
+        env:
+          PRONOUS_SCAN_URL: https://pronous.vercel.app/api/agent?action=scan&ticker=CRWD
       - name: Set up Node.js 20 for npx package smoke test
         if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.head_ref == 'fix/derived-price-radar')
         uses: actions/setup-node@v5
