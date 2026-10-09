@@ -68,11 +68,25 @@ async function quoteRadarAsset(asset, sizeUSDT) {
 async function liveRadar(sizeUSDT, limit) {
   return cachedValue("onchain-radar:"+sizeUSDT+":"+limit,async()=>{
     const assets=await liveAssets();
-    const selected=assets.filter(a=>/^0x[a-fA-F0-9]{40}$/.test(String(a.tokenContractAddress||"")))
-      .sort((a,b)=>(Number(b.volume24H)||0)-(Number(a.volume24H)||0)).slice(0,limit);
+    const volumeCandidates=assets.filter(a=>{
+      const volume=Number(a.volume24H);
+      return /^0x[a-fA-F0-9]{40}$/.test(String(a.tokenContractAddress||"")) &&
+        a.volume24H!==null && a.volume24H!==undefined && a.volume24H!=="" &&
+        Number.isFinite(volume) && volume>=0;
+    }).sort((a,b)=>Number(b.volume24H)-Number(a.volume24H));
+    // Do not substitute ticker order or market cap for missing volume. That would
+    // not satisfy the top-by-volume promise and would invent a ranking.
+    if(!volumeCandidates.length) return {assets:[],summary:{
+      candidatesQuoted:0,volumeAvailable:false,noVolumeData:assets.length,
+      reason:"UPSTREAM_24H_VOLUME_UNAVAILABLE",
+      routeAvailable:0,noRoute:0,quoteErrors:0,actionable:0,quoteSizeUSDT:sizeUSDT,
+      quoteSource:"PancakeSwap Unified Swap API",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
+    }};
+    const selected=volumeCandidates.slice(0,limit);
     const rows=await mapWithConcurrency(selected,2,a=>quoteRadarAsset(a,sizeUSDT));
     return {assets:rows,summary:{
-      candidatesQuoted:rows.length,routeAvailable:rows.filter(x=>x.routeStatus==="ROUTE").length,
+      candidatesQuoted:rows.length,volumeAvailable:true,volumeCandidates:volumeCandidates.length,
+      routeAvailable:rows.filter(x=>x.routeStatus==="ROUTE").length,
       noRoute:rows.filter(x=>x.routeStatus==="NO ROUTE").length,
       quoteErrors:rows.filter(x=>x.routeStatus==="QUOTE ERROR").length,
       actionable:rows.filter(x=>x.actionable).length,quoteSizeUSDT:sizeUSDT,
@@ -208,7 +222,7 @@ async function fetchLiveAssets() {
         openState:x.statusInfo?.openState ?? null,
         nextOpenTime:x.statusInfo?.nextOpenTime ?? null,
         nextCloseTime:x.statusInfo?.nextCloseTime ?? null,
-        volume24H:x.volume24H ?? null,
+        volume24H:x.volume24H ?? x.volume24h ?? x.volume24HUsd ?? x.volume24hUsd ?? null,
         marketCap:x.marketCap ?? null,
         tokenToShareRatio:x.tokenToShareRatio ?? null
       };
