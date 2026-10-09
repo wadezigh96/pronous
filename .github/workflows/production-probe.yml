@@ -1,0 +1,29 @@
+name: PRONOUS Production Read-only Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Probe production scan, preflight acknowledgement, and quote radar
+        run: node scripts/probe-production.mjs
+        env:
+          PRONOUS_PRODUCTION_API_URL: https://pronous.vercel.app/api/agent
+          PRONOUS_PRODUCTION_PROBE_TIMEOUT_MS: 25000
+      - name: Upload timestamped production probe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-probe-${{ github.run_id }}
+          path: artifacts/production-probe.json
+          if-no-files-found: warn
