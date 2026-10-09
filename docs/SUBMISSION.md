@@ -13,7 +13,7 @@
 ## Capability status — evidence boundary
 
 ### Live / verified observations
-- The public assets endpoint returned `mode: "live-data"` and 488 tokenized-stock rows in a timestamped snapshot on 9 October 2026. See the source run at [derived-price analysis CI](https://github.com/wadezigh96/pronous/actions/runs/37989233347). This is a measured snapshot, not an uptime guarantee.
+- The public assets endpoint returned `mode: "live-data"` and 488 tokenized-stock rows in a timestamped snapshot on 9 October 2026. See the source run at [derived-price analysis CI](https://github.com/wadezigh96/pronous/actions/runs/37992545416). This is a measured snapshot, not an uptime guarantee.
 - The existing production feed relies on server-side Binance Web3 credentials. A browser reader does not need to connect a wallet or provide API credentials. If the server-side feed is unavailable, the revised endpoint returns an explicit unavailable response rather than pretending demo values are live.
 - The PoaAnchor address and both POA transactions above are the on-chain evidence for the attestation feature. They are not evidence that a swap was executed.
 
