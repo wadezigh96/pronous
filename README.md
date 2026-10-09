@@ -29,7 +29,9 @@ PRONOUS is a BSC Mainnet spot desk, not an unsupervised trading bot. Read the st
 ### Quote-preview only
 
 - The quote evidence in [`docs/quote-measurements.json`](docs/quote-measurements.json) is from PancakeSwap's Unified Swap quote endpoint, with **USDT as the from-token**. It is a one-way buy quote. No calldata was requested, no wallet signed, and no transaction was broadcast.
-- `onchainGapPct` compares the quoted buy cost per token with `referencePrice × shareRatio`. A large positive value can be slippage/poor liquidity or a stale reference—not proof of arbitrage. Check price impact, quote size, route status, and market session.
+- `onchainGapPct` / `requestedSizeGapPct` is the requested-size PancakeSwap BUY-quote price gap versus `referencePrice × shareRatio`; it includes price impact. It is a quote-based execution-price estimate, **not an actual fill**.
+- `midGapPct` uses the smallest-size quote (10 USDT by default) as a lower-impact proxy. It is **not a true bid/ask midpoint**.
+- When the underlying exchange is closed or pre/post-market, a ratio-valid row can show `OFF_HOURS_DRIFT` plus a stale-reference warning. This signal is informational and non-actionable; it never overrides preflight or execution guards.
 - The measurements include high-impact quotes and a `NO_ROUTE` result; those records are intentionally not converted into a zero spread or a trade recommendation.
 
 ### Not enabled / not independently verified
