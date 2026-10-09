@@ -28,17 +28,46 @@ This report is the actual build log. It is not a compliment sheet.
 - Timestamp / recvWindow: `40103` did not appear after clocks were UTC ISO-8601 with milliseconds. `X-OC-RECV-WINDOW=60000` was used while debugging; 5000 is enough once signing is correct.
 - Error codes: `40102` is overloaded. It covers missing `/build`, wrong algo, wrong secret, and mismatched public key.
 - RWA search / tokens: `GET /api/v1/dex/market/rwa/tokens?binanceChainId=56` works and is the useful universe call.
-- RWA price: token and reference can both be present and still be garbage. Observed live spreads of **+900%** on names such as NFLX/PPLT while NVDA was a realistic **+0.17%**.
+- RWA price fields initially made a few names look wildly mispriced: PPLT showed **+900% raw spread**, NOW **+400%**, and CRWD **+300%**. A later measured 488-row snapshot showed why those readings were misleading: in every row with valid inputs, `tokenPrice` matched `referencePrice × tokenToShareRatio` exactly within the script’s precision. The raw spread was reflecting the token-to-share multiplier, not an independent market price. I no longer treat that raw gap as a trade signal.
 - Trading / simulation: quote and swap adapters are wired; official simulation schema is still gated. Broadcasting from the server is intentionally off.
 - Latency: market list is slower than a single ticker scan. Acceptable for a desk, too slow if every UI tile hits search+price+underlying-market separately.
 
 ## 4. Tokenized-stock behavior
 
 - Platforms seen live on BSC: **Ondo** (majority) and **bStocks**. xStocks was in the allowlist but did not appear in the 488-asset snapshot we pulled.
-- Tokenized vs reference: NVDA/Ondo was tight. Several other names printed multi-hundred-percent gaps with matching token and reference strings, which is a feed/quality problem, not a trading signal.
-- Liquidity / slippage: not measured with live size. Policy refuses to treat an unreliable gap as actionable.
+- Tokenized vs reference: the evidence now points to a semantic problem in the feed fields, not proof that the feed itself is broken. The script run against `https://pronous.vercel.app/api/agent?action=assets` on **2026-10-09 20:47:58 UTC** received **488** live assets: **442 Ondo, 46 bStocks, 0 xStocks**. All **488/488** had valid positive token/reference/ratio fields; all **488/488** were in the `≤0.000001%` deviation histogram bucket for `abs(tokenPrice - referencePrice × ratio) / tokenPrice × 100`; median, P90, and maximum deviation were all **0%**, and there were **0** outliers above the configured **0.1%** threshold. The run and full per-asset artifact are linked here: https://github.com/wadezigh96/pronous/actions/runs/37989233347.
+- Liquidity / slippage: I added a quote-only measurement pass for **10 / 100 / 1,000 USDT** inputs. It requests PancakeSwap quote previews only; it does not request calldata, sign, or broadcast. The actual route count, price impact, size slippage, latency, and same-ticker Ondo-versus-bStocks comparison are recorded in `docs/quote-measurements.json` and the linked CI run below. I will only state route availability or quote figures from that saved output, not infer them from the RWA feed. When the source does not provide 24h volume, the production radar deliberately pauses instead of inventing a top-volume ranking.
 - Market hours: token can stay available while the reference session is closed. The desk therefore shows `marketStatus` / `openState` before treating a gap as a plan.
 - Platform differences: Ondo dominated the universe. bStocks appeared as a smaller set. Comparing the same ticker across venues still depends on search results including more than one `platformId`.
+
+## 4A. Derived-price audit and what I changed
+
+The verifier was run on the production assets endpoint, not on a hand-written fixture. Its exact formula was:
+
+`abs(tokenPrice - referencePrice * shareRatio) / tokenPrice * 100`
+
+The saved run summary is **488 analysed, 488 valid, 488 within 0.000001%, 0 outliers above 0.1%**. Examples from the same live snapshot:
+
+| Ticker / platform | tokenPrice | referencePrice | tokenToShareRatio | Raw token/reference spread |
+|---|---:|---:|---:|---:|
+| PPLT / Ondo | 1,528.5833 | 152.85833 | 10 | +900% |
+| NOW / Ondo | 3,522.5 | 704.5 | 5 | +400% |
+| CRWD / Ondo | 4,400.8 | 1,100.2 | 4 | +300% |
+| KLAC / Ondo | 19,662.802529607463 | 1,961.1684819027985 | 10.026064925604905 | +902.6065% |
+| SOXS / Ondo | ratio multiplier 0.1016956630866353 | — | 0.1016956630866353 | −89.8304% |
+
+Those large raw spreads are explained by the share multiplier in these rows. This supports the derived-price hypothesis; it does not prove how Binance internally produced the field. The full measurement JSON was uploaded as the `derived-price-analysis` artifact in [CI run 37989233347](https://github.com/wadezigh96/pronous/actions/runs/37989233347); the compact checked-in summary is `docs/derived-price-analysis.json`.
+
+I changed the definition of `actionable` so that a valid adjusted gap has to clear a configurable absolute threshold (`PRONOUS_MIN_ACTIONABLE_GAP_PCT`, default **1%**). Missing/invalid ratios stay non-actionable. That is only the feed-quality gate; the Divergence Radar uses a separate quote-derived field, `onchainGapPct`, and a quote route must exist before it can display a numeric gap.
+
+Suggested API contract, instead of overloading one `spreadPct` field:
+
+- `priceSource`, `referencePriceSource`, `referenceAgeMs`, `qualityFlag`
+- `onchainPrice`, `onchainPriceSource`, `onchainGapPct`
+- `routeStatus` (`ROUTE`, `NO ROUTE`, `QUOTE ERROR`), `quoteSizeUSDT`, `quotedAt`, `validForMs`
+- `priceImpactPct`, `slippageVs10USDTPct`, `marketSessionStatus`, `actionable`
+
+A missing route must remain null and be labelled `NO ROUTE`; a missing price must never silently become zero. If the underlying market is closed, the same gap may mean either a real opportunity or a stale reference and should not automatically pass the actionability gate.
 
 ## 5. AI stack
 
