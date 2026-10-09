@@ -8,6 +8,10 @@ const { signedGet, normalizeCredential, publicKeyFingerprint } = require("../lib
 const LIVE_ENABLED = Boolean((process.env.BINANCE_WEB3_API_KEY || "").trim() && (process.env.BINANCE_WEB3_API_SECRET || "").trim());
 const configuredCacheTtl = Number(process.env.PRONOUS_CACHE_TTL_MS);
 const CACHE_TTL_MS = Number.isFinite(configuredCacheTtl) ? Math.max(15000, Math.min(30000, configuredCacheTtl)) : 20000;
+const configuredMaxActionableImpact = Number(process.env.PRONOUS_MAX_ACTIONABLE_PRICE_IMPACT_PCT);
+const MAX_ACTIONABLE_PRICE_IMPACT_PCT = Number.isFinite(configuredMaxActionableImpact) && configuredMaxActionableImpact > 0
+  ? configuredMaxActionableImpact
+  : 1;
 const responseCache = new Map();
 let liveAssetsFetchedAt = null;
 async function cachedValue(key, factory, ttlMs = CACHE_TTL_MS) {
@@ -48,7 +52,7 @@ async function quoteRadarAsset(asset, sizeUSDT) {
   const address=String(asset.tokenContractAddress||"").trim();
   const expected=Number(asset.referencePrice)*Number(asset.shareRatio??asset.tokenToShareRatio);
   const validReference=Number.isFinite(expected)&&expected>0;
-  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSizeUSDT:sizeUSDT,marketContext:marketHoursContext(asset),broadcast:false};
+  const base={...asset,quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",quoteSizeUSDT:sizeUSDT,marketContext:marketHoursContext(asset),broadcast:false};
   if(!/^0x[a-fA-F0-9]{40}$/.test(address)) return {...base,routeStatus:"NO TOKEN ADDRESS",quotePriceUSDTPerToken:null,onchainGapPct:null,priceImpactPct:null,actionable:false};
   try {
     const q=await cachedValue("pancake-radar:"+address.toLowerCase()+":"+sizeUSDT,
@@ -58,7 +62,7 @@ async function quoteRadarAsset(asset, sizeUSDT) {
     const gap=validReference&&price!==null?(price/expected-1)*100:null;
     return {...base,routeStatus:"ROUTE",quotePriceUSDTPerToken:price,onchainGapPct:gap===null?null:Number(gap.toFixed(6)),
       priceImpactPct:q.priceImpact==null?null:Number((Number(q.priceImpact)*100).toFixed(6)),routeTypes:q.routeTypes||[],
-      actionable:validReference&&gap!==null&&Math.abs(gap)>=MIN_ACTIONABLE_GAP_PCT&&!marketIsClosed(asset)};
+      actionable:validReference&&gap!==null&&Math.abs(gap)>=MIN_ACTIONABLE_GAP_PCT&&Number.isFinite(Number(q.priceImpact))&&Number(q.priceImpact)*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT&&!marketIsClosed(asset)};
   } catch(error) {
     const code=String(error?.code||error?.message||"QUOTE_ERROR"), noRoute=/NO_ROUTE/i.test(code);
     return {...base,routeStatus:noRoute?"NO ROUTE":"QUOTE ERROR",quotePriceUSDTPerToken:null,onchainGapPct:null,
@@ -80,7 +84,7 @@ async function liveRadar(sizeUSDT, limit) {
       candidatesQuoted:0,volumeAvailable:false,noVolumeData:assets.length,
       reason:"UPSTREAM_24H_VOLUME_UNAVAILABLE",
       routeAvailable:0,noRoute:0,quoteErrors:0,actionable:0,quoteSizeUSDT:sizeUSDT,
-      quoteSource:"PancakeSwap Unified Swap API",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,broadcast:false
+      quoteSource:"PancakeSwap Unified Swap API",quoteSide:"BUY",minActionableGapPct:MIN_ACTIONABLE_GAP_PCT,maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,broadcast:false
     }};
     const selected=volumeCandidates.slice(0,limit);
     const rows=await mapWithConcurrency(selected,2,a=>quoteRadarAsset(a,sizeUSDT));
@@ -377,7 +381,7 @@ module.exports = async function handler(req,res) {
             mode:"live-data",network:"BSC",updatedAt:Date.now(),feedUpdatedAt:liveAssetsFetchedAt,spotOnly:true,
             monitor:"onchain-vs-reference",
             formula:"onchainGapPct = (quotePriceUSDTPerToken / (referencePrice * shareRatio) - 1) * 100",
-            referenceBasis:"USDT is treated as approximately USD; stablecoin depeg risk is not modeled.",
+            referenceBasis:"USDT is treated as approximately USD; stablecoin depeg risk is not modeled.",quoteSide:"BUY; quote-only and not a round-trip arbitrage estimate",maxActionablePriceImpactPct:MAX_ACTIONABLE_PRICE_IMPACT_PCT,
             marketHoursNote:"When the underlying exchange is closed, a gap can mean an opportunity or a stale reference. Do not treat it as actionable without checking session status.",
             summary:result.summary,assets:result.assets,broadcast:false
           });
