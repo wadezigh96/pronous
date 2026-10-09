@@ -62,7 +62,7 @@
       const tape = document.getElementById("liveGapTape");
       if (tape) {
         tape.innerHTML = rows.slice(0, 12).map((x) => {
-          const gap = Number(x.spreadPct);
+          const gap = Number(x.adjustedSpreadPct);
           return "<span>" + esc(x.ticker) + ' <em class="' + (gap >= 0 ? "pos" : "neg") + '">' +
             (gap > 0 ? "+" : "") + gap.toFixed(2) + "%</em></span>";
         }).join("");
