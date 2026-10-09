@@ -144,14 +144,18 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
   assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&normalizedMidGap!==null&&/);
   assert.match(agent, /Math\.abs\(normalizedMidGap\)>=MIN_ACTIONABLE_GAP_PCT/);
-  assert.match(agent, /midGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY"/);
+  assert.match(agent, /lowImpactGapMethod:"SMALLEST_SIZE_BUY_QUOTE_PROXY"/);
   assert.match(agent, /const gapBasis="REQUESTED_SIZE_BUY_QUOTE_INCLUDES_PRICE_IMPACT"/);
-  assert.match(agent, /midGapFormula:"midGapPct uses the smallest-size buy quote/);
-  assert.match(live, /x\.midGapPct/);
+  assert.match(agent, /impactAdjustedGapFormula:"impactAdjustedGapPct =/);
+  assert.match(agent, /lowImpactGapFormula:"lowImpactGapPct uses the smallest-size buy quote/);
+  assert.match(agent, /calculateImpactAdjustedGapPct\(price,q\.priceImpact,asset\.referencePrice,asset\.shareRatio/);
+  assert.match(live, /x\.impactAdjustedGapPct/);
+  assert.match(live, /Impact-adjusted estimate \(removes reported price impact\)/);
+  assert.match(live, /x\.lowImpactGapPct/);
   assert.match(live, /Execution-price estimate \(requested size; impact included; quote only, not an actual fill\)/);
   assert.match(live, /OFF_HOURS_DRIFT · STALE REF/);
   assert.match(market, /function classifyAssetSignal\(asset = \{\}\)/);
-  assert.match(live, /SMALL-QUOTE GAP vs REFERENCE/);
+  assert.match(live, /LOW-IMPACT GAP vs REFERENCE/);
   assert.match(agent, /marketHoursContext\(asset\)==="MARKET_STATUS_REPORTED"/);
   assert.match(market, /const status = \[asset\.marketStatus, asset\.openState\]/);
   assert.doesNotMatch(agent, /asset\.openState === true/);
@@ -165,7 +169,7 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(live, /NO SMALL-QUOTE REFERENCE/);
   assert.match(live, /x\.routeStatus/);
   assert.match(live, /PancakeSwap quote-only/);
-  assert.match(live, /SMALL-QUOTE GAP vs REFERENCE/);
+  assert.match(live, /LOW-IMPACT GAP vs REFERENCE/);
   assert.match(live, /const threshold = Number\(window\.__pronousRadarSummary\?\.minActionableGapPct \|\| 1\)/);
   assert.match(live, /HIGH IMPACT · REVIEW/);
   assert.match(live, /IMPACT UNKNOWN · REVIEW/);
@@ -219,4 +223,15 @@ test("POA initial UI does not claim fabricated confirmation", () => {
   assert.match(html, /No session proof/);
   assert.doesNotMatch(html, /Signature Verified/);
   assert.doesNotMatch(html, /On-chain Confirmed/);
+});
+
+
+test("off-hours acknowledgement checkbox is required for UI continuation", () => {
+  assert.match(html, /id="ackOffHours"/);
+  assert.match(html, /I understand the underlying market is closed and the reference price may be stale/);
+  assert.match(app, /ackOffHours:String\(ackOffHours\)/);
+  assert.match(app, /preflightReady=pf\.status==='READY_FOR_SIMULATION'&&pf\.warning!=='ACK_REQUIRED'/);
+  assert.match(app, /ackOffHours:document\.getElementById\('ackOffHours'\)\?\.checked\?'true':'false'/);
+  assert.match(agent, /warning=offHours&&!ackOffHours\?"ACK_REQUIRED":null/);
+  assert.match(agent, /if\(preflight\.warning==="ACK_REQUIRED"\) return res\.status\(409\)\.json\(\{error:"OFF_HOURS_ACK_REQUIRED"/);
 });
