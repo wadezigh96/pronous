@@ -76,7 +76,7 @@
             '</span><div class="muted small">' + esc(String(state)) + ' · ' + esc(context) + '</div></div>' +
             '<div class="muted small">' + (routed ? 'Quote: ' + fmtPx(x.quotePriceUSDTPerToken) + ' USDT/token' : 'Route: ' + esc(String(x.routeStatus || "QUOTE ERROR"))) +
             '<div class="muted small">Ref × ratio: ' + (x.referencePrice == null || x.shareRatio == null ? '—' : fmtPx(Number(x.referencePrice) * Number(x.shareRatio))) + '</div>' +
-            '<div class="muted small">Requested-size quote gap (impact included; not an actual fill): ' + esc(requestedGapText) + '</div></div>' +
+            '<div class="muted small">Execution-price estimate (requested size; impact included; quote only, not an actual fill): ' + esc(requestedGapText) + '</div></div>' +
             '<div class="' + (shownGap && gap >= 0 ? "pos" : shownGap ? "neg" : "muted") + '">' +
             esc(gapText) + '<div class="small muted">Smallest-size quote proxy</div><div class="small ' + signal.cls + '">' + esc(signal.label) + '</div>' +
             (x.priceImpactPct == null ? '' : '<div class="muted small">Requested-size impact ' + esc(Number(x.priceImpactPct).toFixed(3)) + '%</div>') +
