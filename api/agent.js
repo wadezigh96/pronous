@@ -39,11 +39,11 @@ function marketIsClosed(asset) {
 }
 function marketHoursContext(asset) {
   if (marketIsClosed(asset)) return "MARKET_CLOSED_REFERENCE_MAY_BE_STALE";
+  // openState can describe token/contract availability (the snapshot shows
+  // openState=true while marketStatus=postmarket); only marketStatus confirms
+  // the underlying exchange session.
   const status = String(asset.marketStatus ?? "").trim().toLowerCase();
-  const openState = String(asset.openState ?? "").trim().toLowerCase();
-  if (asset.openState === true || asset.openState === 1 ||
-      ["true","1","open","trading"].includes(openState) ||
-      /^(open|trading|market[_ ]open|regular[_ ]session)$/.test(status)) {
+  if (/^(open|trading|market[_ ]open|regular[_ ]session)$/.test(status)) {
     return "MARKET_STATUS_REPORTED";
   }
   return "MARKET_HOURS_UNCONFIRMED";
