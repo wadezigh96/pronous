@@ -68,7 +68,37 @@ function openAsset(ticker,platform){const x=marketAssets.find(a=>String(a.ticker
 async function loadSkills(){try{const r=await fetch('/api/skills?action=list');const j=await r.json();document.getElementById('skills').innerHTML=(j.skills||[]).map(s=>'<div><b>'+esc(s.icon)+' '+esc(s.name)+'</b><span class="muted small">'+esc(s.purpose)+'</span></div>').join('')}catch(e){const el=document.getElementById('skills');if(el)el.textContent='Skills unavailable.'}}
 async function loadMarket(){const box=document.getElementById('marketTable');if(box)box.textContent='Loading…';try{const r=await fetch('/api/agent?action=assets');const j=await r.json();marketAssets=j.assets||[];window.marketAssets=marketAssets;const mode=document.getElementById('marketMode');if(mode){mode.textContent=(j.mode||'unknown').toUpperCase();mode.className='tag '+(j.mode==='live-data'?'live':'demo')}const kpiMode=document.getElementById('kpiMode');if(kpiMode)kpiMode.textContent=(j.mode||'—').replace('live-data','LIVE');const kpiAssets=document.getElementById('kpiAssets');if(kpiAssets)kpiAssets.textContent=String((j.summary&&j.summary.total)||marketAssets.length);updateGapKpi();renderMarket();renderRadar();renderClock(marketAssets[0]);if(window.drawGapChart)drawGapChart()}catch(e){if(box)box.textContent='Market data error: '+e.message}}
 async function scan(){const t=(document.getElementById('ticker').value||'').trim().toUpperCase();if(!t)return;document.getElementById('scan').textContent='Scanning…';try{const r=await fetch('/api/agent?action=scan&ticker='+encodeURIComponent(t));const j=await r.json().catch(()=>({}));if(!r.ok){if(r.status===429)throw new Error('Rate limited. Wait 60 seconds before retrying.');if(r.status>=500)throw new Error('Market API unavailable ('+(j.error||r.status)+'). Retry shortly.');throw new Error(j.message||j.error||('Scan failed (HTTP '+r.status+').'))}last=j;document.getElementById('scan').textContent=JSON.stringify(j,null,2);document.getElementById('plan').textContent=JSON.stringify(j.plan||'No plan returned.',null,2);if(j.asset){loadOnchain(j.asset);if(typeof window.loadRwaParity==='function')window.loadRwaParity(j.asset.ticker||t)}}catch(e){document.getElementById('scan').textContent='Scan unavailable: '+e.message+'. No demo price was substituted.'}}
-async function preflight(){resetExecutionState('preflight changed');const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();const box=document.getElementById('preflight');box.textContent='Running deterministic checks…';try{const r=await fetch('/api/agent?action=preflight&ticker='+encodeURIComponent(t)+'&amount='+encodeURIComponent(document.getElementById('amount').value)+'&maxSpend='+encodeURIComponent(document.getElementById('maxSpend').value));const j=await r.json().catch(()=>({}));if(!r.ok){preflightReady=false;if(r.status===429)throw new Error('Rate limited. Wait 60 seconds before retrying.');if(r.status>=500)throw new Error('Market API unavailable ('+(j.error||r.status)+'). Retry shortly.');throw new Error(j.message||j.error||('Preflight failed (HTTP '+r.status+').'))}preflightReady=j.preflight&&j.preflight.status==='READY_FOR_SIMULATION';setExecutionStep('preflight',j.preflight&&j.preflight.status||'BLOCKED');box.innerHTML='<b>'+esc(j.preflight&&j.preflight.status||'UNKNOWN')+'</b>'}catch(e){preflightReady=false;box.textContent='Preflight unavailable: '+e.message+'. Retry when the API is available.'}}
+async function preflight(){
+  resetExecutionState('preflight changed');
+  const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
+  const box=document.getElementById('preflight');
+  const ackOffHours=document.getElementById('ackOffHours')?.checked===true;
+  const params=new URLSearchParams({action:'preflight',ticker:t,amount:document.getElementById('amount').value,maxSpend:document.getElementById('maxSpend').value,ackOffHours:String(ackOffHours)});
+  box.textContent='Running deterministic checks…';
+  try{
+    const r=await fetch('/api/agent?'+params.toString());
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){
+      preflightReady=false;
+      if(r.status===429)throw new Error('Rate limited. Wait 60 seconds before retrying.');
+      if(r.status>=500)throw new Error('Market API unavailable ('+(j.error||r.status)+'). Retry shortly.');
+      throw new Error(j.message||j.error||('Preflight failed (HTTP '+r.status+').'));
+    }
+    const pf=j.preflight||{};
+    preflightReady=pf.status==='READY_FOR_SIMULATION'&&pf.warning!=='ACK_REQUIRED';
+    setExecutionStep('preflight',preflightReady?pf.status:(pf.warning||pf.status||'BLOCKED'));
+    const notes=[];
+    if(pf.warning==='ACK_REQUIRED')notes.push('ACK_REQUIRED — confirm the checkbox and run preflight again to acknowledge off-hours risk.');
+    if(pf.referenceWarning)notes.push(pf.referenceWarning);
+    box.innerHTML='<b>'+esc(pf.status||'UNKNOWN')+'</b>'+
+      (pf.signal?'<div class="muted small">Signal: '+esc(pf.signal)+' · actionable: '+String(pf.actionable===true)+'</div>':'')+
+      notes.map(note=>'<div class="muted small">'+esc(note)+'</div>').join('');
+    if(!preflightReady&&pf.warning!=='ACK_REQUIRED')box.innerHTML+='<div class="muted small">Resolve failed checks before requesting a quote or simulation.</div>';
+  }catch(e){
+    preflightReady=false;
+    box.textContent='Preflight unavailable: '+e.message+'. Retry when the API is available.';
+  }
+}
 function bnbOnlyGuard(){const from=(document.getElementById('fromTokenAddress')?.value||'').trim().toLowerCase();if(from==='0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'||from==='0x0000000000000000000000000000000000000000'){const box=document.getElementById('quoteResult');if(box)box.textContent='Native BNB → NVDAon is not available in the current Binance route. Keep BNB for gas; use simulation/demo until a supported stablecoin balance exists.';return false}return true}
 async function loadPancakeQuotePreview(ticker,fromTokenAddress,toTokenAddress,amount,maxSpend){
   const p=new URLSearchParams({action:'pancakeQuote',ticker,fromTokenAddress,toTokenAddress,amount,maxSpend});
@@ -142,7 +172,7 @@ function setSpendToken(addr){const el=document.getElementById('fromTokenAddress'
 function pickSimulationTx(root){const seen=new Set();function walk(x,depth){if(!x||typeof x!=='object'||depth>5||seen.has(x))return null;seen.add(x);for(const k of ['tx','evmTx','swapTransaction','transaction']){const v=x[k];if(v&&typeof v==='object'&&v.to)return v}for(const v of Object.values(x)){const hit=walk(v,depth+1);if(hit)return hit}return null}return walk(root,0)}
 async function simulate(){const el=document.getElementById('plan');const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();if(!(await syncDeskWallet())){el.textContent='Connect wallet before simulation.';return}if(Number(walletChainId)!==56){el.textContent='Wrong wallet chain: switch to BSC Mainnet (chain ID 56) before simulation.';return}if(!preflightReady){el.textContent='Run preflight first.';return}const fromToken=(document.getElementById('fromTokenAddress').value||'').trim();if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken)){el.textContent='Set spend token first (USDT / WBNB / USDC).';return}const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===t)||(last&&last.asset)||null;const toToken=asset&&asset.tokenContractAddress?String(asset.tokenContractAddress).trim():'';const amount=(document.getElementById('amount').value||'').trim();if(!toToken){el.textContent='Asset contract is unavailable.';return}el.textContent='Building unsigned transaction…';window.__pronousSimulated=false;try{const maxSpend=(document.getElementById('maxSpend')?.value||'').trim();
 if(!maxSpend){el.textContent='Set max spend before simulation.';return}
-const qp=new URLSearchParams({action:'quoteBuild',ticker:t,fromTokenAddress:fromToken,toTokenAddress:toToken,amount,maxSpend,userWalletAddress:walletAddress,vendor:'LiquidMesh',slippagePercent:'0.5',approveTransaction:'true'});const br=await fetch('/api/agent?'+qp.toString());const built=await br.json();if(!br.ok||built.error)throw new Error(built.error||'Quote + build failed');
+const qp=new URLSearchParams({action:'quoteBuild',ticker:t,fromTokenAddress:fromToken,toTokenAddress:toToken,amount,maxSpend,userWalletAddress:walletAddress,vendor:'LiquidMesh',slippagePercent:'0.5',approveTransaction:'true',ackOffHours:document.getElementById('ackOffHours')?.checked?'true':'false'});const br=await fetch('/api/agent?'+qp.toString());const built=await br.json();if(!br.ok||built.error)throw new Error(built.error||'Quote + build failed');
 latestQuote=built;
 window.latestQuote=built;
 setExecutionStep('quote','READY');
