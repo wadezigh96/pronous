@@ -185,6 +185,22 @@ export function compareSameTicker(rows) {
   return comparisons;
 }
 
+export function withSlippageVsBaseline(rows) {
+  return rows.map((row) => {
+    const baseline = rows.find((candidate) =>
+      candidate.ticker === row.ticker &&
+      candidate.platformId === row.platformId &&
+      candidate.sizeUSDT === 10 &&
+      candidate.routeAvailable &&
+      candidate.quotePriceUSDTPerToken > 0
+    );
+    const slippage = row.routeAvailable && baseline && row.quotePriceUSDTPerToken > 0
+      ? (row.quotePriceUSDTPerToken / baseline.quotePriceUSDTPerToken - 1) * 100
+      : null;
+    return { ...row, slippageVs10USDTPct: slippage === null ? null : Number(slippage.toFixed(6)) };
+  });
+}
+
 async function main() {
   const endpoint = process.env.PRONOUS_ASSETS_URL || DEFAULT_ASSETS_URL;
   const outputArg = process.argv.find((arg) => arg.startsWith("--output="));
@@ -205,19 +221,7 @@ async function main() {
     broadcast: false,
     slippageVs10USDTPct: null
   }));
-  const reportRows = initialRows.map((row) => {
-    const baseline = initialRows.find((candidate) =>
-      candidate.ticker === row.ticker &&
-      candidate.platformId === row.platformId &&
-      candidate.sizeUSDT === 10 &&
-      candidate.routeAvailable &&
-      candidate.quotePriceUSDTPerToken > 0
-    );
-    const slippage = row.routeAvailable && baseline && row.quotePriceUSDTPerToken > 0
-      ? (row.quotePriceUSDTPerToken / baseline.quotePriceUSDTPerToken - 1) * 100
-      : null;
-    return { ...row, slippageVs10USDTPct: slippage === null ? null : Number(slippage.toFixed(6)) };
-  });
+  const reportRows = withSlippageVsBaseline(initialRows);
   const noRouteCount = reportRows.filter((x) => x.routeStatus === "NO_ROUTE").length;
   const errorCount = reportRows.filter((x) => x.routeStatus === "QUOTE_ERROR").length;
   const routedCount = reportRows.filter((x) => x.routeAvailable).length;
