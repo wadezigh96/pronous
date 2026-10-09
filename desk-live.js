@@ -7,8 +7,9 @@
 
   function signalFor(x) {
     const q = String(x?.dataQuality || "").toLowerCase();
-    const spread = Number(x?.spreadPct);
-    if (q === "unreliable") return { label: "UNRELIABLE", cls: "neg" };
+    const spread = x?.adjustedSpreadPct == null ? NaN : Number(x.adjustedSpreadPct);
+    if (q === "missing_ratio") return { label: "MISSING RATIO", cls: "neg" };
+    if (q !== "ok") return { label: "REVIEW DATA", cls: "muted" };
     if (Number.isFinite(spread) && Math.abs(spread) >= 1) return { label: spread > 0 ? "PREMIUM" : "DISCOUNT", cls: spread > 0 ? "pos" : "neg" };
     return { label: "OBSERVE", cls: "muted" };
   }
@@ -26,21 +27,21 @@
   function hook() {
     window.renderRadar = function renderRadar() {
       const rows = (window.marketAssets || (typeof marketAssets !== "undefined" ? marketAssets : []))
-        .filter((x) => Number.isFinite(Number(x.spreadPct)))
-        .sort((a, b) => Math.abs(Number(b.spreadPct)) - Math.abs(Number(a.spreadPct)));
+        .filter((x) => x.dataQuality === "ok" && x.adjustedSpreadPct != null && Number.isFinite(Number(x.adjustedSpreadPct)))
+        .sort((a, b) => Math.abs(Number(b.adjustedSpreadPct)) - Math.abs(Number(a.adjustedSpreadPct)));
       const el = document.getElementById("radar");
       if (!el) return;
       const top = rows.slice(0, 8);
       el.style.whiteSpace = "normal";
       if (!top.length) {
-        el.innerHTML = "No tokenized-stock gap data.";
+        el.innerHTML = "No valid ratio-adjusted spread data. Missing or invalid ratios are excluded.";
         return;
       }
       el.innerHTML =
-        '<div class="muted small" style="margin-bottom:8px">LIVE · token vs reference · signal/risk · ' +
+        '<div class="muted small" style="margin-bottom:8px">LIVE · ratio-adjusted spread · signal/risk · ' +
         top.length + " of " + rows.length + " gaps</div>" +
         top.map((x) => {
-          const gap = Number(x.spreadPct);
+          const gap = Number(x.adjustedSpreadPct);
           const signal = signalFor(x);
           const quality = String(x.dataQuality || "unknown").toUpperCase();
           const state = x.marketStatus || x.openState || "—";
@@ -52,7 +53,7 @@
             ')}"><div><b>' + esc(x.ticker) +
             '</b> <span class="muted small">' + esc(x.platformId || "") +
             '</span><div class="muted small">' + esc(String(state)) + " · " + esc(quality) +
-            '</div></div><div class="muted small">' + fmtPx(x.tokenPrice) + " / " + fmtPx(x.referencePrice) +
+            '</div></div><div class="muted small">' + fmtPx(x.tokenPrice) + " / (" + fmtPx(x.referencePrice) + " × " + esc(x.shareRatio ?? x.tokenToShareRatio ?? "—") + ")" +
             '</div><div class="' + (gap >= 0 ? "pos" : "neg") + '">' +
             (gap > 0 ? "+" : "") + gap.toFixed(2) + "%<div class=\"small \"" + signal.cls + "\">" +
             esc(signal.label) + "</div></div></div>"
@@ -61,7 +62,7 @@
       const tape = document.getElementById("liveGapTape");
       if (tape) {
         tape.innerHTML = rows.slice(0, 12).map((x) => {
-          const gap = Number(x.spreadPct);
+          const gap = Number(x.adjustedSpreadPct);
           return "<span>" + esc(x.ticker) + ' <em class="' + (gap >= 0 ? "pos" : "neg") + '">' +
             (gap > 0 ? "+" : "") + gap.toFixed(2) + "%</em></span>";
         }).join("");

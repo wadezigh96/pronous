@@ -1,4 +1,4 @@
-const { calculateSpreadPct, assessQuote, isSupportedPlatform } = require("../lib/market");
+const { assessQuote, isSupportedPlatform } = require("../lib/market");
 const { getPancakeQuote } = require("../lib/pancakeswap-quote");
 const { buildGuardChecks, preflightStatus, validateSpendCap } = require("../lib/policy");
 const { guardRequest, isAddress, isAmount, safeError } = require("../lib/http-policy");
@@ -57,8 +57,9 @@ function demoAsset(ticker) {
     demo:true,ticker:row[0],companyName:row[1],platformId:"demo",
     tokenSymbol:row[0]+"on",tokenPrice:String(tokenPrice),
     referencePrice:String(referencePrice),
-    spreadPct:Number(((tokenPrice/referencePrice-1)*100).toFixed(3)),
-    marketStatus:"demo",openState:null
+    rawSpreadPct:Number(((tokenPrice/referencePrice-1)*100).toFixed(3)),
+    adjustedSpreadPct:null,spreadPct:null,shareRatio:null,tokenToShareRatio:null,
+    dataQuality:"missing_ratio",actionable:false,marketStatus:"demo",openState:null
   };
 }
 
@@ -70,14 +71,17 @@ function buildPreflight(asset, params={}) {
     status:preflightStatus(checks),
     amount,
     maxSpend,
-    spreadPct:calculateSpreadPct(asset.tokenPrice,asset.referencePrice) ?? Number(asset.spreadPct||0),
+    spreadPct:asset.adjustedSpreadPct ?? null,
+    rawSpreadPct:asset.rawSpreadPct ?? null,
+    adjustedSpreadPct:asset.adjustedSpreadPct ?? null,
+    shareRatio:asset.shareRatio ?? asset.tokenToShareRatio ?? null,
     checks,
     next:checks.find(x=>!x.pass)?.id||"simulation"
   };
 }
 
 function evaluateLoop(asset, opts={}) {
-  const spread=Number(asset.spreadPct||0);
+  const spread=Number(asset.adjustedSpreadPct ?? asset.spreadPct ?? 0);
   const minSpread=Number(opts.minSpread||1);
   const fresh=opts.fresh!==false;
   const checks=[
@@ -85,22 +89,24 @@ function evaluateLoop(asset, opts={}) {
     {name:"spot_only",pass:true,reason:"perpetuals/leverage are excluded"},
     {name:"bsc_mainnet",pass:true,reason:"execution target is BSC mainnet"},
     {name:"fresh_data",pass:fresh,reason:"stale market data blocks execution"},
-    {name:"data_quality",pass:asset.dataQuality!=="unreliable",reason:"unreliable token/reference gap is not a trade signal"},
+    {name:"share_ratio",pass:Number.isFinite(Number(asset.shareRatio ?? asset.tokenToShareRatio))&&Number(asset.shareRatio ?? asset.tokenToShareRatio)>0,reason:"valid token-to-share ratio is required"},
+    {name:"data_quality",pass:asset.dataQuality==="ok",reason:"only a valid ratio-adjusted spread with acceptable quality is eligible"},
     {name:"spread_threshold",pass:Math.abs(spread)>=minSpread,reason:"gap below configured threshold"},
     {name:"simulation_required",pass:Boolean(opts.simulated),reason:"simulation must pass before broadcast"},
     {name:"confirmation_required",pass:Boolean(opts.confirmed),reason:"user confirmation is required for live execution"}
   ];
   const blocked=checks.filter(x=>!x.pass);
-  return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:Math.abs(spread)>=minSpread?(spread>0?"PREMIUM":"DISCOUNT"):"OBSERVE",next:blocked.length?blocked[0].name:"EXECUTE"};
+  return {status:blocked.length?"BLOCK":"READY",checks,blocked,signal:asset.dataQuality==="missing_ratio"?"MISSING_RATIO":asset.dataQuality!=="ok"?"UNRELIABLE":Math.abs(spread)>=minSpread?(spread>0?"PREMIUM":"DISCOUNT"):"OBSERVE",next:blocked.length?blocked[0].name:"EXECUTE"};
 }
 
 function makePlan(asset) {
-  const spread = Number(asset.spreadPct || 0);
+  const spread = Number(asset.adjustedSpreadPct ?? asset.spreadPct ?? 0);
   let action = "HOLD / OBSERVE";
-  if (asset.dataQuality === "unreliable") action = "IGNORE UNRELIABLE FEED";
+  if (asset.dataQuality === "missing_ratio") action = "BLOCK — MISSING SHARE RATIO";
+  else if (asset.dataQuality !== "ok") action = "HOLD — DATA QUALITY REVIEW";
   else if (spread > 1) action = "WATCH PREMIUM";
   else if (spread < -1) action = "WATCH DISCOUNT";
-  return {action,rationale:"Plan is based on token-vs-reference spread and data quality.",spreadPct:spread,
+  return {action,rationale:"Plan uses the ratio-adjusted token/reference spread; raw price difference is not a market signal.",spreadPct:asset.adjustedSpreadPct??null,adjustedSpreadPct:asset.adjustedSpreadPct??null,rawSpreadPct:asset.rawSpreadPct??null,shareRatio:asset.shareRatio??asset.tokenToShareRatio??null,
     guardrails:["spot only","BSC mainnet only","simulate before broadcast","spend cap required","ondo/bstock/xstocks only"]};
 }
 
@@ -109,7 +115,7 @@ async function liveAssets() {
   return (data.data || [])
     .filter(x => x.underlyingTicker && x.tokenContractAddress && isSupportedPlatform(x.platformId))
     .map(x => {
-      const quality = assessQuote(x.tokenPrice, x.referencePrice);
+      const quality = assessQuote(x.tokenPrice, x.referencePrice, x.tokenToShareRatio);
       return {
         ticker:x.underlyingTicker,
         companyName:x.underlyingName || x.tokenName || "",
@@ -118,7 +124,10 @@ async function liveAssets() {
         tokenContractAddress:x.tokenContractAddress,
         tokenPrice:x.tokenPrice ?? null,
         referencePrice:x.referencePrice ?? null,
-        spreadPct:quality.spreadPct,
+        rawSpreadPct:quality.rawSpreadPct,
+        adjustedSpreadPct:quality.adjustedSpreadPct,
+        spreadPct:quality.adjustedSpreadPct,
+        shareRatio:quality.shareRatio,
         dataQuality:quality.dataQuality,
         actionable:quality.actionable,
         marketStatus:x.statusInfo?.marketStatus || null,
@@ -150,11 +159,14 @@ async function findLiveAsset(ticker) {
     market=m.data||{};
   } catch (_) {}
   const tokenPrice=Number(quote.tokenPrice||0), referencePrice=Number(quote.referencePrice||0);
-  const quality=assessQuote(tokenPrice, referencePrice);
+  const shareRatio=quote.tokenToShareRatio ?? asset.tokenToShareRatio ?? asset.shareRatio ?? null;
+  const quality=assessQuote(tokenPrice, referencePrice, shareRatio);
   return {demo:false,ticker:asset.ticker||ticker,companyName:asset.companyName||asset.underlyingName,
     platformId:asset.platformId,tokenSymbol:asset.tokenSymbol,tokenContractAddress:asset.tokenContractAddress,
     tokenPrice:String(tokenPrice),referencePrice:String(referencePrice),
-    spreadPct:quality.spreadPct,dataQuality:quality.dataQuality,actionable:quality.actionable,
+    rawSpreadPct:quality.rawSpreadPct,adjustedSpreadPct:quality.adjustedSpreadPct,
+    spreadPct:quality.adjustedSpreadPct,shareRatio:quality.shareRatio,
+    tokenToShareRatio:shareRatio,dataQuality:quality.dataQuality,actionable:quality.actionable,
     marketStatus:market.statusInfo?.marketStatus||null,openState:market.statusInfo?.openState??null,
     nextOpenTime:market.statusInfo?.nextOpenTime??null,nextCloseTime:market.statusInfo?.nextCloseTime??null};
 }
@@ -257,10 +269,11 @@ module.exports = async function handler(req,res) {
               bstock:assets.filter(x=>x.platformId==="bstock").length,
               xstocks:assets.filter(x=>x.platformId==="xstocks").length,
               actionable:assets.filter(x=>x.actionable).length,
-              unreliable:assets.filter(x=>x.dataQuality==="unreliable").length
+              unreliable:assets.filter(x=>x.dataQuality==="unreliable").length,
+              missingRatio:assets.filter(x=>x.dataQuality==="missing_ratio").length
             };
             const rows=action==="radar"
-              ? assets.filter(x=>x.actionable).sort((a,b)=>Math.abs(b.spreadPct||0)-Math.abs(a.spreadPct||0)).slice(0,20)
+              ? assets.filter(x=>x.actionable).sort((a,b)=>Math.abs(b.adjustedSpreadPct||0)-Math.abs(a.adjustedSpreadPct||0)).slice(0,20)
               : assets;
             return res.status(200).json({mode:"live-data",network:"BSC",updatedAt:Date.now(),spotOnly:true,summary,assets:rows});
           }
@@ -411,17 +424,21 @@ module.exports = async function handler(req,res) {
     }
 
     if(action==="scan") {
-      const spread=Number(asset.spreadPct||0);
-      const signal = asset.dataQuality==="unreliable"
-        ? "UNRELIABLE"
-        : Math.abs(spread)>=1
-          ? (spread>0 ? "PREMIUM" : "DISCOUNT")
-          : "OBSERVE";
-      const risk = asset.dataQuality==="unreliable"
-        ? "HIGH_DATA_QUALITY_RISK"
-        : Math.abs(spread)>=1
-          ? "SPREAD_REQUIRES_REVIEW"
-          : "NORMAL_OBSERVATION";
+      const spread=Number(asset.adjustedSpreadPct ?? asset.spreadPct ?? 0);
+      const signal = asset.dataQuality==="missing_ratio"
+        ? "MISSING_RATIO"
+        : asset.dataQuality!=="ok"
+          ? "UNRELIABLE"
+          : Math.abs(spread)>=1
+            ? (spread>0 ? "PREMIUM" : "DISCOUNT")
+            : "OBSERVE";
+      const risk = asset.dataQuality==="missing_ratio"
+        ? "MISSING_SHARE_RATIO"
+        : asset.dataQuality!=="ok"
+          ? "HIGH_DATA_QUALITY_RISK"
+          : Math.abs(spread)>=1
+            ? "SPREAD_REQUIRES_REVIEW"
+            : "NORMAL_OBSERVATION";
       const execution = {
         broadcast:false,
         simulationRequired:true,
@@ -440,7 +457,10 @@ module.exports = async function handler(req,res) {
         market:{
           tokenPrice:asset.tokenPrice,
           referencePrice:asset.referencePrice,
-          spreadPct:spread,
+          spreadPct:asset.adjustedSpreadPct ?? null,
+          rawSpreadPct:asset.rawSpreadPct ?? null,
+          adjustedSpreadPct:asset.adjustedSpreadPct ?? null,
+          shareRatio:asset.shareRatio ?? asset.tokenToShareRatio ?? null,
           dataQuality:asset.dataQuality||"demo",
           actionable:asset.actionable??false,
           marketStatus:asset.marketStatus??null,
@@ -450,8 +470,8 @@ module.exports = async function handler(req,res) {
         },
         signal:{
           type:signal,
-          spreadPct:spread,
-          actionable:signal==="PREMIUM"||signal==="DISCOUNT"
+          spreadPct:asset.adjustedSpreadPct ?? null,
+          actionable:asset.dataQuality==="ok"&&(signal==="PREMIUM"||signal==="DISCOUNT")
         },
         risk:{
           status:risk,

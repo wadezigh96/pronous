@@ -35,6 +35,7 @@ function buildLocalGuardChecks(asset = {}, params = {}) {
   const maxSpend = Number(params.maxSpend || 0);
   const platform = String(asset.platformId || "").toLowerCase();
   const dataQuality = String(asset.dataQuality || "").toLowerCase();
+  const shareRatio = Number(asset.shareRatio ?? asset.tokenToShareRatio);
   const demo = params.demo === true || asset.demo === true;
   const venue = String(params.venue || asset.venue || "spot").toLowerCase();
 
@@ -62,9 +63,14 @@ function buildLocalGuardChecks(asset = {}, params = {}) {
       pass: Number(asset.tokenPrice) > 0 && Number(asset.referencePrice) > 0
     },
     {
+      id: "share_ratio",
+      label: "Token-to-share ratio valid",
+      pass: Number.isFinite(shareRatio) && shareRatio > 0
+    },
+    {
       id: "data_quality",
-      label: "Market data quality acceptable",
-      pass: dataQuality !== "unreliable" && dataQuality !== "missing_price"
+      label: "Ratio-adjusted market data quality acceptable",
+      pass: dataQuality === "ok"
     },
     {
       id: "spend_cap",
@@ -96,20 +102,24 @@ function localAsset(ticker) {
     network: "BSC",
     chainId: 56,
     platformId: "demo",
-    dataQuality: "ok",
+    dataQuality: "missing_ratio",
     venue: "spot",
     ...base,
     tokenPrice: String(tokenPrice),
     referencePrice: String(referencePrice),
-    spreadPct: Number(((tokenPrice / referencePrice - 1) * 100).toFixed(3)),
-    marketStatus: "demo"
+    rawSpreadPct: Number(((tokenPrice / referencePrice - 1) * 100).toFixed(6)),
+    adjustedSpreadPct: null,
+    spreadPct: null,
+    shareRatio: null,
+    tokenToShareRatio: null,
+    marketStatus: "STALE DEMO — NOT LIVE DATA"
   };
 }
 
 function localScan(ticker) {
   const asset = localAsset(ticker);
-  const spreadPct = asset.spreadPct;
-  const direction = spreadPct > 0 ? "PREMIUM" : spreadPct < 0 ? "DISCOUNT" : "PAR";
+  const spreadPct = asset.adjustedSpreadPct;
+  const direction = asset.dataQuality === "missing_ratio" ? "MISSING_RATIO" : spreadPct > 0 ? "PREMIUM" : spreadPct < 0 ? "DISCOUNT" : "PAR";
   return {
     agent: "PRONOUS",
     mode: "mcp-local-demo",
@@ -119,15 +129,21 @@ function localScan(ticker) {
       companyName: asset.companyName,
       tokenPrice: asset.tokenPrice,
       referencePrice: asset.referencePrice,
-      spreadPct,
+      spreadPct: spreadPct ?? null,
+      rawSpreadPct: asset.rawSpreadPct ?? null,
+      adjustedSpreadPct: asset.adjustedSpreadPct ?? null,
+      shareRatio: asset.shareRatio ?? null,
+      dataQuality: asset.dataQuality,
       direction,
       marketStatus: asset.marketStatus,
       assessment:
-        direction === "PREMIUM"
-          ? "Tokenized stock is trading above the reference price."
-          : direction === "DISCOUNT"
-            ? "Tokenized stock is trading below the reference price."
-            : "Tokenized stock is aligned with the reference price."
+        direction === "MISSING_RATIO"
+          ? "Share ratio is missing; no market-gap conclusion is safe."
+          : direction === "PREMIUM"
+            ? "Ratio-adjusted token price is above the reference."
+            : direction === "DISCOUNT"
+              ? "Ratio-adjusted token price is below the reference."
+              : "Ratio-adjusted token price is aligned with the reference."
     },
     execution: { broadcast: false },
     fallbackReason:
@@ -149,7 +165,10 @@ function localPreflight(ticker, amount, maxSpend) {
       status,
       amount,
       maxSpend,
-      spreadPct: asset.spreadPct,
+      spreadPct: asset.adjustedSpreadPct ?? null,
+      rawSpreadPct: asset.rawSpreadPct ?? null,
+      adjustedSpreadPct: asset.adjustedSpreadPct ?? null,
+      shareRatio: asset.shareRatio ?? null,
       checks,
       next: checks.find((x) => !x.pass)?.id || "simulation"
     },
