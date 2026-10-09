@@ -20,7 +20,9 @@
 ### Quote-preview only
 - The PancakeSwap Unified Swap API was queried with USDT input at 10, 100 and 1,000 USDT for NVDA, TSLA and SPY on Ondo and bStocks where listed. The recorded run produced 18 attempts: 17 routes and one `NO_ROUTE`, with no quote errors. See [quote-measurement CI run](https://github.com/wadezigh96/pronous/actions/runs/37992545416) and [saved measurements](./quote-measurements.json).
 - `onchainGapPct` / `requestedSizeGapPct` compares the requested-size one-way BUY quote with `referencePrice × tokenToShareRatio`. It includes price impact and is a quote-based execution-price estimate, **not an actual fill or round-trip arbitrage proof**.
-- `midGapPct` uses the smallest-size buy quote (10 USDT by default) as a lower-impact proxy; it is not a true bid/ask midpoint.
+- `lowImpactGapPct` uses the smallest-size buy quote (10 USDT by default) as a lower-impact proxy; it is not a true bid/ask midpoint.
+- `impactAdjustedGapPct` adjusts the requested-size quote price by the provider's reported fractional price impact before calculating the gap; it remains a modelled estimate, not a fill price or midpoint.
+- Off-hours preflight remains `READY_FOR_SIMULATION` with `warning: "ACK_REQUIRED"` until the user explicitly acknowledges the stale-reference risk. The signal remains `OFF_HOURS_DRIFT` and `actionable` remains false.
 - A closed/pre-market/post-market underlying may show `OFF_HOURS_DRIFT` and a stale-reference warning. This is informational and non-actionable. Preflight and loop guards block the off-hours session.
 - Large gaps with large price impact are treated as a route/liquidity warning. Quote requests do not ask for calldata or broadcast a transaction.
 
