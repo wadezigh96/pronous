@@ -131,6 +131,8 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
   assert.match(agent, /asset\.dataQuality==="ok"&&validReference&&gap!==null&&Math\.abs\(gap\)>=MIN_ACTIONABLE_GAP_PCT/);
   assert.match(agent, /marketHoursContext\(asset\)==="MARKET_STATUS_REPORTED"/);
+  assert.match(agent, /const status = String\(asset\.marketStatus/);
+  assert.doesNotMatch(agent, /asset\.openState === true/);
   assert.match(agent, /MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
   assert.match(agent, /Number\(q\.priceImpact\)\*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
   assert.match(agent, /quoteSide:"BUY"/);
