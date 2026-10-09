@@ -119,7 +119,7 @@ test("market signal is sourced from live assets and tabs are functional", () => 
   assert.match(bridge, /function bindSignalTabs\(\)/);
   assert.match(bridge, /window\.__pronousSignalTab/);
   assert.match(bridge, /dataQuality !== 'unreliable'/);
-  assert.match(html, /Live token\/reference divergence/);
+  assert.match(html, /Ratio-adjusted token\/reference divergence/);
   assert.doesNotMatch(html, /AI scanning 1,248 assets/);
 });
 
