@@ -146,12 +146,26 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(live, /upstream feed has no measured 24h volume/);
 });
 
+test("public quote preview remains available without wallet and shows API/chain errors", () => {
+  assert.match(app, /await syncDeskWallet\(\);\s*const walletReady=!!walletAddress&&Number\(walletChainId\)===56/);
+  assert.match(app, /PancakeSwap read-only preview is still available/);
+  assert.match(app, /Wrong wallet chain \(not BSC Mainnet, chain ID 56\)/);
+  assert.match(app, /chain ID 56\) before simulation/);
+  assert.match(app, /chain ID 56\) before confirmation/);
+  assert.match(app, /Rate limited\. Wait 60 seconds before retrying\./);
+  assert.match(app, /Market API unavailable/);
+  assert.match(app, /WALLET CONNECTED · WRONG CHAIN/);
+  assert.match(app, /status:r\.status,data:j/);
+});
+
 test("public read-only market endpoint is cached, paginated and bounded", () => {
   assert.match(agent, /s-maxage=20, stale-while-revalidate=10/);
   assert.match(agent, /Math\.max\(15000, Math\.min\(30000/);
   assert.match(agent, /pagination:\{total:assets\.length,limit,offset,nextOffset,hasMore/);
   assert.match(agent, /slice\(offset,offset\+limit\)/);
   assert.match(agent, /\.slice\(0,limit\)/);
+  assert.match(agent, /Number\(b\.volume24H\)-Number\(a\.volume24H\)/);
+  assert.match(agent, /UPSTREAM_24H_VOLUME_UNAVAILABLE/);
   assert.match(live, /action=assets&limit=100&offset=/);
   assert.match(live, /action=radar&limit=5&sizeUSDT=100/);
 });
