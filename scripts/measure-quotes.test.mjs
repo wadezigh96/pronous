@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deriveQuoteMetrics, compareSameTicker } from "./measure-quotes.mjs";
+import { deriveQuoteMetrics, compareSameTicker, withSlippageVsBaseline } from "./measure-quotes.mjs";
 
 const asset = {
   ticker: "NVDA", platformId: "ondo", tokenSymbol: "NVDAon",
@@ -35,4 +35,15 @@ test("same ticker comparison includes venue route status, volume and on-chain ga
   assert.equal(comparison.bothRouted, false);
   assert.equal(comparison.ondoVolume24H, 5000);
   assert.equal(comparison.bstockVolume24H, 2000);
+});
+
+test("quote size slippage is measured against the same venue's 10 USDT quote", () => {
+  const rows = withSlippageVsBaseline([
+    { ticker: "NVDA", platformId: "ondo", sizeUSDT: 10, routeAvailable: true, quotePriceUSDTPerToken: 100 },
+    { ticker: "NVDA", platformId: "ondo", sizeUSDT: 100, routeAvailable: true, quotePriceUSDTPerToken: 101 },
+    { ticker: "NVDA", platformId: "bstock", sizeUSDT: 100, routeAvailable: false, quotePriceUSDTPerToken: null }
+  ]);
+  assert.equal(rows[0].slippageVs10USDTPct, 0);
+  assert.equal(rows[1].slippageVs10USDTPct, 1);
+  assert.equal(rows[2].slippageVs10USDTPct, null);
 });
