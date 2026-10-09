@@ -44,12 +44,12 @@
         return;
       }
       el.innerHTML =
-        '<div class="muted small" style="margin-bottom:8px">SMALL-QUOTE GAP vs REFERENCE · PancakeSwap quote-only · ' +
-        esc(String(top[0].midQuoteSizeUSDT || 10)) + ' USDT smallest-size proxy · ' + top.length + ' candidates · volume units unverified</div>' +
+        '<div class="muted small" style="margin-bottom:8px">LOW-IMPACT GAP vs REFERENCE · PancakeSwap quote-only · ' +
+        esc(String(top[0].lowImpactQuoteSizeUSDT || 10)) + ' USDT smallest-size proxy · ' + top.length + ' candidates · volume units unverified</div>' +
         '<div class="muted small" style="margin-bottom:8px">The small-quote gap is a lower-impact proxy, not a true bid/ask midpoint. Requested-size quote gap includes price impact and is not an actual fill or round-trip arbitrage calculation.</div>' +
         top.map((x) => {
           const routed = x.routeStatus === "ROUTE";
-          const gap = x.midGapPct == null ? null : Number(x.midGapPct);
+          const gap = x.lowImpactGapPct == null ? null : Number(x.lowImpactGapPct);
           const requestedGap = x.requestedSizeGapPct == null ? (x.onchainGapPct == null ? null : Number(x.onchainGapPct)) : Number(x.requestedSizeGapPct);
           const context = String(x.marketContext || "MARKET_HOURS_UNCONFIRMED");
           const state = x.marketStatus || x.openState || "hours unconfirmed";
@@ -57,6 +57,8 @@
           const gapText = !routed ? String(x.routeStatus || "QUOTE ERROR") :
             gap == null || !Number.isFinite(gap) ? "NO SMALL-QUOTE REFERENCE" : ((gap > 0 ? "+" : "") + gap.toFixed(2) + "%");
           const requestedGapText = requestedGap == null || !Number.isFinite(requestedGap) ? "—" : ((requestedGap > 0 ? "+" : "") + requestedGap.toFixed(2) + "%");
+          const impactGap = x.impactAdjustedGapPct == null ? null : Number(x.impactAdjustedGapPct);
+          const impactGapText = impactGap == null || !Number.isFinite(impactGap) ? "—" : ((impactGap > 0 ? "+" : "") + impactGap.toFixed(2) + "%");
           const signal = !routed ? {label:gapText,cls:"muted"} :
             gap == null || !Number.isFinite(gap) ? {label:"NO SMALL-QUOTE GAP",cls:"muted"} :
             context === "MARKET_CLOSED_REFERENCE_MAY_BE_STALE" ? {label:"OFF_HOURS_DRIFT · STALE REF",cls:"muted"} :
@@ -76,7 +78,8 @@
             '</span><div class="muted small">' + esc(String(state)) + ' · ' + esc(context) + '</div></div>' +
             '<div class="muted small">' + (routed ? 'Quote: ' + fmtPx(x.quotePriceUSDTPerToken) + ' USDT/token' : 'Route: ' + esc(String(x.routeStatus || "QUOTE ERROR"))) +
             '<div class="muted small">Ref × ratio: ' + (x.referencePrice == null || x.shareRatio == null ? '—' : fmtPx(Number(x.referencePrice) * Number(x.shareRatio))) + '</div>' +
-            '<div class="muted small">Execution-price estimate (requested size; impact included; quote only, not an actual fill): ' + esc(requestedGapText) + '</div></div>' +
+            '<div class="muted small">Requested-size quote gap (execution-price estimate; impact included, quote only, not an actual fill): ' + esc(requestedGapText) + '</div>' +
+            '<div class="muted small">Impact-adjusted estimate (removes reported price impact): ' + esc(impactGapText) + '</div></div>' +
             '<div class="' + (shownGap && gap >= 0 ? "pos" : shownGap ? "neg" : "muted") + '">' +
             esc(gapText) + '<div class="small muted">Smallest-size quote proxy</div><div class="small ' + signal.cls + '">' + esc(signal.label) + '</div>' +
             (x.priceImpactPct == null ? '' : '<div class="muted small">Requested-size impact ' + esc(Number(x.priceImpactPct).toFixed(3)) + '%</div>') +
@@ -86,10 +89,10 @@
       const tape = document.getElementById("liveGapTape");
       if (tape) {
         tape.innerHTML = top.map((x) => {
-          if (x.routeStatus !== "ROUTE" || x.midGapPct == null) {
+          if (x.routeStatus !== "ROUTE" || x.lowImpactGapPct == null) {
             return "<span>" + esc(x.ticker) + ' <em class="muted">' + esc(x.routeStatus || "NO SMALL-QUOTE GAP") + '</em></span>';
           }
-          const gap = Number(x.midGapPct);
+          const gap = Number(x.lowImpactGapPct);
           return "<span>" + esc(x.ticker) + ' <em class="' + (gap >= 0 ? "pos" : "neg") + '">' +
             (gap > 0 ? "+" : "") + gap.toFixed(2) + "%</em></span>";
         }).join("");
