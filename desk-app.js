@@ -75,7 +75,7 @@ async function loadPancakeQuotePreview(ticker,fromTokenAddress,toTokenAddress,am
   const r=await fetch('/api/agent?'+p.toString());
   const j=await r.json();
   window.__pronousPancakeQuote=j;
-  return {httpOk:r.ok,data:j};
+  return {httpOk:r.ok,status:r.status,data:j};
 }
 async function requestQuote(){
   const box=document.getElementById('quoteResult');
