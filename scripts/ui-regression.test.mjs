@@ -148,7 +148,7 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /gapBasis:"REQUESTED_SIZE_BUY_QUOTE_INCLUDES_PRICE_IMPACT"/);
   assert.match(agent, /midGapFormula:"midGapPct uses the smallest-size buy quote/);
   assert.match(live, /x\.midGapPct/);
-  assert.match(live, /Requested-size quote gap \(impact included; not an actual fill\)/);
+  assert.match(live, /Execution-price estimate \(requested size; impact included; quote only, not an actual fill\)/);
   assert.match(live, /OFF_HOURS_DRIFT · STALE REF/);
   assert.match(market, /function classifyAssetSignal\(asset = \{\}\)/);
   assert.match(live, /SMALL-QUOTE GAP vs REFERENCE/);
