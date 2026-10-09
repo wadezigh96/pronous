@@ -46,7 +46,7 @@ test("agent execution API rejects non-GET and foreign origins", () => {
   assert.match(agent, /function requireAgentOrigin\(req, res\)/);
   assert.match(agent, /if \(origin === AGENT_ALLOWED_ORIGIN\) return true/);
   assert.match(agent, /function requireAgentGet\(req, res\)/);
-  assert.match(agent, /\["quote", "quoteBuild", "build", "simulateTx"\]/);
+  assert.match(agent, /\["quote", "quoteBuild", "build", "simulateTx", "pancakeQuote"\]/);
   assert.match(agent, /METHOD_NOT_ALLOWED/);
   assert.match(agent, /FORBIDDEN_ORIGIN/);
 });
