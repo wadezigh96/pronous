@@ -43,8 +43,9 @@
         return;
       }
       el.innerHTML =
-        '<div class="muted small" style="margin-bottom:8px">ON-CHAIN vs REFERENCE · PancakeSwap quote-only · ' +
+        '<div class="muted small" style="margin-bottom:8px">BUY-QUOTE vs REFERENCE · PancakeSwap quote-only · ' +
         esc(String(top[0].quoteSizeUSDT || 100)) + ' USDT input · ' + top.length + ' candidates</div>' +
+        '<div class="muted small" style="margin-bottom:8px">This is a one-way buy quote, not a sell quote or round-trip arbitrage calculation. Price impact may exceed the apparent gap.</div>' +
         top.map((x) => {
           const routed = x.routeStatus === "ROUTE";
           const gap = x.onchainGapPct == null ? null : Number(x.onchainGapPct);
@@ -55,6 +56,7 @@
           const signal = !routed ? {label:gapText,cls:"muted"} :
             gap == null || !Number.isFinite(gap) ? {label:"NO REFERENCE",cls:"muted"} :
             context === "MARKET_CLOSED_REFERENCE_MAY_BE_STALE" ? {label:"MARKET CLOSED · CHECK STALE REF",cls:"muted"} :
+            Number(x.priceImpactPct) > Number(window.__pronousRadarSummary?.maxActionablePriceImpactPct || 1) ? {label:"HIGH IMPACT · REVIEW",cls:"muted"} :
             Math.abs(gap) >= 1 ? {label:gap > 0 ? "PREMIUM" : "DISCOUNT",cls:gap > 0 ? "pos" : "neg"} :
             {label:"BELOW THRESHOLD",cls:"muted"};
           const shownGap = routed && gap != null && Number.isFinite(gap);
