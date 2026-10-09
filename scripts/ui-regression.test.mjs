@@ -130,6 +130,9 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(agent, /routeStatus:noRoute\?"NO ROUTE"/);
   assert.match(agent, /quoteSource:"PancakeSwap Unified Swap API"/);
   assert.match(agent, /validReference&&gap!==null&&Math\.abs\(gap\)>=MIN_ACTIONABLE_GAP_PCT/);
+  assert.match(agent, /MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
+  assert.match(agent, /Number\(q\.priceImpact\)\*100<=MAX_ACTIONABLE_PRICE_IMPACT_PCT/);
+  assert.match(agent, /quoteSide:"BUY"/);
   assert.match(agent, /MARKET_CLOSED_REFERENCE_MAY_BE_STALE/);
   assert.match(agent, /priceImpactPct/);
   assert.match(agent, /\(quotePriceUSDTPerToken \/ \(referencePrice \* shareRatio\) - 1\) \* 100/);
@@ -137,6 +140,10 @@ test("divergence radar uses PancakeSwap on-chain quotes and preserves no-route a
   assert.match(live, /NO REFERENCE/);
   assert.match(live, /x\.routeStatus/);
   assert.match(live, /PancakeSwap quote-only/);
+  assert.match(live, /BUY-QUOTE vs REFERENCE/);
+  assert.match(live, /HIGH IMPACT · REVIEW/);
+  assert.match(live, /@media\(max-width:560px\)/);
+  assert.match(live, /upstream feed has no measured 24h volume/);
 });
 
 test("public read-only market endpoint is cached, paginated and bounded", () => {
