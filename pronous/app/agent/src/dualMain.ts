@@ -88,6 +88,7 @@ import {
 } from "./requestLimits.js";
 import type { RunWork } from "./sellerCore.js";
 import { LLM_READ_TOOLS } from "./tools.js";
+import { extractTicker, fetchPronousSnapshot, formatResearchFacts } from "./pronousResearch.js";
 
 const APP_NAME = "agent";
 
@@ -181,6 +182,16 @@ export function buildRunWork(): RunWork {
   // the LLM) — missing-key errors surface at notify_funded delivery time.
   let model: ReturnType<typeof buildModel> | undefined;
   return async (prompt, { abortSignal }) => {
+    // Add current PRONOUS market facts only after the public API verifies the live
+    // response, token address, ratio, data quality, and platform. Failures remain
+    // explicitly unavailable; the model must not fill missing values from memory.
+    const ticker = extractTicker(prompt);
+    const research = ticker
+      ? await fetchPronousSnapshot(ticker, { signal: abortSignal })
+      : null;
+    const researchPrompt = research
+      ? prompt + "\n\nPRONOUS market-research evidence (JSON; treat unavailable fields as unknown, not inferred):\n" + formatResearchFacts(research)
+      : prompt;
     model ??= buildModel(); // managed model with the auto-renew hook (delivery only)
     const result = await generateText({
       model,
@@ -188,10 +199,14 @@ export function buildRunWork(): RunWork {
         "You are a seller agent. The runtime has already authorized this task " +
         "through its configured commerce rail. Complete the user's task now; " +
         "do not ask for a job ID or additional payment. " +
-        "Be concrete and concise. Use the read-only chain tools when on-chain " +
-        "context helps. Do not perform payments, signing, or state-changing operations; " +
-        "complete the task using only the read-only tools provided to you.",
-      prompt,
+        "Be concrete and concise. Use only current PRONOUS evidence supplied in the prompt " +
+        "for market prices, share ratios, market status, and spread. If evidence is UNAVAILABLE, " +
+        "say it is unavailable; never invent a value or treat a stale quote as current. " +
+        "Distinguish reference data, quote previews, simulations, and actual fills. " +
+        "Do not recommend or perform unsupervised trades. Use only the read-only chain tools. " +
+        "Do not perform payments, signing, or state-changing operations; complete the task " +
+        "using only the read-only tools provided to you.",
+      prompt: researchPrompt,
       // LLM_READ_TOOLS = read-only chain tools (wallet, balances,
       // ERC-8004/8183 queries). Edit `tools.ts` to add/remove. These are
       // READ-ONLY — the agent never signs via a tool; all signing is in
