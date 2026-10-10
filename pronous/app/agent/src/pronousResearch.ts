@@ -46,7 +46,7 @@ export function extractTicker(prompt: string): string | null {
   }
   const candidates = text.match(/\b[A-Z][A-Z0-9.-]{0,9}\b/g) ?? [];
   return candidates.find((item) =>
-    TICKER_RE.test(item) && !IGNORED_TICKERS.has(item.toUpperCase())
+    item.length >= 2 && TICKER_RE.test(item) && !IGNORED_TICKERS.has(item.toUpperCase())
   ) ?? null;
 }
 
