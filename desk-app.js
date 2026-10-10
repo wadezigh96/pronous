@@ -207,7 +207,7 @@ async function simulate(){
     const maxSpend=(document.getElementById('maxSpend')?.value||'').trim();
     const amountNumber=Number(amount), capNumber=Number(maxSpend);
     if(!Number.isFinite(amountNumber)||amountNumber<=0||!Number.isFinite(capNumber)||capNumber<=0||amountNumber>capNumber)throw new Error('Amount must be positive and must not exceed max spend.');
-    const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===ticker)||(last&&last.asset)||null;
+    const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===ticker)||null;
     if(!asset||asset.demo===true)throw new Error('A verified live RWA asset is required; demo data cannot be simulated.');
     if(asset.dataQuality!=='ok'||asset.actionable!==true)throw new Error('This asset is not actionable under the current data-quality, spread, or risk guardrails.');
     const marketStatus=String(asset.marketStatus||'').trim();
