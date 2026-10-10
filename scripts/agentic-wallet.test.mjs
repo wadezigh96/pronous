@@ -83,5 +83,17 @@ test("quote workflow blocks closed market and requires all live guards before ba
     },
     run: async () => { bawCalls++; return {}; }
   }), /UNDERLYING_MARKET_CLOSED/);
+  await assert.rejects(quoteWithAgenticWallet({
+    ticker:"NVDA",amount:"1",maxSpend:"2",
+    fetchImpl: async (input) => {
+      const url=new URL(String(input));
+      if (url.searchParams.get("action")==="scan") {
+        const { marketStatus, ...withoutStatus } = liveBody.asset;
+        return Response.json({...liveBody,asset:withoutStatus});
+      }
+      return Response.json({preflight:{status:"READY_FOR_SIMULATION"}});
+    },
+    run: async () => { bawCalls++; return {}; }
+  }), /MARKET_HOURS_NOT_CONFIRMED/);
   assert.equal(bawCalls,1);
 });
