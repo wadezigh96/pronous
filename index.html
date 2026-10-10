@@ -106,9 +106,11 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="chart-controls"><button class="chart-tf active" type="button" title="Uses live candle endpoint when available">Candles</button><button class="chart-tf" type="button" disabled title="A live order-book depth endpoint is not wired into this desk yet">Depth unavailable</button><button class="chart-tf" type="button" disabled title="Indicator calculations are not implemented for this chart yet">Indicators unavailable</button></div></div>
 <div class="chart-pair-row"><select id="chartPair" class="pair-select"><option>NVDA/USDT</option><option>AAPL/USDT</option><option>TSLA/USDT</option></select>
 <div class="tf-group"><button class="tf-btn" type="button">1m</button><button class="tf-btn active" type="button">5m</button><button class="tf-btn" type="button">15m</button><button class="tf-btn" type="button">1h</button><button class="tf-btn" type="button">4h</button><button class="tf-btn" type="button">1D</button></div></div>
-<div class="chart-price-line"><span class="chart-last" id="chartLast">—</span><span class="muted" id="chartChange">Waiting for live asset data…</span></div>
-<div class="chart-box gap-chart"><div class="chart-meta"><span id="tapeLabel">NVDA/USDT · 5m</span><span>SPOT · BSC</span></div>
-<canvas id="gapChart" width="980" height="210"></canvas></div>
+<div class="chart-price-line"><span class="chart-last" id="chartLast">—</span><span class="muted" id="chartChange">Waiting for verified candle data…</span></div>
+<div class="chart-box asset-chart"><div class="chart-meta"><span id="assetChartLabel">NVDA · waiting for selection</span><span id="assetChartSrc">CANDLE FEED CHECKING</span></div>
+<canvas id="assetChart" width="980" height="210" aria-label="Selected asset live candle chart"></canvas></div>
+<div class="chart-box gap-chart"><div class="chart-meta"><span id="tapeLabel">Live ratio-adjusted spread overview</span><span>BSC · READ ONLY</span></div>
+<canvas id="gapChart" width="980" height="150" aria-label="Verified RWA spread overview"></canvas></div>
 </section>
 <section class="card board-card studio-card" id="studio-section">
 <div class="card-head"><div class="card-title-row"><h2>Agent Studio</h2></div><span id="studioStatus" class="tag">NOT DEPLOYED</span></div>
