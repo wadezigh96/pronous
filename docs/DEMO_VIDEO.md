@@ -1,7 +1,7 @@
 # Demo Video Storyboard (maximum 4 minutes)
 
 **Target runtime:** 3:30–3:50  
-**Recording link:** [ADD FINAL VIDEO URL BEFORE SUBMISSION]  
+**Recording link:** https://youtube.com/watch?v=1mWSYCV5yyQ (user-reported duration: 3:27; contents/access not independently reviewed)  
 **App:** https://pronous.vercel.app/  
 **Repo:** https://github.com/wadezigh96/pronous
 
