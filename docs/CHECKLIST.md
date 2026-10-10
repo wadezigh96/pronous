@@ -34,7 +34,7 @@ Use this before pasting links into the current BNB Chain submission form.
 
 - [x] Agentic Wallet authentication/read-only checks documented
 - [x] BSC chain `56` wallet balance verified read-only
-- [ ] Agentic Wallet live execution independently verified in the current submission evidence
+- [x] Direct Agentic Wallet CLI swap smoke test recorded: BNB→USDT on BSC (not PRONOUS API or tokenized-stock execution)
 - [ ] Agent Studio hosted runtime independently verified live
 
 > Current submission wording intentionally does not claim live Agentic Wallet execution or a hosted Agent Studio runtime as independently verified.
