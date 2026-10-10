@@ -211,7 +211,12 @@ async function simulate(){
     if(!asset||asset.demo===true)throw new Error('A verified live RWA asset is required; demo data cannot be simulated.');
     if(asset.dataQuality!=='ok'||asset.actionable!==true)throw new Error('This asset is not actionable under the current data-quality, spread, or risk guardrails.');
     const marketStatus=String(asset.marketStatus||'').trim();
-    if(!/^(open|trading|market[ _]open|regular|regular[ _]session)$/i.test(marketStatus)||asset.openState===false||String(asset.openState||'').toLowerCase()==='false')throw new Error('Underlying equity market is closed or unconfirmed. Simulation is locked to prevent stale-reference execution.');
+    const openState=String(asset.openState??'').trim();
+    const explicitlyOpen=/^(open|trading|market[ _]open|regular|regular[ _]session)$/i.test(marketStatus)||
+      /^(open|true|1|regular|regular[ _]session)$/i.test(openState);
+    const explicitlyClosed=/^(closed|postmarket|post-market|premarket|pre-market|after-hours|overnight|false|0)$/i.test(marketStatus)||
+      /^(closed|false|0)$/i.test(openState);
+    if(!explicitlyOpen||explicitlyClosed)throw new Error('Underlying equity market is closed or unconfirmed. Simulation is locked to prevent stale-reference execution.');
     const toToken=String(asset.tokenContractAddress||'').trim();
     if(!/^0x[a-fA-F0-9]{40}$/.test(toToken))throw new Error('A verified RWA token contract address is required.');
     if(fromToken.toLowerCase()===toToken.toLowerCase())throw new Error('Spend token and RWA token must differ.');
