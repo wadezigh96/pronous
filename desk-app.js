@@ -167,7 +167,9 @@ async function simulate(){
   const quoteBox=document.getElementById('quoteResult');
   const gate=document.getElementById('poaGateStatus');
   const ticker=(document.getElementById('ticker')?.value||'NVDA').trim().toUpperCase();
+  const keepPreflightReady=preflightReady;
   resetExecutionState('simulation starting');
+  preflightReady=keepPreflightReady;
   setExecutionStep('simulation','RUNNING');
   if(planBox)planBox.textContent='Building unsigned transaction and running BSC chain simulation…';
   try{
@@ -212,7 +214,9 @@ async function simulate(){
     const txData=String(rawTx.data||rawTx.input||'').trim();
     if(!/^0x[a-fA-F0-9]{40}$/.test(txTo)||!/^0x[0-9a-fA-F]{8,}$/.test(txData))throw new Error('Unsigned transaction is missing a valid contract target or calldata.');
     if(rawTx.from&&String(rawTx.from).toLowerCase()!==walletAddressForSim.toLowerCase())throw new Error('Built transaction wallet does not match the connected wallet.');
-    const tx={from:walletAddressForSim,to:txTo,data:txData,value:rawTx.value==null?'0x0':String(rawTx.value)};
+    const rawValue=rawTx.value;
+    if(rawValue!=null&&rawValue!==''&&rawValue!==0&&rawValue!=='0'&&String(rawValue).toLowerCase()!=='0x0'&&String(rawValue).toLowerCase()!=='0x00')throw new Error('Native BNB value is not supported for this execution route; use a supported ERC-20 spend token.');
+    const tx={from:walletAddressForSim,to:txTo,data:txData,value:'0x0'};
     if(rawTx.gas!=null)tx.gas=rawTx.gas;
     if(rawTx.gasLimit!=null)tx.gasLimit=rawTx.gasLimit;
     if(rawTx.gasPrice!=null)tx.gasPrice=rawTx.gasPrice;
