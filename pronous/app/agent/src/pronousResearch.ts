@@ -4,7 +4,12 @@ const TICKER_RE = /^[A-Z0-9.-]{1,20}$/;
 const IGNORED_TICKERS = new Set([
   "API", "BSC", "BNB", "USD", "USDT", "USDC", "RWA", "MCP", "NFT", "AI",
   "THE", "AND", "FOR", "WITH", "FROM", "INTO", "LIVE", "SCAN", "STOCK",
-  "GAP", "PRICE", "TOKEN", "MARKET", "ONCHAIN", "CHAIN", "REPORT"
+  "GAP", "PRICE", "TOKEN", "MARKET", "ONCHAIN", "CHAIN", "REPORT",
+  "I", "A", "AN", "IS", "IT", "TO", "DO", "OF", "OR", "AS", "AT", "BY", "IN",
+  "ON", "UP", "WE", "ME", "MY", "YOU", "YOUR", "CAN", "COULD", "WOULD", "SHOULD",
+  "PLEASE", "SCAN", "SEARCH", "CHECK", "COMPARE", "ANALYZE", "ANALYSE", "RESEARCH",
+  "LOOK", "FIND", "SHOW", "GET", "TELL", "EXPLAIN", "WHAT", "WHERE", "WHEN", "WHY",
+  "HOW", "WANT", "NEED", "HELP", "DOES", "ARE", "WAS", "WERE", "THIS", "THAT", "WITH"
 ]);
 
 export interface PronousResearchSnapshot {
