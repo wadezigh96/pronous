@@ -40,11 +40,9 @@ export function extractTicker(prompt: string): string | null {
     return TICKER_RE.test(ticker) && !IGNORED_TICKERS.has(ticker) ? ticker : null;
   }
   const candidates = text.match(/\b[A-Z][A-Z0-9.-]{0,9}\b/g) ?? [];
-  const found = candidates.find((item) =>
-    TICKER_RE.test(item) && !IGNORED_TICKERS.has(item) &&
-    !IGNORED_TICKERS.has(item.toUpperCase())
-  );
-  return found ?? null;
+  return candidates.find((item) =>
+    TICKER_RE.test(item) && !IGNORED_TICKERS.has(item.toUpperCase())
+  ) ?? null;
 }
 
 function marketIsClosed(status: unknown): boolean {

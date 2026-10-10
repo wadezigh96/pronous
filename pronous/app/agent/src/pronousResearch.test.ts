@@ -6,13 +6,13 @@ import {
   formatResearchFacts,
 } from "./pronousResearch.js";
 
-test("extractTicker uses explicit ticker fields and ignores common acronyms", () => {
+test("extractTicker finds stock tickers and ignores common chain acronyms", () => {
   assert.equal(extractTicker("Please scan ticker: NVDA"), "NVDA");
   assert.equal(extractTicker("Compare AAPL against MSFT"), "AAPL");
   assert.equal(extractTicker("Explain BSC and USDT market hours"), null);
 });
 
-test("fetchPronousSnapshot refuses HTTP errors and non-live responses", async () => {
+test("unavailable HTTP and demo responses are never promoted to live data", async () => {
   const httpError = await fetchPronousSnapshot("NVDA", {
     fetchImpl: async () => new Response("no", { status: 503 }),
   });
@@ -26,21 +26,15 @@ test("fetchPronousSnapshot refuses HTTP errors and non-live responses", async ()
   assert.equal(demo.reason, "LIVE_RWA_DATA_NOT_VERIFIED");
 });
 
-test("fetchPronousSnapshot accepts only live supported assets with a valid contract and ratio", async () => {
+test("live snapshot requires supported platform, address, quality and positive prices/ratio", async () => {
   const body = {
     mode: "live-data",
     asset: {
-      ticker: "NVDA",
-      companyName: "NVIDIA",
-      platformId: "ondo",
+      ticker: "NVDA", companyName: "NVIDIA", platformId: "ondo",
       tokenSymbol: "NVDA",
       tokenContractAddress: "0x1234567890123456789012345678901234567890",
-      tokenPrice: "1.23",
-      referencePrice: "123",
-      shareRatio: "0.01",
-      adjustedSpreadPct: 0,
-      marketStatus: "open",
-      dataQuality: "ok",
+      tokenPrice: "1.23", referencePrice: "123", shareRatio: "0.01",
+      adjustedSpreadPct: 0, marketStatus: "open", dataQuality: "ok",
       nextOpenTime: null,
     },
   };
@@ -62,18 +56,17 @@ test("fetchPronousSnapshot accepts only live supported assets with a valid contr
   assert.equal(unsupported.reason, "UNSUPPORTED_RWA_PLATFORM");
 });
 
-test("off-hours research never becomes actionable", async () => {
-  const body = {
-    mode: "live-data",
-    asset: {
-      ticker: "NVDA", platformId: "bstock",
-      tokenContractAddress: "0x1234567890123456789012345678901234567890",
-      tokenPrice: "1", referencePrice: "100", shareRatio: "0.01",
-      marketStatus: "offhours", dataQuality: "ok"
-    }
-  };
+test("off-hours data remains explicitly non-actionable", async () => {
   const snapshot = await fetchPronousSnapshot("NVDA", {
-    fetchImpl: async () => Response.json(body),
+    fetchImpl: async () => Response.json({
+      mode: "live-data",
+      asset: {
+        ticker: "NVDA", platformId: "bstock",
+        tokenContractAddress: "0x1234567890123456789012345678901234567890",
+        tokenPrice: "1", referencePrice: "100", shareRatio: "0.01",
+        marketStatus: "offhours", dataQuality: "ok",
+      },
+    }),
   });
   assert.equal(snapshot.asset?.marketClosed, true);
   assert.equal(snapshot.asset?.actionable, false);
