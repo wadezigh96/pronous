@@ -29,14 +29,14 @@ function drawGapChart(){
   const canvas=document.getElementById('gapChart');
   const label=document.getElementById('tapeLabel');
   const rows=chartRows().slice(0,10);
-  if(label && !window.__pronousSelectedAsset) label.textContent=rows.length?rows.length+' live divergence signals':'No live signals';
+  if(label) label.textContent=rows.length?rows.length+' verified ratio-adjusted spread rows':'No verified spread rows';
   if(!canvas)return;
   const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height;
   ctx.clearRect(0,0,w,h);
   ctx.fillStyle='#070a10';ctx.fillRect(0,0,w,h);
   ctx.strokeStyle='rgba(35,52,78,.55)';ctx.lineWidth=1;
   for(let y=22;y<h-28;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-  if(!rows.length)return;
+  if(!rows.length){drawChartUnavailable(canvas,'NO VERIFIED SPREAD DATA');return;}
   const maxAbs=Math.max(...rows.map(x=>Math.abs(Number(x.spreadPct))),0.01);
   const mid=h/2, slot=w/rows.length;
   rows.forEach((x,i)=>{
@@ -59,17 +59,35 @@ function drawChartUnavailable(canvas,message){
   ctx.fillText(text,w/2,h/2);
 }
 function drawCandleChart(canvas,candles){if(!canvas||!candles.length)return;const size=prepareCanvas(canvas);if(!size)return;const ctx=size.ctx,w=size.w,h=size.h;ctx.clearRect(0,0,w,h);ctx.fillStyle='#070a10';ctx.fillRect(0,0,w,h);const vals=candles.flatMap(c=>[Number(c.high),Number(c.low)]).filter(Number.isFinite);if(!vals.length)return;const min=Math.min(...vals),max=Math.max(...vals),pad=(max-min)*.08||1,lo=min-pad,hi=max+pad;ctx.strokeStyle='rgba(120,130,145,.16)';ctx.lineWidth=1;for(let i=1;i<5;i++){const y=18+(i/5)*(h-38);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}const left=10,right=10,top=12,bottom=26,plotW=w-left-right,plotH=h-top-bottom;const step=plotW/candles.length;const bodyW=Math.max(2,Math.min(10,step*.62));candles.forEach((c,i)=>{const o=Number(c.open),cl=Number(c.close),hiC=Number(c.high),loV=Number(c.low);if(![o,cl,hiC,loV].every(Number.isFinite))return;const x=left+i*step+step/2;const y=v=>top+((hi-v)/(hi-lo))*plotH;const up=cl>=o;ctx.strokeStyle=up?'#2fbf8f':'#e8604c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y(hiC));ctx.lineTo(x,y(loV));ctx.stroke();const yo=y(o),yc=y(cl),bodyTop=Math.min(yo,yc),bodyH=Math.max(1,Math.abs(yc-yo));ctx.fillRect(x-bodyW/2,bodyTop,bodyW,bodyH)});const last=candles[candles.length-1];ctx.fillStyle='#d8d1c0';ctx.font='10px IBM Plex Mono,monospace';ctx.textAlign='right';ctx.fillText(Number(last.close).toFixed(4),w-8,12);}
+function updateCandleSummary(candles){
+  const lastLabel=document.getElementById('chartLast');
+  const changeLabel=document.getElementById('chartChange');
+  if(!Array.isArray(candles)||!candles.length){
+    if(lastLabel)lastLabel.textContent='—';
+    if(changeLabel)changeLabel.textContent='Live candle history unavailable';
+    return;
+  }
+  const last=candles[candles.length-1],prev=candles.length>1?candles[candles.length-2]:null;
+  const close=Number(last.close),prior=prev?Number(prev.close):NaN;
+  if(lastLabel)lastLabel.textContent=Number.isFinite(close)?close.toLocaleString(undefined,{maximumFractionDigits:8}):'—';
+  if(changeLabel){
+    if(Number.isFinite(close)&&Number.isFinite(prior)&&prior>0){
+      const pct=(close/prior-1)*100;
+      changeLabel.textContent='Last candle '+(pct>0?'+':'')+pct.toFixed(3)+'% · '+candles.length+' candles';
+    }else changeLabel.textContent='Latest close · '+candles.length+' candle'+(candles.length===1?'':'s');
+  }
+}
 async function loadAssetChart(asset,bar='1h',force=false){
   if(!asset)return;window.__pronousSelectedAsset=asset;window.__pronousChartBar=bar;
-  const src=document.getElementById('assetChartSrc'),label=document.getElementById('tapeLabel'),canvases=['gapChart','assetChart'].map(id=>document.getElementById(id)).filter(Boolean);if(!canvases.length)return;
+  const src=document.getElementById('assetChartSrc'),label=document.getElementById('assetChartLabel'),canvases=['assetChart'].map(id=>document.getElementById(id)).filter(Boolean);if(!canvases.length)return;
   const key=String(asset.tokenContractAddress||asset.ticker||'')+'|'+String(bar),cached=chartCache.get(key);
-  if(!force&&cached&&Date.now()-cached.ts<30000){if(src)src.textContent=cached.source;if(label)label.textContent=(asset.ticker||'ASSET')+'/USDT · '+String(bar).toUpperCase()+' · '+cached.source;canvases.forEach(x=>cached.candles.length?drawCandleChart(x,cached.candles):drawChartUnavailable(x,cached.source));return}
+  if(!force&&cached&&Date.now()-cached.ts<30000){if(src)src.textContent=cached.source;if(label)label.textContent=(asset.ticker||'ASSET')+' · '+String(bar).toUpperCase()+' · '+cached.source;canvases.forEach(x=>cached.candles.length?drawCandleChart(x,cached.candles):drawChartUnavailable(x,cached.source));updateCandleSummary(cached.candles);return}
   const prior=chartControllers.get(key);if(prior)prior.abort();const controller=new AbortController();chartControllers.set(key,controller);
   try{const token=asset.tokenContractAddress||'',ticker=asset.ticker||'',urls=[token?'/api/candles?token='+encodeURIComponent(token)+'&bar='+encodeURIComponent(bar)+'&limit=72':null,'/api/agent?action=candles&ticker='+encodeURIComponent(ticker)+'&bar='+encodeURIComponent(bar)+'&limit=72'].filter(Boolean);let candles=[],source='LIVE CANDLES UNAVAILABLE';
-    for(const url of urls){const r=await fetch(url,{signal:controller.signal,cache:'no-store'}),j=await r.json();candles=(j.candles||[]).filter(x=>[x.open,x.high,x.low,x.close].every(v=>Number.isFinite(Number(v))));if(candles.length){source=(j.source||'LIVE')+' · '+String(bar).toUpperCase();break}}
+    for(const url of urls){const r=await fetch(url,{signal:controller.signal,cache:'no-store'}),j=await r.json();if(!r.ok)continue;candles=(j.candles||[]).filter(x=>[x.open,x.high,x.low,x.close].every(v=>Number.isFinite(Number(v))));if(candles.length){source=(j.source||'LIVE')+' · '+String(bar).toUpperCase();break}}
     chartCache.set(key,{ts:Date.now(),candles,source});
-    if(src)src.textContent=source;if(label)label.textContent=(ticker||'ASSET')+'/USDT · '+String(bar).toUpperCase()+' · '+source;canvases.forEach(x=>candles.length?drawCandleChart(x,candles):drawChartUnavailable(x,source));
-  }catch(err){if(err&&err.name==='AbortError')return;if(src)src.textContent='UNAVAILABLE';if(label)label.textContent=(asset.ticker||'ASSET')+' · chart unavailable';canvases.forEach(x=>drawChartUnavailable(x,'LIVE CANDLES UNAVAILABLE'))}finally{if(chartControllers.get(key)===controller)chartControllers.delete(key)}
+    if(src)src.textContent=source;if(label)label.textContent=(ticker||'ASSET')+' · '+String(bar).toUpperCase()+' · '+source;canvases.forEach(x=>candles.length?drawCandleChart(x,candles):drawChartUnavailable(x,source));updateCandleSummary(candles);
+  }catch(err){if(err&&err.name==='AbortError')return;if(src)src.textContent='UNAVAILABLE';if(label)label.textContent=(asset.ticker||'ASSET')+' · chart unavailable';canvases.forEach(x=>drawChartUnavailable(x,'LIVE CANDLES UNAVAILABLE'));updateCandleSummary([])}finally{if(chartControllers.get(key)===controller)chartControllers.delete(key)}
 }
 function redrawVisibleCharts(){if(chartResizeFrame)return;chartResizeFrame=requestAnimationFrame(()=>{chartResizeFrame=0;const asset=window.__pronousSelectedAsset;if(asset)loadAssetChart(asset,window.__pronousChartBar||'1h',false);else drawGapChart()})}
 if(typeof ResizeObserver!=='undefined'){const ro=new ResizeObserver(()=>redrawVisibleCharts());document.addEventListener('DOMContentLoaded',()=>{['gapChart','assetChart'].forEach(id=>{const el=document.getElementById(id);if(el)ro.observe(el)})},{once:true})}
