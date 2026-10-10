@@ -36,4 +36,4 @@ jobs:
         run: pnpm --filter pronous-agent run build
       - name: Test verified live-data policy
         working-directory: pronous
-        run: pnpm --filter pronous-agent exec tsx --test app/agent/src/pronousResearch.test.ts
+        run: pnpm --filter pronous-agent exec tsx --test src/pronousResearch.test.ts
