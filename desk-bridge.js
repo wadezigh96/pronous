@@ -203,6 +203,8 @@
     });
   }
 
+  window.renderPronousSignals = renderSignalList;
+
   function currentBar() {
     const active = document.querySelector(".tf-btn.active");
     const raw = (active?.textContent || window.__pronousChartBar || "1h").trim().toLowerCase();
