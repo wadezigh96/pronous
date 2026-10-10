@@ -96,7 +96,16 @@ test("on-chain tabs and formerly decorative desk actions now invoke real functio
   assert.match(html, /Read selected on-chain data/);
 });
 
-test("unsupported chart depth/indicators are not presented as working", () => {
+test("unsupported chart depth/indicators and missing candle history are not faked", () => {
   assert.match(html, /<button[^>]*disabled[^>]*>Depth unavailable<\/button>/);
   assert.match(html, /<button[^>]*disabled[^>]*>Indicators unavailable<\/button>/);
+  const charts = read("desk-charts.js");
+  const start = charts.indexOf("async function loadAssetChart");
+  const end = charts.indexOf("function redrawVisibleCharts", start);
+  assert.ok(start >= 0 && end > start);
+  const loader = charts.slice(start, end);
+  assert.match(loader, /LIVE CANDLES UNAVAILABLE/);
+  assert.match(loader, /drawChartUnavailable/);
+  assert.doesNotMatch(loader, /fallback=Number\.isFinite\(tokenPx\)[\s\S]*drawLineChart\(x,fallback/);
+  assert.doesNotMatch(loader, /source='SNAPSHOT'/);
 });
