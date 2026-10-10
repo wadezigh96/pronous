@@ -43,26 +43,29 @@
     const exec = $("walletAddress");
     const btn = $("connectWalletBtn");
     const kpi = $("kpiExec");
+    const chainId = Number(detail?.chainId || 0);
     if (status) {
-      status.textContent = address
-        ? source === "privy"
-          ? "PRIVY WALLET · BSC"
-          : "BROWSER WALLET · BSC"
-        : "WALLET NOT CONNECTED";
+      status.textContent = !address
+        ? "WALLET NOT CONNECTED"
+        : chainId !== 56
+          ? "WALLET CONNECTED · WRONG CHAIN" + (chainId ? " (" + chainId + ")" : "")
+          : source === "privy" ? "PRIVY WALLET · BSC" : "BROWSER WALLET · BSC";
     }
     if (src) src.textContent = address ? (source === "privy" ? "PRIVY" : "BROWSER WALLET") : "NO WALLET";
     if (top) top.textContent = short;
     if (exec) exec.textContent = short;
     if (btn) {
-      btn.textContent = address ? "Disconnect" : "Connect Wallet";
+      btn.textContent = address ? (chainId === 56 ? "Disconnect" : "Switch to BSC") : "Connect Wallet";
       btn.disabled = false;
     }
-    if (kpi) kpi.textContent = address ? "ARMED" : "LOCKED";
+    if (kpi) kpi.textContent = !address ? "LOCKED" : chainId === 56 ? "ARMED" : "WRONG CHAIN";
     const confirmBtn = $("confirmActionBtn");
     if (confirmBtn && !address) confirmBtn.disabled = true;
     const gate = $("poaGateStatus");
-    if (gate && address) {
-      if (!gate.dataset.locked) gate.textContent = "Wallet connected · run preflight before confirm.";
+    if (gate && address && chainId !== 56) {
+      gate.textContent = "Switch wallet to BSC Mainnet (chain ID 56) before preflight or simulation.";
+    } else if (gate && address) {
+      if (!gate.dataset.locked) gate.textContent = "Wallet connected · run preflight before simulation.";
     } else if (gate && !address) {
       gate.textContent = "Connect wallet, then simulate before confirmation.";
     }
@@ -80,7 +83,7 @@
         ? {
             address,
             source: typeof api.getSource === "function" ? api.getSource() : "injected",
-            chainId: typeof api.getChainId === "function" ? api.getChainId() : 56
+            chainId: typeof api.getChainId === "function" ? api.getChainId() : null
           }
         : null
     );
@@ -138,12 +141,14 @@
         const t = String(a.ticker || "").toUpperCase();
         const name = esc(a.companyName || a.tokenSymbol || t);
         const px = Number(a.tokenPrice ?? a.referencePrice);
-        const gap = Number(a.spreadPct);
-        const pos = Number.isFinite(gap) ? gap >= 0 : true;
-        const actionable = a.actionable !== false && a.dataQuality !== 'unreliable';
-        const badge = !actionable ? "neutral" : !Number.isFinite(gap) ? "neutral" : Math.abs(gap) < 0.15 ? "neutral" : pos ? "bullish" : "discount";
-        const badgeLabel = !actionable ? "Guarded" : badge === "bullish" ? "Premium" : badge === "discount" ? "Discount" : "Aligned";
-        const spark = pos ? "▂▃▄▅▆▇" : "▇▆▅▄▃▂";
+        const gapRaw = a.spreadPct ?? a.adjustedSpreadPct;
+        const gap = gapRaw == null || gapRaw === "" ? NaN : Number(gapRaw);
+        const hasGap = Number.isFinite(gap);
+        const pos = hasGap && gap >= 0;
+        const actionable = a.actionable === true && a.dataQuality === "ok";
+        const badge = !actionable ? "neutral" : !hasGap ? "neutral" : Math.abs(gap) < 0.15 ? "neutral" : pos ? "bullish" : "discount";
+        const badgeLabel = !actionable ? "Guarded" : !hasGap ? "No spread data" : badge === "bullish" ? "Premium" : badge === "discount" ? "Discount" : "Aligned";
+        const spark = !hasGap ? "—" : pos ? "▂▃▄▅▆▇" : "▇▆▅▄▃▂";
         const on = t === selected ? " is-selected" : "";
         return (
           '<div class="signal-row' +
@@ -163,7 +168,7 @@
           '<div class="sig-price">' +
           fmtPrice(px) +
           ' <span class="' +
-          (pos ? "pos" : "neg") +
+          (!hasGap ? "muted" : pos ? "pos" : "neg") +
           '">' +
           fmtPct(gap) +
           "</span></div>" +
@@ -381,14 +386,41 @@
   }
 
   function applyMarketTab() {
-    const tab = window.__pronousMwTab || "gainers";
+    const tab = window.__pronousMwTab || "premium";
     if (typeof window.renderMarket !== "function") return;
     const originalAssets = assets();
     if (!originalAssets.length) return;
     let rows = originalAssets.slice();
-    if (tab === "gainers") rows = rows.filter((a) => Number(a.spreadPct) >= 0).sort((a, b) => Number(b.spreadPct) - Number(a.spreadPct));
-    else if (tab === "losers") rows = rows.filter((a) => Number(a.spreadPct) < 0).sort((a, b) => Number(a.spreadPct) - Number(b.spreadPct));
-    else if (tab === "volume") rows = rows.slice().sort((a, b) => Number(b.tokenPrice || 0) - Number(a.tokenPrice || 0));
+    if (tab === "premium" || tab === "discount") {
+      rows = rows.filter((a) => {
+        const gap = a.adjustedSpreadPct ?? a.spreadPct;
+        return a.dataQuality === "ok" && gap != null && Number.isFinite(Number(gap)) &&
+          (tab === "premium" ? Number(gap) >= 0 : Number(gap) < 0);
+      }).sort((a, b) => {
+        const left = Number(a.adjustedSpreadPct ?? a.spreadPct);
+        const right = Number(b.adjustedSpreadPct ?? b.spreadPct);
+        return tab === "premium" ? right - left : left - right;
+      });
+      if (!rows.length) {
+        const box = $("marketTable");
+        const count = $("marketCount");
+        if (count) count.textContent = "0";
+        if (box) box.textContent = "No verified ratio-adjusted spread data available for this filter.";
+        return;
+      }
+    } else if (tab === "volume") {
+      rows = rows.filter((a) => {
+        const value = a.volume24H ?? a.volume24h;
+        return value != null && value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0;
+      }).sort((a, b) => Number(b.volume24H ?? b.volume24h) - Number(a.volume24H ?? a.volume24h));
+      if (!rows.length) {
+        const box = $("marketTable");
+        const count = $("marketCount");
+        if (count) count.textContent = "—";
+        if (box) box.textContent = "The upstream feed did not provide measured 24-hour volume. No volume ranking is shown.";
+        return;
+      }
+    }
     const saved = window.marketAssets;
     window.marketAssets = rows;
     try { window.renderMarket(); }
@@ -412,7 +444,7 @@
       btn.addEventListener("click", () => {
         document.querySelectorAll(".mw-tab").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-        window.__pronousMwTab = ["gainers", "losers", "volume"][i] || "gainers";
+        window.__pronousMwTab = ["premium", "discount", "volume"][i] || "premium";
         applyMarketTab();
       });
     });
