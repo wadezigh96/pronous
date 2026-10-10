@@ -29,6 +29,7 @@
 ### Not enabled / not independently verified
 - Server-side transaction broadcast and autonomous execution without explicit user confirmation are not enabled by this verification.
 - The live hosted BNB Agent Studio runtime and Agentic Wallet execution were not independently verified as working hosted services.
+- A separate user-approved direct `baw` CLI BNB→USDT swap on BSC completed and its resulting wallet balance was observed; this is wallet CLI evidence only, not execution through PRONOUS API/MCP and not a tokenized-stock trade. See [DEVEX_REPORT.md](./DEVEX_REPORT.md) for the order ID and transaction hash.
 - x402 payments are not enabled.
 - xStocks did not appear in the 488-asset snapshot.
 
