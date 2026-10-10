@@ -61,7 +61,7 @@ Actionable flags require a valid ratio, acceptable data quality, a configured ga
 
 - `40102` remains a single error for multiple distinct failure modes (path, algorithm, key).
 - `volume24H` unit is still undocumented.
-- Agentic Wallet, Wallet Skills, and Agent Studio runtime identity/x402 are documented targets; no live hosted runtime or ERC-8004 registration is claimed from this repository alone.
+- The three-category work branch adds local MCP tools `agentic_wallet_status` and `agentic_wallet_quote`. The adapter uses the official `baw` CLI only for wallet reads and quote previews, validates live PRONOUS data, max-spend and market state, and always returns `broadcast: false`. Live CLI authentication and wallet connectivity still require verification on the operator device; no order is claimed.
 - Simulation schema matching the swap builder is not independently verified.
 - Rate limiting is per warm function instance; production-wide enforcement would require shared state.
 
