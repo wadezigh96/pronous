@@ -15,6 +15,16 @@
     return { label: "OBSERVE", cls: "muted" };
   }
 
+  function setSystemFeedStatus(labelText, summaryText, live) {
+    const label = document.getElementById("systemStatus");
+    const summary = document.getElementById("feedSummary");
+    if (label) {
+      label.textContent = labelText;
+      label.className = "tag " + (live ? "live" : "demo");
+    }
+    if (summary) summary.textContent = summaryText;
+  }
+
   function arm() {
     if (window.__pronousLiveArmed) return;
     if (typeof window.loadMarket !== "function" || typeof window.renderRadar !== "function") {
@@ -131,6 +141,7 @@
         }
         marketAssets = allAssets;
         window.marketAssets = marketAssets;
+        setSystemFeedStatus("RWA FEED LIVE", "BSC · " + marketAssets.length + " upstream tokenized assets · read-only feed", true);
         const mode = document.getElementById("marketMode");
         if (mode) {
           mode.textContent = "LIVE DATA";
@@ -168,6 +179,7 @@
         if (window.drawGapChart) drawGapChart();
       } catch (e) {
         if (box) box.textContent = "Market data unavailable: " + (e.message || "unknown error") + ". No static/demo prices are substituted.";
+        setSystemFeedStatus("RWA FEED UNAVAILABLE", "Live market feed could not be verified · no demo prices substituted", false);
         const mode = document.getElementById("marketMode");
         if (mode) { mode.textContent = "UNAVAILABLE"; mode.className = "tag demo"; }
         const kpiMode = document.getElementById("kpiMode");
