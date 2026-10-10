@@ -40,6 +40,14 @@ The repository contains a one-time local registration utility:
 
 The utility is intended for local operator use only. It does not run as part of the Vercel application and does not replace the existing user-confirmed trading execution path.
 
+A separate read-only verifier is available:
+
+```bash
+npm run erc8004:verify
+```
+
+It checks that the configured RPC reports BSC Mainnet (chain ID 56), that the registration transaction has a successful receipt, that `ownerOf(367667)` matches the expected identity wallet, and that `tokenURI(367667)` is non-empty. It prints the on-chain URI for manual review. It does not register or update an identity, spend funds, or prove that an Agent Studio runtime is deployed. Override `BSC_RPC_URL`, `ERC8004_AGENT_ID`, `ERC8004_REGISTRATION_TX`, or `ERC8004_EXPECTED_OWNER` only when verifying a different known identity.
+
 Never commit `PRIVATE_KEY`, `WALLET_PASSWORD`, seed phrases, or wallet keystore files.
 
 ## Registration JSON

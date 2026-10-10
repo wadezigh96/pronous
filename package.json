@@ -22,7 +22,8 @@
     "build": "node build-vendor.mjs",
     "build:vendor": "node build-vendor.mjs",
     "erc8004:register": "node scripts/erc8004-register.mjs",
-    "security:smoke": "node scripts/security-smoke.mjs"
+    "security:smoke": "node scripts/security-smoke.mjs",
+    "erc8004:verify": "node scripts/erc8004-verify.mjs"
   },
   "engines": {
     "node": ">=20 <27"
