@@ -124,6 +124,8 @@ test("closed sessions expose OFF_HOURS_DRIFT and remain non-actionable", () => {
   assert.equal(isMarketClosed(asset),true);
   assert.equal(classifyAssetSignal(asset),"OFF_HOURS_DRIFT");
   assert.equal(asset.actionable,false);
+  assert.equal(isMarketClosed({marketStatus:"offhours",openState:true}),true);
+  assert.equal(classifyAssetSignal({...asset,marketStatus:"offhours"}),"OFF_HOURS_DRIFT");
   assert.equal(isMarketClosed({marketStatus:"open",openState:true}),false);
   assert.equal(classifyAssetSignal({dataQuality:"missing_ratio",marketStatus:"postmarket"}),"MISSING_RATIO");
 });

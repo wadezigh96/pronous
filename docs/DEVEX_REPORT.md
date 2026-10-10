@@ -1,134 +1,84 @@
 # Developer Experience Report — PRONOUS
 
-Hackathon: [BNB Hack: Tokenized Stocks Edition](https://www.bnbchain.org/en/hackathons/tokenized-stocks)
-Project: https://github.com/wadezigh96/pronous
-Live: https://pronous.vercel.app
+Hackathon: BNB Hack: Tokenized Stocks Edition  
+Project: https://github.com/wadezigh96/pronous  
+Live: https://pronous.vercel.app  
 
-This report is the actual build log. It is not a compliment sheet.
+## 1. Project and integration scope
 
-## 1. Onboarding
+PRONOUS is a BSC mainnet desk for tokenized equities (Ondo, bStocks, xStocks). It consumes Binance Web3 RWA market data, computes ratio-adjusted spreads, and surfaces quote-based divergence via PancakeSwap. Execution paths remain gated: preflight, simulation, and explicit confirmation. No server-side transaction broadcast is implemented.
 
-- Time from opening Binance Web3 API docs to first *authenticated* success: **about 16 hours of calendar time**, including a long stretch of `40102 Invalid signature`.
-- First unauthenticated / demo page: minutes. First `live-auth-ok`: only after the signing string and key *type* were both correct.
-- Exact first live success endpoint: `GET /build/api/v1/dex/balance/supported/chain?binanceChainId=56`
-- First blocker: authentication, not market data.
+The integration targets live RWA token lists, single-ticker scans, quote previews, and an off-hours acknowledgement flow that warns without blocking simulation readiness. All measurements below are historical snapshots unless noted as current production behavior.
 
-## 2. Documentation issues
+## 2. Binance authentication and API integration
 
-- Page: https://web3.binance.com/en/dev-docs/authentication
-- Section: Base URL and pre-hash `requestPath`.
-- What was unclear until it failed in production: the HTTP client can call `https://web3.binance.com/build` + `/api/v1/...` and still get routed, while the **signed** path must be `/build/api/v1/...`. Missing `/build` in the pre-hash returns `40102`, not a path error.
-- Second trap: Ed25519 vs HMAC. Docs recommend Ed25519. Creating an HMAC key and signing with Ed25519 (or the reverse) also returns `40102`. The error does not say "wrong algorithm".
-- Third trap: Vercel env vars flatten PEM newlines. A private key that works in Termux can fail to parse or silently become the wrong material unless `\n` is normalized.
-- What would make it clearer: one official Node snippet that signs `timestamp + METHOD + /build + path + query + body`, plus one HMAC example and one Ed25519 example on the same page, plus an error body that names the failed component (`path`, `algo`, `key`).
+First authenticated success required correcting both the signed request path and the key algorithm.
 
-## 3. API pitfalls
+The HTTP client can reach `https://web3.binance.com/build/api/v1/...`, but the pre-hash string for signing must include the `/build` prefix. Omitting it produced `40102 Invalid signature`.
 
-- Authentication/signing: `40102 Invalid signature` was the dominant error. Local `crypto.verify` of the Ed25519 signature succeeded while Binance still rejected it, because the registered API key was not that public key / not Ed25519.
-- Timestamp / recvWindow: `40103` did not appear after clocks were UTC ISO-8601 with milliseconds. `X-OC-RECV-WINDOW=60000` was used while debugging; 5000 is enough once signing is correct.
-- Error codes: `40102` is overloaded. It covers missing `/build`, wrong algo, wrong secret, and mismatched public key.
-- RWA search / tokens: `GET /api/v1/dex/market/rwa/tokens?binanceChainId=56` works and is the useful universe call.
-- RWA price fields initially made a few names look wildly mispriced: PPLT showed **+900% raw spread**, NOW **+400%**, and CRWD **+300%**. A later measured 488-row snapshot showed why those readings were misleading: in every row with valid inputs, `tokenPrice` matched `referencePrice × tokenToShareRatio` exactly within the script’s precision. The raw spread was reflecting the token-to-share multiplier, not an independent market price. I no longer treat that raw gap as a trade signal.
-- Trading / simulation: quote and swap adapters are wired; official simulation schema is still gated. Broadcasting from the server is intentionally off.
-- Latency: market list is slower than a single ticker scan. Acceptable for a desk, too slow if every UI tile hits search+price+underlying-market separately.
+Docs recommend Ed25519. An HMAC-registered key signed with Ed25519 (or the reverse) also returned `40102`. Local `crypto.verify` succeeded while the remote rejected the signature, confirming a key/algorithm mismatch. The working path used HMAC with a properly formatted secret. PEM newlines flattened by Vercel environment variables required explicit `\n` normalization.
 
-## 4. Tokenized-stock behavior
+First successful endpoint: `GET /build/api/v1/dex/balance/supported/chain?binanceChainId=56`.  
+`40103` did not appear once timestamps were UTC ISO-8601 with milliseconds. `X-OC-RECV-WINDOW=60000` was used during debugging; 5000 is sufficient once signing is correct.
 
-- Platforms seen live on BSC: **Ondo** (majority) and **bStocks**. xStocks was in the allowlist but did not appear in the 488-asset snapshot we pulled.
-- Tokenized vs reference: the evidence now points to a semantic problem in the feed fields, not proof that the feed itself is broken. The script run against `https://pronous.vercel.app/api/agent?action=assets` on **2026-10-09 21:19:28 UTC** received **488** live assets: **442 Ondo, 46 bStocks, 0 xStocks**. All **488/488** had valid positive token/reference/ratio fields; all **488/488** were in the `≤0.000001%` deviation histogram bucket for `abs(tokenPrice - referencePrice × ratio) / tokenPrice × 100`; median, P90, and maximum deviation were all **0%**, and there were **0** outliers above the configured **0.1%** threshold. The run and row-level output are linked here: https://github.com/wadezigh96/pronous/actions/runs/37992545416.
-- Liquidity / slippage: I measured PancakeSwap quote previews for **NVDA, TSLA, and SPY**, each on Ondo and bStocks where listed, at **10 / 100 / 1,000 USDT**. The snapshot at **2026-10-09 21:19:33 UTC** produced **18 attempts: 17 routes, 1 no-route, 0 quote errors**. Quote latency ranged **231–1,069 ms** (median **313 ms**); price impact ranged **0–30.96%** (median **0%**). This is an indicative one-way buy quote, not a sell quote or round-trip arbitrage calculation. SPY/Ondo at 100 USDT showed **+62.745719% onchainGapPct, 30.96% impact, and 62.278069% worse price than the 10 USDT baseline**. I treat this as a route/liquidity warning, not an opportunity. SPY/Ondo at 1,000 USDT returned `NO_ROUTE`, so its gap is null, never zero. Full raw measurements and same-ticker comparisons are saved in [`docs/quote-measurements.json`](./quote-measurements.json); source log and artifact: [CI run 37992545416](https://github.com/wadezigh96/pronous/actions/runs/37992545416). No quote requested calldata, signed, or broadcast a transaction.
-- The numeric upstream `volume24H` field was present in the quote snapshot, but its unit is not documented; values were around **14.0–19.4 billion** for the sampled assets. Radar sorts by that reported field only when present. I recommend the API add an explicit `volume24HUsd` and `volumeUnit` instead of asking clients to guess what the raw number means.
-- Rate-limit caveat: `guardRequest` allows **60 requests per 60 seconds per IP per warm function instance**, then returns `429` with `Retry-After: 60`. On Vercel, these in-memory counters do not coordinate across serverless instances. This is a useful local guard, not a globally enforceable IP limit; production-wide enforcement needs a shared store or edge rate-limit service.
-- Market hours: token can stay available while the reference session is closed. The desk therefore shows `marketStatus` / `openState` before treating a gap as a plan.
-- Platform differences: Ondo dominated the universe. bStocks appeared as a smaller set. Comparing the same ticker across venues still depends on search results including more than one `platformId`.
+Error code `40102` is overloaded across path, algorithm, and key mismatches.
 
-## 4A. Derived-price audit and what I changed
+## 3. Tokenized-stock price and share-ratio validation
 
-The verifier was run on the production assets endpoint, not on a hand-written fixture. Its exact formula was:
+A 488-asset snapshot taken 2026-10-09T21:19:28Z from the production assets endpoint showed 442 Ondo, 46 bStocks, and 0 xStocks. All 488 rows had valid positive token, reference, and ratio fields. The absolute deviation `|tokenPrice − referencePrice × shareRatio| / tokenPrice × 100` was ≤ 0.000001% for every row (median, P90, and maximum all 0%). There were zero outliers above a 0.1% threshold.
 
-`abs(tokenPrice - referencePrice * shareRatio) / tokenPrice * 100`
+This supports the relation `tokenPrice ≈ referencePrice × shareRatio`. Large raw spreads (for example PPLT +900%, CRWD +300%) were explained by the share multiplier, not independent mispricing. Raw spread is no longer treated as a trade signal.
 
-The saved run summary is **488 analysed, 488 valid, 488 within 0.000001%, 0 outliers above 0.1%**. Examples from the same live snapshot:
+Single-ticker scan initially returned `shareRatio: null` and `dataQuality: "missing_ratio"` for CRWD even though the full token list contained the ratio. The current resolution order is: price response, search result, then full RWA token list matched by contract and platform. The response includes `shareRatioSource` when a ratio is recovered. Missing or invalid ratios remain non-actionable. Ratios are never inferred from raw price spreads.
 
-| Ticker / platform | tokenPrice | referencePrice | tokenToShareRatio | Raw token/reference spread |
-|---|---:|---:|---:|---:|
-| PPLT / Ondo | 1,528.5833 | 152.85833 | 10 | +900% |
-| NOW / Ondo | 3,522.5 | 704.5 | 5 | +400% |
-| CRWD / Ondo | 4,400.8 | 1,100.2 | 4 | +300% |
-| KLAC / Ondo | 19,662.802529607463 | 1,961.1684819027985 | 10.026064925604905 | +902.6065% |
-| SOXS / Ondo | 0.35624080380065615 | 3.50300881068224 | 0.1016956630866353 | −89.8304% |
+Current production scan for NVDA returns `shareRatioSource: "rwa-tokens-list"` and a valid ratio. CRWD returns ratio 4 from the same source. Adjusted spreads on these rows are near zero when the ratio is present.
 
-Those large raw spreads are explained by the share multiplier in these rows. This supports the derived-price hypothesis; it does not prove how Binance internally produced the field. The full 488-row JSON is now checked in at [`docs/derived-price-analysis.json`](./derived-price-analysis.json) and was emitted row-by-row in [CI run 37992545416](https://github.com/wadezigh96/pronous/actions/runs/37992545416). The `measuredAt` field is `2026-10-09T21:19:28.729Z`; the source snapshot returned 488 rows, with all 488 matching `referencePrice × shareRatio` to zero reported deviation.
+## 4. PancakeSwap quote and liquidity observations
 
-I changed the definition of `actionable` so that a valid adjusted gap has to clear a configurable absolute threshold (`PRONOUS_MIN_ACTIONABLE_GAP_PCT`, default **1%**). Missing/invalid ratios stay non-actionable. That is only the feed-quality gate; the Divergence Radar uses a separate quote-derived field, `onchainGapPct`, and a quote route must exist before it can display a numeric gap.
+Quote measurements were collected 2026-10-09T21:19:33Z for NVDA, TSLA, and SPY (Ondo and bStocks) at 10 / 100 / 1,000 USDT using PancakeSwap Unified Swap. 18 attempts produced 17 routes and 1 `NO_ROUTE` (SPY/Ondo at 1,000 USDT). Latency ranged 231–1,069 ms (median 313 ms). Price impact ranged 0–30.96% (median 0%).
 
-Same-ticker feed/volume/route comparison from the quote snapshot at **2026-10-09 21:19:33 UTC**. `adjustedSpreadPct` is the old ratio-adjusted feed gap; it was 0% for these six venue rows. The `volume24H` unit is not documented, so keep these numbers as raw provider values—not USD liquidity.
+These are one-way buy quotes. No calldata was requested, no wallet signed, and no transaction was broadcast. A high-impact quote (SPY/Ondo at 100 USDT: +62.75% gap, 30.96% impact) is treated as a liquidity warning, not an opportunity. Missing routes remain null, never zero.
 
-| Ticker | Venue | Feed adjusted spread | Raw `volume24H` | Routes for 10 / 100 / 1,000 USDT |
-|---|---|---:|---:|---|
-| NVDA | Ondo | 0% | 19,350,265,313.38 | ROUTE / ROUTE / ROUTE |
-| NVDA | bStocks | 0% | 16,983,993,569 | ROUTE / ROUTE / ROUTE |
-| TSLA | Ondo | 0% | 14,849,163,439.69 | ROUTE / ROUTE / ROUTE |
-| TSLA | bStocks | 0% | 14,026,076,005 | ROUTE / ROUTE / ROUTE |
-| SPY | Ondo | 0% | 17,481,297,510.00 | ROUTE / ROUTE / NO_ROUTE |
-| SPY | bStocks | 0% | 16,369,651,079 | ROUTE / ROUTE / ROUTE |
+The upstream `volume24H` field appears in responses but its unit is undocumented. Values in the snapshot were on the order of 14–19 billion. Radar ranks by the reported field when present; it is not asserted to be USD volume.
 
-This is the practical reason not to sort the market radar by `adjustedSpreadPct`: the feed gap is zero across these rows, while independent buy-quote results differ by venue and size. The numeric volume can be used as an upstream rank key, but it is not yet defensible to call it volume in USD without a documented unit.
+Current radar responses expose `onchainGapPct` / `requestedSizeGapPct` (requested-size buy quote including impact), `lowImpactGapPct` (smallest-size quote proxy, not a true midpoint), and `impactAdjustedGapPct` calculated as:
 
-Measured same-ticker on-chain gaps from that quote snapshot (all values are **buy-side quotes** relative to `referencePrice × shareRatio`; impact is returned by PancakeSwap):
+`((quotePrice / (1 + priceImpact)) / (referencePrice × shareRatio) − 1) × 100`
 
-| Ticker | Size | Ondo gap / impact | bStocks gap / impact | Route |
-|---|---:|---:|---:|---|
-| NVDA | 10 USDT | +1.046490% / 0.94% | −0.000435% / 0% | Both |
-| NVDA | 100 USDT | +1.801605% / 1.09% | −0.000435% / 0% | Both |
-| NVDA | 1,000 USDT | +2.877465% / 2.12% | −0.000435% / 0% | Both |
-| TSLA | 10 USDT | +0.512738% / 3.68% | +0.002536% / 0% | Both |
-| TSLA | 100 USDT | +6.177667% / 6.50% | +0.002536% / 0% | Both |
-| TSLA | 1,000 USDT | +10.114651% / 3.25% | +0.007189% / 0% | Both |
-| SPY | 10 USDT | +0.288178% / 0.69% | −0.040212% / 0% | Both |
-| SPY | 100 USDT | +62.745719% / 30.96% | −0.040212% / 0% | Both |
-| SPY | 1,000 USDT | `NO_ROUTE` | −0.036053% / 0% | bStocks only |
+Missing or invalid price-impact values are not silently replaced with zero unless the provider explicitly reports zero. Unavailable reference data cannot produce an actionable signal.
 
-The differences between Ondo and bStocks are materially different, but the high-impact Ondo quotes are not evidence of executable arbitrage. At the adjacent source snapshot, Ondo records for these tickers reported `marketStatus: "postmarket"`; after-hours reference staleness is an additional reason not to promote the observed gap to an action. The radar now treats premarket/postmarket/closed states as stale-reference risk and requires a configured meaningful gap **and** a known price impact no greater than **1%** before marking a quote actionable. The code is intentionally conservative.
+## 5. Implementation decisions and safety constraints
 
-Suggested API contract, instead of overloading one `spreadPct` field:
+Off-hours preflight returns `READY_FOR_SIMULATION` with `warning: "ACK_REQUIRED"` and a `referenceWarning` until the client sends `ackOffHours=true`. Acknowledging the warning does not make the signal actionable. Automated evaluation loops retain conservative off-hours blocking. Signals stay non-actionable until all existing execution gates pass. No server-side broadcast path was added.
 
-- `priceSource`, `referencePriceSource`, `referenceAgeMs`, `qualityFlag`
-- `onchainPrice`, `onchainPriceSource`, `onchainGapPct`
-- `routeStatus` (`ROUTE`, `NO ROUTE`, `QUOTE ERROR`), `quoteSizeUSDT`, `quotedAt`, `validForMs`
-- `priceImpactPct`, `slippageVs10USDTPct`, `marketSessionStatus`, `actionable`
+`isMarketClosed` treats statuses matching closed, off-hours, pre/post-market, after-hours, overnight, or extended-hours (and equivalent openState values) as closed for warning purposes.
 
-A missing route must remain null and be labelled `NO ROUTE`; a missing price must never silently become zero. If the underlying market is closed, the same gap may mean either a real opportunity or a stale reference and should not automatically pass the actionability gate.
+Actionable flags require a valid ratio, acceptable data quality, a configured gap threshold, bounded price impact, and an open market session. Quote radar uses the low-impact gap for actionability decisions.
 
-## 4B. CRWD single-ticker scan regression
+`@bnbagent/sdk` is used only by the ERC-8004 registration script and is declared under `devDependencies`.
 
-I ran the exact production request `GET /api/agent?action=scan&ticker=CRWD` through a live CI probe at [run 37994303713](https://github.com/wadezigh96/pronous/actions/runs/37994303713). The endpoint returned HTTP **200** with the normal scan keys (`agent`, `action`, `asset`, `market`, `signal`, `risk`, `plan`, `execution`); it did **not** return a radar-shaped payload (`monitor`, `assets`, or `summary` were absent). So the suspected response-shape bug was not reproduced.
+## 6. Remaining API or developer-experience issues
 
-The real issue was the content of that scan: CRWD/Ondo came back with `tokenPrice=1097.07`, `referencePrice=274.2675`, raw spread **+300%**, but `shareRatio=null`, `adjustedSpreadPct=null`, `dataQuality=missing_ratio`, and `actionable=false`. The full assets endpoint had already reported CRWD's token-to-share ratio as **4** in the measured snapshot. The single-ticker path uses the search and price endpoints, and those responses did not carry a usable ratio in this request. That is an endpoint consistency problem: the list path knew the ratio, while the scan path discarded it.
+- `40102` remains a single error for multiple distinct failure modes (path, algorithm, key).
+- `volume24H` unit is still undocumented.
+- Agentic Wallet, Wallet Skills, and Agent Studio runtime identity/x402 are documented targets; no live hosted runtime or ERC-8004 registration is claimed from this repository alone.
+- Simulation schema matching the swap builder is not independently verified.
+- Rate limiting is per warm function instance; production-wide enforcement would require shared state.
 
-The fix now resolves a valid positive ratio in this order: price response, search result, then the cached full RWA token list matched by contract address and platform. It records `shareRatioSource` so we can see where the ratio came from. If no valid ratio exists in any source, the scan continues to return `missing_ratio` and remains non-actionable; it does not guess a ratio from the raw spread. Since the feed snapshot links token price to reference price through the ratio, a resolved CRWD ratio of 4 should result in an adjusted gap near **0%**, not +300%. I will only claim the production fix after the post-deploy scan probe confirms the actual response.
+## 7. Supporting evidence and reproducibility
 
-## 5. AI stack
+Historical snapshots:
 
-- Agentic Wallet: `agent/AGENTIC_WALLET.md` documents a gated flow—preflight, quote/build, chain simulation, explicit confirmation, transaction-binding hash verification, and final simulation before the user's wallet could sign. This is a documented/code-level flow, not proof of a live hosted Agentic Wallet runtime. Server-side broadcast remains off.
-- Wallet Skills: targeted for the $2,000 special. Skills are not a substitute for a funded user wallet.
-- BNB Agent Studio: deploy prompt is in `agent/AGENT_STUDIO_DEPLOY.md`. A GitHub repo cannot mint the hosted ERC-8004 identity or x402 runtime; that step is still manual in Studio.
-- Model / IDE: Grok + Vercel + GitHub. Termux/OpenSSL used to generate Ed25519 keys that we later abandoned for HMAC after the key-type mismatch.
-- What worked: MCP (`npx -y github:wadezigh96/pronous`), live RWA after HMAC auth, deterministic preflight.
-- What failed: Ed25519 production auth against an HMAC (or differently registered) API key; Vercel redeploys that reused an older git SHA while `main` already had the `/build` signing fix.
+- 488-asset derived-price analysis: `docs/derived-price-analysis.json` (measuredAt 2026-10-09T21:19:28.729Z), CI run https://github.com/wadezigh96/pronous/actions/runs/37992545416
+- Quote measurements: `docs/quote-measurements.json` (2026-10-09T21:19:33Z), same CI run
+- CRWD scan regression probe: CI run https://github.com/wadezigh96/pronous/actions/runs/37994303713
 
-## 6. Redesign suggestions
+Current production (2026-10-10):
 
-1. Put the `/build` prefix in every official signing example, including copy-paste Node and curl.
-2. Return `40102_PATH` / `40102_ALGO` / `40102_KEY` instead of one signature error.
-3. Ship a `POST /build/api/v1/dex/auth/self-test` that echoes algorithm detected and whether the public key matches.
-4. Document Vercel/serverless PEM storage (`replace \\n`, keep BEGIN/END).
-5. Mark RWA rows with a quality flag when `|token/reference - 1|` exceeds a published bound.
-6. One page that says: pick HMAC *or* Ed25519 at key creation, then use that exact algo in `X-OC-SIGN`.
+- NVDA scan resolves share ratio from RWA token list; marketStatus may be `offhours`.
+- CRWD scan resolves ratio 4; preflight without acknowledgement returns `warning: "ACK_REQUIRED"` and `referenceWarning` while status remains `READY_FOR_SIMULATION`.
+- Radar responses contain `impactAdjustedGapPct` and `lowImpactGapPct`; `midGapPct` is absent. `broadcast: false`.
 
-## 7. Requested capabilities
+Audit workflow (with timeouts, npm cache, and install retries) completed successfully on the merged PR: https://github.com/wadezigh96/pronous/actions/runs/37999867180.
 
-- Official transaction simulation schema that matches the swap builder output.
-- Cross-venue payload: same underlying ticker with Ondo / bStocks / xStocks quotes in one call.
-- Server-side quality score for token vs reference.
-- Agent Studio hook that accepts a public GitHub repo and returns the ERC-8004 agent id without a second dashboard paste.
+No production probe artifact is claimed beyond the live endpoint responses inspected above. Server-side broadcast remains disabled.
