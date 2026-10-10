@@ -25,12 +25,17 @@ test("quote rejects amount over cap, wrong chain, bad token, and non-decimal inp
   assert.throws(() => buildAgenticWalletQuoteArgs({amount:"1",maxSpend:"2",tokenAddress:TOKEN,chainId:97}), /BSC_MAINNET_ONLY/);
   assert.throws(() => buildAgenticWalletQuoteArgs({amount:"1",maxSpend:"2",tokenAddress:"invalid"}), /INVALID_TOKEN_ADDRESS/);
   assert.throws(() => buildAgenticWalletQuoteArgs({amount:"1e3",maxSpend:"2000",tokenAddress:TOKEN}), /INVALID_AMOUNT_OR_MAX_SPEND/);
+  assert.throws(() => buildAgenticWalletQuoteArgs({amount:"0.100000000000000001",maxSpend:"0.1",tokenAddress:TOKEN}), /SPEND_CAP_EXCEEDED/);
 });
 
 test("baw wrapper rejects commands outside the read-only allowlist", async () => {
   await assert.rejects(runBawJson(["market-order","swap","--json"], {
     exec: async () => ({stdout:"{}"})
   }), /BAW_COMMAND_NOT_ALLOWLISTED/);
+  await assert.rejects(runBawJson([
+    "market-order","quote","--fromTokenQty","1","--fromToken",BSC_USDT,
+    "--toToken",TOKEN,"--binanceChainId","56","--json","--private-key","not-allowed"
+  ], { exec: async () => ({stdout:"{}"}) }), /BAW_COMMAND_NOT_ALLOWLISTED/);
 });
 
 test("baw wrapper parses JSON and does not accept a prose response", async () => {
@@ -95,5 +100,16 @@ test("quote workflow blocks closed market and requires all live guards before ba
     },
     run: async () => { bawCalls++; return {}; }
   }), /MARKET_HOURS_NOT_CONFIRMED/);
+  await assert.rejects(quoteWithAgenticWallet({
+    ticker:"NVDA",amount:"1",maxSpend:"2",
+    fetchImpl: async (input) => {
+      const url=new URL(String(input));
+      if (url.searchParams.get("action")==="scan") {
+        return Response.json({...liveBody,asset:{...liveBody.asset,tokenPrice:"not-a-number"}});
+      }
+      return Response.json({preflight:{status:"READY_FOR_SIMULATION"}});
+    },
+    run: async () => { bawCalls++; return {}; }
+  }), /INVALID_OR_MISSING_PRICE_RATIO/);
   assert.equal(bawCalls,1);
 });
