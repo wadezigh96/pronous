@@ -178,12 +178,19 @@
         if (!(opts && opts.silent) && typeof renderClock === "function") renderClock(marketAssets[0]);
         if (window.drawGapChart) drawGapChart();
       } catch (e) {
+        // Clear previously loaded assets so a failed refresh cannot leave stale prices looking current.
+        window.__pronousSelectedAsset = null;
+        window.__pronousChartBar = null;
+        if (typeof window.PRONOUS_SET_MARKET_ASSETS === "function") window.PRONOUS_SET_MARKET_ASSETS([]);
+        else window.marketAssets = [];
         if (box) box.textContent = "Market data unavailable: " + (e.message || "unknown error") + ". No static/demo prices are substituted.";
         setSystemFeedStatus("RWA FEED UNAVAILABLE", "Live market feed could not be verified · no demo prices substituted", false);
         const mode = document.getElementById("marketMode");
         if (mode) { mode.textContent = "UNAVAILABLE"; mode.className = "tag demo"; }
         const kpiMode = document.getElementById("kpiMode");
         if (kpiMode) kpiMode.textContent = "OFFLINE";
+        const kpiAssets = document.getElementById("kpiAssets");
+        if (kpiAssets) kpiAssets.textContent = "0";
         const pulse = document.getElementById("radarPulse");
         if (pulse) pulse.textContent = "API UNAVAILABLE";
         window.__pronousRadarAssets = [];
