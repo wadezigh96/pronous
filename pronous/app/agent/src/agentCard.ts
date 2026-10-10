@@ -24,22 +24,24 @@ import { loadStudioToml } from "@bnbagent/studio-runtime/config";
 
 const NEGOTIATE: AgentSkill = {
   id: "negotiate",
-  name: "Negotiate an ERC-8183 job",
+  name: "Commission a tokenized-stock market research report",
   description:
+    'Commission a PRONOUS research report for a ticker such as NVDA, AAPL, MSFT, or TSLA. ' +
     'Send a data part {"skill": "negotiate", "task_description": "...", ' +
-    '"terms": {"deliverables": "...", "quality_standards": "..."}} (both ' +
-    "terms keys are REQUIRED) and receive a " +
-    "wallet-signed price quote (price, currency, negotiation_hash, provider_sig). " +
-    "Anchor the returned envelope on-chain via createJob + fund, then send the " +
-    "`notify_funded` skill with the job_id to request delivery.",
-  tags: ["erc8183", "negotiation", "bnb-chain"],
+    '"terms": {"deliverables": "...", "quality_standards": "..."}} (both terms keys are REQUIRED). ' +
+    "The report uses verified PRONOUS RWA facts when available: supported platform, token address, " +
+    "token/reference prices, share ratio, adjusted spread, market status, source timestamp, and risk caveats. " +
+    "The response is research only and is never an order or investment guarantee. " +
+    "Receive a wallet-signed ERC-8183 price quote, anchor its envelope on-chain via createJob + fund, " +
+    "then send `notify_funded` with job_id to request delivery.",
+  tags: ["tokenized-stocks", "market-research", "rwa", "erc8183", "bnb-chain"],
   inputModes: ["application/json"],
   outputModes: ["application/json"],
 };
 
 const NOTIFY_FUNDED: AgentSkill = {
   id: "notify_funded",
-  name: "Notify the seller a job is funded (request delivery)",
+  name: "Deliver a funded tokenized-stock research report",
   description:
     'After you fund the job on-chain, send {"skill": "notify_funded", ' +
     '"job_id": <int>} to tell the seller "I funded job X — please deliver". ' +
@@ -107,7 +109,7 @@ export function buildAgentCard(
   }
   return {
     name,
-    description: `ERC-8183 seller agent (${name}) — negotiate + notify_funded over A2A.`,
+    description: `PRONOUS (${name}) is a BSC tokenized-stock market research agent for Ondo, bStocks and xStocks. It uses live PRONOUS scan evidence for ticker research, preserves off-hours and stale-reference warnings, and returns source-grounded reports via ERC-8183 negotiate + notify_funded. Reports are informational, not orders or guarantees.`,
     // main.ts overwrites this with $AGENTCORE_RUNTIME_URL at boot.
     // Local-dev fallback: a client-routable localhost URL (not the 0.0.0.0
     // bind address). Host via AGENT_HOST (default localhost); port via the
