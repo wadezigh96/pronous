@@ -58,6 +58,14 @@ window.PRONOUS_SET_MARKET_ASSETS=function(rows){
   renderRadar();
   if(typeof window.drawGapChart==='function')window.drawGapChart();
 };
+window.PRONOUS_RENDER_MARKET_ROWS=function(rows){
+  const original=marketAssets;
+  const originalWindow=window.marketAssets;
+  marketAssets=Array.isArray(rows)?rows:[];
+  window.marketAssets=marketAssets;
+  try { renderMarket(); }
+  finally { marketAssets=original; window.marketAssets=originalWindow; }
+};
 function shortAddress(a){a=String(a||'');return a&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):a||'Not connected'}
 function setWalletUI(address,source,chainId){const next=address||null;const changed=String(walletAddress||'').toLowerCase()!==String(next||'').toLowerCase()||String(walletSource||'')!==String(source||'')||Number(walletChainId||0)!==Number(chainId||0);walletAddress=next;walletSource=source||null;walletChainId=chainId||null;if(changed)resetExecutionState(next?'wallet changed':'wallet disconnected');const label=document.getElementById('walletStatus'),addr=document.getElementById('walletAddress'),addrTop=document.getElementById('walletAddressTop'),src=document.getElementById('walletSource'),btn=document.getElementById('connectWalletBtn'),kpi=document.getElementById('kpiExec');if(label)label.textContent=next?(Number(chainId)===56?(source==='privy'?'PRIVY WALLET · BSC':'BROWSER WALLET · BSC'):'WALLET CONNECTED · WRONG CHAIN'):'WALLET NOT CONNECTED';if(addr)addr.textContent=next?shortAddress(next):'Not connected';if(addrTop)addrTop.textContent=next?shortAddress(next):'Not connected';if(src)src.textContent=next?(source==='privy'?'PRIVY':'BROWSER WALLET'):'NO WALLET';if(btn){btn.disabled=false;btn.textContent=next?(Number(chainId)===56?'Disconnect':'Switch to BSC'):'Connect Wallet'}if(kpi)kpi.textContent=next?(Number(chainId)===56?'ARMED':'WRONG CHAIN'):'LOCKED'}
 window.addEventListener('pronous:privy-wallet-connected',e=>{const d=e.detail||{};const same=String(walletAddress||'').toLowerCase()===String(d.address||'').toLowerCase()&&String(walletSource||'')===String(d.source||'')&&Number(walletChainId||0)===Number(d.chainId||0);if(!same)resetExecutionState(d.source==='privy'?'Privy wallet connected':'Browser wallet connected');setWalletUI(d.address||null,d.source||'privy',d.chainId||null)});
