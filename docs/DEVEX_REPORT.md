@@ -1,102 +1,112 @@
-# Developer Experience Report — PRONOUS
+# PRONOUS — Developer Experience Report
 
-Hackathon: BNB Hack: Tokenized Stocks Edition  
-Project: https://github.com/wadezigh96/pronous  
-Live: https://pronous.vercel.app  
+**Event:** BNB Hack: Tokenized Stocks Edition  
+**Repository:** https://github.com/wadezigh96/pronous  
+**Production:** https://pronous.vercel.app/
 
-## 1. Project and integration scope
+## Scope
 
-PRONOUS is a BSC mainnet desk for tokenized equities (Ondo, bStocks, xStocks). It consumes Binance Web3 RWA market data, computes ratio-adjusted spreads, and surfaces quote-based divergence via PancakeSwap. Execution paths remain gated: preflight, simulation, and explicit confirmation. No server-side transaction broadcast is implemented.
+PRONOUS is a BNB Smart Chain dashboard for tokenized equities, covering Ondo and bStocks data, with xStocks included in the intended coverage. The app reads Binance Web3 RWA data, adjusts token prices for share ratios, and compares reference prices with PancakeSwap buy quotes.
 
-The integration targets live RWA token lists, single-ticker scans, quote previews, and an off-hours acknowledgement flow that warns without blocking simulation readiness. All measurements below are historical snapshots unless noted as current production behavior.
+The execution boundary is deliberate: the current PRONOUS API/MCP path provides data and quote/preflight results. It does not broadcast transactions from the server. A direct wallet CLI test is documented in §8 and should not be interpreted as PRONOUS-managed execution.
 
-## 2. Binance authentication and API integration
+## Binance Web3 API authentication
 
-First authenticated success required correcting both the signed request path and the key algorithm.
+The first authenticated request succeeded after correcting the signed request path and using the algorithm associated with the API key.
 
-The HTTP client can reach `https://web3.binance.com/build/api/v1/...`, but the pre-hash string for signing must include the `/build` prefix. Omitting it produced `40102 Invalid signature`.
+- Requests use `https://web3.binance.com/build/api/v1/...`; the `/build` prefix must be included in the pre-hash signing string.
+- Omitting that prefix returned `40102 Invalid signature`.
+- Attempts to sign with an algorithm that did not match the registered key also returned `40102`. A successful local `crypto.verify` check did not establish that the remote service would accept the request.
+- The working configuration used HMAC with the matching secret. PEM values stored in Vercel environment variables required newline normalization using explicit `\\n` replacement.
+- The first successful request was `GET /build/api/v1/dex/balance/supported/chain?binanceChainId=56`.
+- Using UTC ISO-8601 timestamps with milliseconds resolved the observed `40103` timestamp error. `X-OC-RECV-WINDOW=60000` was used during debugging; 5000 was sufficient after signing was corrected.
 
-Docs recommend Ed25519. An HMAC-registered key signed with Ed25519 (or the reverse) also returned `40102`. Local `crypto.verify` succeeded while the remote rejected the signature, confirming a key/algorithm mismatch. The working path used HMAC with a properly formatted secret. PEM newlines flattened by Vercel environment variables required explicit `\n` normalization.
+In practice, `40102` did not identify a single cause: the path, key, and signing algorithm all needed to be checked.
 
-First successful endpoint: `GET /build/api/v1/dex/balance/supported/chain?binanceChainId=56`.  
-`40103` did not appear once timestamps were UTC ISO-8601 with milliseconds. `X-OC-RECV-WINDOW=60000` was used during debugging; 5000 is sufficient once signing is correct.
+## RWA prices and share ratios
 
-Error code `40102` is overloaded across path, algorithm, and key mismatches.
+A production asset snapshot taken at **2026-10-09T21:19:28.729Z** contained 488 rows: 442 Ondo, 46 bStocks, and no xStocks. All rows had positive token, reference, and ratio values.
 
-## 3. Tokenized-stock price and share-ratio validation
+For each row, the following deviation was calculated:
 
-A 488-asset snapshot taken 2026-10-09T21:19:28Z from the production assets endpoint showed 442 Ondo, 46 bStocks, and 0 xStocks. All 488 rows had valid positive token, reference, and ratio fields. The absolute deviation `|tokenPrice − referencePrice × shareRatio| / tokenPrice × 100` was ≤ 0.000001% for every row (median, P90, and maximum all 0%). There were zero outliers above a 0.1% threshold.
+`|tokenPrice − referencePrice × shareRatio| / tokenPrice × 100`
 
-This supports the relation `tokenPrice ≈ referencePrice × shareRatio`. Large raw spreads (for example PPLT +900%, CRWD +300%) were explained by the share multiplier, not independent mispricing. Raw spread is no longer treated as a trade signal.
+The median, P90, and maximum deviation were all 0% at the reported precision; the maximum observed deviation was no more than 0.000001%, with no rows above the 0.1% outlier threshold. This confirms that raw token/reference price differences can be explained by the share multiplier in this snapshot. For example, the large raw spreads observed for PPLT and CRWD were not, by themselves, evidence of mispricing. Raw spread is not used as a trade signal.
 
-Single-ticker scan initially returned `shareRatio: null` and `dataQuality: "missing_ratio"` for CRWD even though the full token list contained the ratio. The current resolution order is: price response, search result, then full RWA token list matched by contract and platform. The response includes `shareRatioSource` when a ratio is recovered. Missing or invalid ratios remain non-actionable. Ratios are never inferred from raw price spreads.
+A single-ticker CRWD scan initially returned `shareRatio: null` and `dataQuality: "missing_ratio"`, even though the full RWA list contained the ratio. The lookup order now checks the price response, search result, then the full RWA token list by contract and platform. Responses include `shareRatioSource` when a ratio is recovered. Missing or invalid ratios remain non-actionable; the ratio is not inferred from the price spread.
 
-Current production scan for NVDA returns `shareRatioSource: "rwa-tokens-list"` and a valid ratio. CRWD returns ratio 4 from the same source. Adjusted spreads on these rows are near zero when the ratio is present.
+Production probes on 2026-10-10 returned a ratio for NVDA from `rwa-tokens-list` and a ratio of 4 for CRWD from the same source. Adjusted spreads were near zero when the ratio was available. The NVDA observation was off-hours and should not be treated as a current trading signal.
 
-## 4. PancakeSwap quote and liquidity observations
+## PancakeSwap quote checks
 
-Quote measurements were collected 2026-10-09T21:19:33Z for NVDA, TSLA, and SPY (Ondo and bStocks) at 10 / 100 / 1,000 USDT using PancakeSwap Unified Swap. 18 attempts produced 17 routes and 1 `NO_ROUTE` (SPY/Ondo at 1,000 USDT). Latency ranged 231–1,069 ms (median 313 ms). Price impact ranged 0–30.96% (median 0%).
+Quote observations were collected at **2026-10-09T21:19:33Z** for NVDA, TSLA, and SPY, across Ondo and bStocks, at requested sizes of 10, 100, and 1,000 USDT using PancakeSwap Unified Swap.
 
-These are one-way buy quotes. No calldata was requested, no wallet signed, and no transaction was broadcast. A high-impact quote (SPY/Ondo at 100 USDT: +62.75% gap, 30.96% impact) is treated as a liquidity warning, not an opportunity. Missing routes remain null, never zero.
+| Measurement | Result |
+|---|---:|
+| Quote attempts | 18 |
+| Routes returned | 17 |
+| `NO_ROUTE` responses | 1 |
+| Latency | 231–1,069 ms; median 313 ms |
+| Price impact | 0–30.96%; median 0% |
 
-The upstream `volume24H` field appears in responses but its unit is undocumented. Values in the snapshot were on the order of 14–19 billion. Radar ranks by the reported field when present; it is not asserted to be USD volume.
+The missing route was SPY/Ondo at 1,000 USDT. These were one-way buy quotes. No calldata was requested, no wallet signed a transaction, and no transaction was broadcast. The SPY/Ondo quote at 100 USDT showed a 62.75% gap and 30.96% impact; it was treated as a liquidity warning, not an opportunity. A missing route remains null rather than being converted to zero.
 
-Current radar responses expose `onchainGapPct` / `requestedSizeGapPct` (requested-size buy quote including impact), `lowImpactGapPct` (smallest-size quote proxy, not a true midpoint), and `impactAdjustedGapPct` calculated as:
+The upstream `volume24H` field is present, but its unit is undocumented. Snapshot values were on the order of 14–19 billion. Radar can rank by the reported field when present, but the report does not label it USD volume.
 
-`((quotePrice / (1 + priceImpact)) / (referencePrice × shareRatio) − 1) × 100`
+Current radar responses expose:
+- `onchainGapPct` and `requestedSizeGapPct`: requested-size buy-quote gap, including price impact.
+- `lowImpactGapPct`: a smallest-size quote proxy, not a true midpoint.
+- `impactAdjustedGapPct`: calculated as `((quotePrice / (1 + priceImpact)) / (referencePrice × shareRatio) − 1) × 100`.
 
-Missing or invalid price-impact values are not silently replaced with zero unless the provider explicitly reports zero. Unavailable reference data cannot produce an actionable signal.
+Invalid or missing price-impact values are not silently treated as zero unless the provider explicitly reports zero. If reference data is unavailable, the result cannot be actionable.
 
-## 5. Implementation decisions and safety constraints
+## Execution and market-state handling
 
-Off-hours preflight returns `READY_FOR_SIMULATION` with `warning: "ACK_REQUIRED"` and a `referenceWarning` until the client sends `ackOffHours=true`. Acknowledging the warning does not make the signal actionable. Automated evaluation loops retain conservative off-hours blocking. Signals stay non-actionable until all existing execution gates pass. No server-side broadcast path was added.
+Off-hours preflight returns `READY_FOR_SIMULATION` with `warning: "ACK_REQUIRED"` and a `referenceWarning` until the client sends `ackOffHours=true`. Acknowledging the warning does not make the signal actionable. Automated evaluation loops continue to block off-hours execution. A signal must also pass the existing data-quality, ratio, configured gap, price-impact, and market-session checks.
 
-`isMarketClosed` treats statuses matching closed, off-hours, pre/post-market, after-hours, overnight, or extended-hours (and equivalent openState values) as closed for warning purposes.
+For warning purposes, `isMarketClosed` recognizes statuses containing closed, off-hours, pre/post-market, after-hours, overnight, or extended-hours, as well as equivalent `openState` values.
 
-Actionable flags require a valid ratio, acceptable data quality, a configured gap threshold, bounded price impact, and an open market session. Quote radar uses the low-impact gap for actionability decisions.
+The `@bnbagent/sdk` dependency is used by the ERC-8004 registration script only and is declared under `devDependencies`.
 
-`@bnbagent/sdk` is used only by the ERC-8004 registration script and is declared under `devDependencies`.
+## Integration status and open issues
 
-## 6. Remaining API or developer-experience issues
+- **Agentic Wallet:** local MCP tools `agentic_wallet_status` and `agentic_wallet_quote` use the official `baw` CLI for wallet reads and quote previews. The adapter validates live PRONOUS data, max-spend, and market state, and returns `broadcast: false`. A direct operator-device CLI swap was completed; see §8. This does not verify order execution through PRONOUS API/MCP.
+- **BNB Agent Studio:** the seller attaches a verified PRONOUS scan snapshot to ticker-research tasks and exposes the research task/skill in its A2A card. The workspace compiles and its policy tests run in a dedicated workflow. The `studio.toml`, operator-owned wallet and LLM configuration, hosted provider deployment, endpoint, and ERC-8004 runtime identity have not been verified.
+- Simulation schema compatibility with the swap builder has not been independently verified.
+- Rate limiting is enforced per warm function instance. Production-wide enforcement would require shared state.
+- The `volume24H` unit remains undocumented.
+- The API reports `40102` for several distinct signing/configuration failures.
 
-- `40102` remains a single error for multiple distinct failure modes (path, algorithm, key).
-- `volume24H` unit is still undocumented.
-- The three-category work branch adds local MCP tools `agentic_wallet_status` and `agentic_wallet_quote`. The adapter uses the official `baw` CLI only for wallet reads and quote previews, validates live PRONOUS data, max-spend and market state, and always returns `broadcast: false`. Direct operator-device wallet status, balance, quote, and one BNB→USDT CLI order are now verified (see §8). This is not execution through the PRONOUS MCP/API and is not a tokenized-stock trade; the PRONOUS adapter remains quote-only.
-- The nested BNB Agent Studio seller now attaches a verified PRONOUS scan snapshot to ticker research tasks and makes the research task/skill discoverable in its A2A card. The workspace compiles and its policy tests run in a dedicated workflow; the `studio.toml`, operator-owned wallet/LLM configuration, hosted provider deployment, endpoint and ERC-8004 runtime identity are still not verified.
-- Simulation schema matching the swap builder is not independently verified.
-- Rate limiting is per warm function instance; production-wide enforcement would require shared state.
+## Evidence
 
-## 7. Supporting evidence and reproducibility
+Historical artifacts:
+- Asset and ratio analysis: [`docs/derived-price-analysis.json`](./derived-price-analysis.json), measured at `2026-10-09T21:19:28.729Z`; [CI run](https://github.com/wadezigh96/pronous/actions/runs/37992545416).
+- Quote measurements: [`docs/quote-measurements.json`](./quote-measurements.json), measured at `2026-10-09T21:19:33Z`; same CI run.
+- CRWD scan regression probe: [CI run](https://github.com/wadezigh96/pronous/actions/runs/37994303713).
+- Audit workflow on the merged PR: [CI run](https://github.com/wadezigh96/pronous/actions/runs/37999867180).
 
-Historical snapshots:
+Production observations checked on 2026-10-10:
+- NVDA scan resolved its ratio from the RWA token list; market status could be `offhours`.
+- CRWD scan resolved ratio 4. Without acknowledgement, preflight returned `warning: "ACK_REQUIRED"` and `referenceWarning`, while status remained `READY_FOR_SIMULATION`.
+- Radar responses contained `impactAdjustedGapPct` and `lowImpactGapPct`; `midGapPct` was absent. The adapter response included `broadcast: false`.
 
-- 488-asset derived-price analysis: `docs/derived-price-analysis.json` (measuredAt 2026-10-09T21:19:28.729Z), CI run https://github.com/wadezigh96/pronous/actions/runs/37992545416
-- Quote measurements: `docs/quote-measurements.json` (2026-10-09T21:19:33Z), same CI run
-- CRWD scan regression probe: CI run https://github.com/wadezigh96/pronous/actions/runs/37994303713
+These production observations are endpoint checks, not a claim that every production path has been tested. Server-side transaction broadcast remains disabled.
 
-Current production (2026-10-10):
+## Direct wallet CLI smoke test — 2026-10-10
 
-- NVDA scan resolves share ratio from RWA token list; marketStatus may be `offhours`.
-- CRWD scan resolves ratio 4; preflight without acknowledgement returns `warning: "ACK_REQUIRED"` and `referenceWarning` while status remains `READY_FOR_SIMULATION`.
-- Radar responses contain `impactAdjustedGapPct` and `lowImpactGapPct`; `midGapPct` is absent. `broadcast: false`.
+A user-approved `baw market-order swap` was submitted directly from the operator device on BNB Smart Chain mainnet (chain ID 56). The order history reported `FINISHED`; the operator also reported a successful BscScan receipt and a matching post-trade wallet balance.
 
-Audit workflow (with timeouts, npm cache, and install retries) completed successfully on the merged PR: https://github.com/wadezigh96/pronous/actions/runs/37999867180.
+| Field | Recorded value |
+|---|---|
+| Order ID | `26101000001954786511` |
+| Transaction | [`0x72fff2b91f185314f633550ca3727b28a52275dc78afd3e287cd178c0e88a0c7`](https://bscscan.com/tx/0x72fff2b91f185314f633550ca3727b28a52275dc78afd3e287cd178c0e88a0c7) |
+| Input | 0.0005 BNB |
+| Quoted output | 0.374419082392055826 USDT |
+| Output in order history | 0.374478155412700851 USDT |
+| Slippage tolerance | 0.5% |
+| MEV protection | Enabled |
+| Gas setting | MEDIUM |
 
-No production probe artifact is claimed beyond the live endpoint responses inspected above. Server-side broadcast remains disabled.
+The subsequent wallet query returned 0.374478155412700851 USDT and 0.001135983657424455 BNB. The recorded BNB balance before the swap was 0.001696207822463896 BNB. The balance delta includes the input and transaction costs; the exact gas fee was not recorded here and should be read from the explorer transaction details before quoting a fee.
 
-## 8. Live Agentic Wallet CLI smoke test (2026-10-10)
-
-A user-approved, direct operator-device `baw market-order swap` was executed on BNB Smart Chain mainnet (chainId 56) to verify that the wallet CLI can submit and complete a real market order. This is a wallet/CLI smoke test only; it did **not** route through the PRONOUS API/MCP adapter and did **not** trade a tokenized stock.
-
-- **Order ID:** `26101000001954786511`
-- **Order status:** `FINISHED` (from `baw market-order list --orderId 26101000001954786511 --binanceChainId 56 --json`)
-- **Transaction hash:** [`0x72fff2b91f185314f633550ca3727b28a52275dc78afd3e287cd178c0e88a0c7`](https://bscscan.com/tx/0x72fff2b91f185314f633550ca3727b28a52275dc78afd3e287cd178c0e88a0c7)
-- **Input:** 0.0005 BNB
-- **Quote output before execution:** 0.374419082392055826 USDT
-- **Actual output reported by order history:** 0.374478155412700851 USDT
-- **Slippage tolerance configured:** 0.5%; **MEV protection:** enabled; **gas level:** MEDIUM
-- **Operator-reported on-chain check:** BscScan showed Success. The subsequent wallet balance query returned 0.374478155412700851 USDT and 0.001135983657424455 BNB.
-- **Prior BNB balance:** 0.001696207822463896 BNB. The later balance delta includes both the 0.0005 BNB input and transaction costs; the exact gas fee is not recorded in this report and must be read from the explorer transaction details before making a fee claim.
-- **Execution boundary:** this proves a manually approved wallet CLI swap on BSC. It does not prove that PRONOUS's server broadcasts transactions, that the local MCP adapter executes orders, or that any RWA/tokenized-stock trade is actionable. The current NVDAon production scan was off-hours/stale-reference and non-actionable, so no RWA swap was attempted.
-
-This evidence updates the earlier wallet CLI status from “no order claimed” to one explicitly scoped live CLI smoke test. It does not change the separate status of the hosted Agent Studio runtime, which remains unverified.
+This verifies one manually approved wallet CLI swap on BSC. It does not verify execution through the PRONOUS API or MCP adapter and was not a tokenized-stock trade. The NVDA production scan was off-hours with a stale reference, so no RWA swap was attempted. The hosted Agent Studio runtime remains unverified.
