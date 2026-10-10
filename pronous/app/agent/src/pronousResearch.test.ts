@@ -8,7 +8,8 @@ import {
 
 test("extractTicker finds stock tickers and ignores common chain acronyms", () => {
   assert.equal(extractTicker("Please scan ticker: NVDA"), "NVDA");
-  assert.equal(extractTicker("Compare AAPL against MSFT"), "AAPL");
+  assert.equal(extractTicker("I need you to scan NVDA"), "NVDA");
+  assert.equal(extractTicker("COMPARE AAPL AGAINST MSFT"), "AAPL");
   assert.equal(extractTicker("Explain BSC and USDT market hours"), null);
 });
 
