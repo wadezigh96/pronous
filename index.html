@@ -81,10 +81,10 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="scan-row"><input id="ticker" value="NVDA" placeholder="Search asset or strategy…"><button type="button" onclick="scan()">Scan</button></div>
 <div class="scan-results" id="scan">Ready.</div>
 <div class="opp-list">
-<div class="opp-item"><div><b>Top Gainers</b><span>AI scan · 5m</span></div></div>
-<div class="opp-item"><div><b>RWA Opportunities</b><span>On-chain · 15m</span></div></div>
-<div class="opp-item"><div><b>Swing Setup</b><span>Technical · 15m</span></div></div>
-<div class="opp-item"><div><b>Portfolio Rebalance</b><span>Risk · 30m</span></div></div>
+<button class="opp-item" type="button" onclick="scan()" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Scan selected ticker</b><span>Live read-only analysis · on demand</span></div></button>
+<button class="opp-item" type="button" onclick="if(window.loadRwaParity)loadRwaParity((document.getElementById('ticker')?.value||'NVDA').trim().toUpperCase())" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Compare RWA platforms</b><span>Fetch live token/reference parity</span></div></button>
+<button class="opp-item" type="button" onclick="if(window.loadMarket)loadMarket({silent:false})" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Refresh live feed</b><span>Reload upstream tokenized assets</span></div></button>
+<button class="opp-item" type="button" onclick="if(window.refreshSelectedOnchain)refreshSelectedOnchain()" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Read selected on-chain data</b><span>Contract, transactions, holders and pools</span></div></button>
 </div>
 <div class="plan-box" id="plan">No plan yet.</div>
 <button class="secondary" type="button" onclick="simulate()">Simulate execution</button>
