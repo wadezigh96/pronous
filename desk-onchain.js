@@ -321,11 +321,25 @@
     const holderRows = holders.map((h, i) => onchainRow(String(i + 1).padStart(2, "0") + " · " + onchainAddress(h.address || h.owner || h.holder || h.wallet), onchainNum(h.balance || h.amount || h.quantity || "—"), h.percentage ?? h.percent ?? h.share ? String(h.percentage ?? h.percent ?? h.share) + "%" : ""));
     const tradeRows = trades.map((t) => onchainRow(String(t.side || t.type || t.action || "TRADE").toUpperCase(), onchainMoney(t.price || t.tokenPrice || "—"), (t.amount || t.qty || t.quantity || "—") + " · " + onchainTime(t.time || t.timestamp || t.txTime)));
     const poolRows = pools.map((p) => onchainRow(p.pair || p.symbol || p.name || p.dexName || "POOL", onchainMoney(p.liquidity || p.liquidityUsd || p.tvl || "—"), p.volume24h || p.volume24H ? "24h " + onchainMoney(p.volume24h || p.volume24H) : ""));
+    const activeTab = window.__pronousOnchainTab || "transactions";
+    let detailPanel = "";
+    if (activeTab === "holders") {
+      detailPanel = '<div class="onchain-columns">' + onchainRows("TOP HOLDERS", holderRows, "Holder ranking unavailable from the current source") + '</div>';
+    } else if (activeTab === "contracts") {
+      detailPanel = '<div class="onchain-columns"><div class="onchain-list"><div class="onchain-list-title">BSC TOKEN CONTRACT</div>' +
+        onchainRow("CHAIN", "BNB Smart Chain Mainnet", "56") +
+        onchainRow("TOKEN", symbol) +
+        onchainRow("CONTRACT", String(asset.tokenContractAddress || "—")) +
+        '<div class="onchain-row"><span>Explorer</span><b><a href="https://bscscan.com/token/' + esc(asset.tokenContractAddress || "") + '" target="_blank" rel="noopener">Open verified address ↗</a></b></div></div>' +
+        onchainRows("AVAILABLE POOLS", poolRows, "Pool/liquidity data unavailable from the current source") + '</div>';
+    } else {
+      detailPanel = '<div class="onchain-columns">' + onchainRows("RECENT TRANSACTIONS", tradeRows, "Recent transaction feed unavailable") + '</div>';
+    }
     box.className = "result onchain-live";
     const modeLabel = payload.mode === "live-data" ? "LIVE ON-CHAIN INTELLIGENCE" : "ON-CHAIN INTELLIGENCE · DEMO";
     box.innerHTML = '<div class="onchain-head"><div><div class="eyebrow">' + esc(modeLabel) + '</div><div class="onchain-title">' + esc(asset.ticker || symbol) + ' <span>' + esc(symbol) + '</span></div><div class="muted small">BSC · ' + esc(short(asset.tokenContractAddress)) + '</div></div><a class="tag onchain-link" href="' + esc(payload.explorer || ("https://bscscan.com/token/" + asset.tokenContractAddress)) + '" target="_blank" rel="noopener">BscScan ↗</a></div>' +
       '<div class="onchain-kpis">' + onchainRow("PRICE", onchainMoney(price)) + onchainRow("HOLDERS", onchainNum(holdersCount)) + onchainRow("LIQUIDITY", onchainMoney(liquidity)) + onchainRow("24H VOLUME", onchainMoney(volume)) + onchainRow("MARKET CAP", onchainMoney(marketCap)) + '</div>' +
-      '<div class="onchain-columns">' + onchainRows("TOP HOLDERS", holderRows, "Holder ranking unavailable") + onchainRows("RECENT TRADES", tradeRows, "Trade feed unavailable") + onchainRows("LIQUIDITY", poolRows, "Liquidity pool data unavailable") + '</div>' +
+      detailPanel +
       '<div class="onchain-foot"><span class="tag ' + (payload.mode === "live-data" ? "live" : "demo") + '">' + esc(String(payload.mode || "unknown").toUpperCase()) + '</span><span class="muted small">Read-only market intelligence · no transaction broadcast</span></div>';
   }
 
@@ -347,6 +361,33 @@
   }
 
   window.loadOnchain = loadOnchain;
+
+  function setOnchainTab(tab) {
+    const allowed = new Set(["transactions", "holders", "contracts"]);
+    window.__pronousOnchainTab = allowed.has(tab) ? tab : "transactions";
+    const buttons = Array.from(document.querySelectorAll(".oc-tab"));
+    const index = ["transactions", "holders", "contracts"].indexOf(window.__pronousOnchainTab);
+    buttons.forEach((button, i) => {
+      button.classList.toggle("active", i === index);
+      button.setAttribute("aria-pressed", String(i === index));
+    });
+    if (window.__pronousOnchainAsset && window.__pronousOnchainPayload) {
+      renderOnchain(window.__pronousOnchainAsset, window.__pronousOnchainPayload);
+    } else {
+      autoLoadOnchain();
+    }
+  }
+  window.setOnchainTab = setOnchainTab;
+
+  function bindOnchainTabs() {
+    document.querySelectorAll(".oc-tab").forEach((button, i) => {
+      if (button.__pronousOnchainBound) return;
+      button.__pronousOnchainBound = true;
+      button.addEventListener("click", () => {
+        setOnchainTab(["transactions", "holders", "contracts"][i] || "transactions");
+      });
+    });
+  }
 
   async function autoLoadOnchain() {
     const asset = pickAsset();
@@ -650,6 +691,8 @@
     ensurePanels();
     enableExecuteIfReady();
     wrapLoad();
+    bindOnchainTabs();
+    setOnchainTab(window.__pronousOnchainTab || "transactions");
     autoLoadOnchain();
     refreshPoaChain();
   }
