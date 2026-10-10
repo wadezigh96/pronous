@@ -373,8 +373,6 @@
     });
     if (window.__pronousOnchainAsset && window.__pronousOnchainPayload) {
       renderOnchain(window.__pronousOnchainAsset, window.__pronousOnchainPayload);
-    } else {
-      autoLoadOnchain();
     }
   }
   window.setOnchainTab = setOnchainTab;
