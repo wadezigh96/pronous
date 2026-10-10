@@ -27,7 +27,9 @@ npx skills add binance/binance-skills-hub/skills/binance-web3/binance-agentic-wa
 
 The nested TypeScript seller now queries PRONOUS's deployed scan API for a ticker task and attaches only validated live RWA facts. The model receives explicit instructions not to invent prices, treat unavailable data as live, or sign/broadcast. The dedicated workflow compiles the workspace and tests the verification/market-data policy.
 
-**Operator proof still required:** the repository has not established a valid Studio deployment configuration, authenticated wallet, LLM/storage configuration, hosted endpoint, or deployed ERC-8004 identity. The official Studio-managed `bnb` provider is a 48-hour testnet trial and requires a throwaway wallet; IPFS storage is required for hosted deliverables. Complete the official `bag doctor`, `bag deploy prepare`, deployment, and `bag deploy verify` steps on the operator machine before claiming this integration as a live hosted service.
+**ERC-8004 identity:** PRONOUS already has a recorded BSC Mainnet identity (`agentId=367667`) with registration transaction and identity-wallet details documented in [ERC8004_IDENTITY.md](./ERC8004_IDENTITY.md). Run `npm run erc8004:verify` to re-check the chain ID, successful registration receipt, owner, and non-empty token URI against BSC RPC. This identity is evidence of registration only; it does not establish a hosted Agent Studio deployment.
+
+**Operator proof still required for Agent Studio:** the repository has not established a valid Studio deployment configuration, authenticated wallet, LLM/storage configuration, or hosted endpoint. The official Studio-managed `bnb` provider is a 48-hour testnet trial and requires a throwaway wallet; IPFS storage is required for hosted deliverables. Complete the official `bag doctor`, `bag deploy prepare`, deployment, and `bag deploy verify` steps on the operator machine before claiming this integration as a live hosted service.
 
 Official quickstart: https://docs.bnbchain.org/developer-kit/bnbchain-studio/quickstart/
 
