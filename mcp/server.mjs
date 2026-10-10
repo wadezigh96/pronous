@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import * as z from "zod/v4";
 import { cmcGlobalContext, cmcCryptoPrice, cmcUnavailable } from "./cmc.mjs";
+import { readAgenticWalletStatus, quoteWithAgenticWallet } from "./agentic-wallet.mjs";
 
 const API = process.env.PRONOUS_API_URL || "https://pronous.vercel.app";
 
