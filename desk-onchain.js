@@ -361,6 +361,17 @@
   }
 
   window.loadOnchain = loadOnchain;
+  window.refreshSelectedOnchain = async function refreshSelectedOnchain() {
+    const ticker = String(document.getElementById("ticker")?.value || "NVDA").trim().toUpperCase();
+    const assets = Array.isArray(window.marketAssets) ? window.marketAssets : [];
+    const asset = assets.find((item) => String(item.ticker || "").toUpperCase() === ticker);
+    if (!asset || !asset.tokenContractAddress || asset.dataQuality !== "ok") {
+      const box = document.getElementById("chain");
+      if (box) box.textContent = "No verified live on-chain asset is selected. Refresh the live RWA feed and choose an asset with a valid contract address.";
+      return;
+    }
+    return loadOnchain(asset);
+  };
 
   function setOnchainTab(tab) {
     const allowed = new Set(["transactions", "holders", "contracts"]);
