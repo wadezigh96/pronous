@@ -18,6 +18,8 @@ function resetExecutionState(reason){
   window.__pronousExecutionResetReason=reason||'input changed';
   const confirmBtn=document.getElementById('confirmActionBtn');
   if(confirmBtn)confirmBtn.disabled=true;
+  const executeBtn=document.getElementById('executeOnchainBtn');
+  if(executeBtn)executeBtn.disabled=true;
   if(/wallet|disconnect/i.test(String(reason||''))){
     const quote=document.getElementById('quoteResult');
     if(quote)quote.textContent='Quote is locked until preflight passes.';
@@ -72,7 +74,7 @@ async function preflight(){
   resetExecutionState('preflight changed');
   const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();
   const box=document.getElementById('preflight');
-  const ackOffHours=true; // always acknowledge to remove UI requirement
+  const ackOffHours=Boolean(document.getElementById('ackOffHours')?.checked);
   const params=new URLSearchParams({action:'preflight',ticker:t,amount:document.getElementById('amount').value,maxSpend:document.getElementById('maxSpend').value,ackOffHours:String(ackOffHours)});
   box.textContent='Running deterministic checks…';
   try{
@@ -85,13 +87,14 @@ async function preflight(){
       throw new Error(j.message||j.error||('Preflight failed (HTTP '+r.status+').'));
     }
     const pf=j.preflight||{};
-    preflightReady=pf.status==='READY_FOR_SIMULATION';
+    preflightReady=pf.status==='READY_FOR_SIMULATION'&&pf.warning!=='ACK_REQUIRED';
     setExecutionStep('preflight',preflightReady?pf.status:(pf.warning||pf.status||'BLOCKED'));
     const notes=[];
     box.innerHTML='<b>'+esc(pf.status||'UNKNOWN')+'</b>'+
       (pf.signal?'<div class="muted small">Signal: '+esc(pf.signal)+' · actionable: '+String(pf.actionable===true)+'</div>':'')+
+      (pf.warning?'<div class="muted small">Warning: '+esc(pf.warning)+' · '+esc(pf.referenceWarning||'Acknowledge explicitly if you want to continue reviewing.')+'</div>':'')+
       notes.map(note=>'<div class="muted small">'+esc(note)+'</div>').join('');
-    if(!preflightReady)box.innerHTML+='<div class="muted small">Resolve failed checks before requesting a quote or simulation.</div>';
+    if(!preflightReady)box.innerHTML+='<div class="muted small">Resolve failed checks and acknowledge any market-hours warning before requesting a quote or simulation. Closed-market data remains non-actionable.</div>';
   }catch(e){
     preflightReady=false;
     box.textContent='Preflight unavailable: '+e.message+'. Retry when the API is available.';
@@ -159,20 +162,97 @@ async function requestQuote(){
   box.innerHTML=html||'No quote data.';
 }
 function setSpendToken(addr){const el=document.getElementById('fromTokenAddress');if(el)el.value=addr;resetOnExecutionInput();}
-async function simulate(){const el=document.getElementById('plan');const t=(document.getElementById('ticker').value||'NVDA').trim().toUpperCase();if(!(await syncDeskWallet())){el.textContent='Connect wallet before simulation.';return}if(Number(walletChainId)!==56){el.textContent='Wrong wallet chain: switch to BSC Mainnet (chain ID 56) before simulation.';return}if(!preflightReady){el.textContent='Run preflight first.';return}const fromToken=(document.getElementById('fromTokenAddress').value||'').trim();if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken)){el.textContent='Set spend token first (USDT / WBNB / USDC).';return}const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===t)||(last&&last.asset)||null;const toToken=asset&&asset.tokenContractAddress?String(asset.tokenContractAddress).trim():'';const amount=(document.getElementById('amount').value||'').trim();if(!toToken){el.textContent='Asset contract is unavailable.';return}el.textContent='Building unsigned transaction…';window.__pronousSimulated=false;try{const maxSpend=(document.getElementById('maxSpend')?.value||'').trim();
-if(!maxSpend){el.textContent='Set max spend before simulation.';return}
-const qp=new URLSearchParams({action:'quoteBuild',ticker:t,fromTokenAddress:fromToken,toTokenAddress:toToken,amount,maxSpend,userWalletAddress:walletAddress,vendor:'LiquidMesh',slippagePercent:'0.5',approveTransaction:'true',ackOffHours:'true'});const br=await fetch('/api/agent?'+qp.toString());const built=await br.json();if(!br.ok||built.error)throw new Error(built.error||'Quote + build failed');
-latestQuote=built;
-window.latestQuote=built;
-setExecutionStep('quote','READY');
-window.__pronousBuiltTx=built.tx||built.transaction||null;
-window.__pronousSimulation=null;
-window.__pronousSimulated=true;
-setExecutionStep('simulation','READY');
-el.textContent='Simulation ready. Review and confirm.';
-const confirmBtn=document.getElementById('confirmActionBtn');
-if(confirmBtn)confirmBtn.disabled=false;
-}catch(e){el.textContent='Simulation failed: '+e.message;}}
+async function simulate(){
+  const planBox=document.getElementById('plan');
+  const quoteBox=document.getElementById('quoteResult');
+  const gate=document.getElementById('poaGateStatus');
+  const ticker=(document.getElementById('ticker')?.value||'NVDA').trim().toUpperCase();
+  resetExecutionState('simulation starting');
+  setExecutionStep('simulation','RUNNING');
+  if(planBox)planBox.textContent='Building unsigned transaction and running BSC chain simulation…';
+  try{
+    if(!(await syncDeskWallet()))throw new Error('Connect a wallet before simulation.');
+    if(Number(walletChainId)!==56)throw new Error('Switch the connected wallet to BNB Smart Chain Mainnet (chain ID 56).');
+    if(!preflightReady)throw new Error('Run preflight and resolve its warning before simulation.');
+    const fromToken=(document.getElementById('fromTokenAddress')?.value||'').trim();
+    if(!/^0x[a-fA-F0-9]{40}$/.test(fromToken))throw new Error('Select a supported ERC-20 spend token (USDT, USDC, or WBNB).');
+    const amount=(document.getElementById('amount')?.value||'').trim();
+    const maxSpend=(document.getElementById('maxSpend')?.value||'').trim();
+    const amountNumber=Number(amount), capNumber=Number(maxSpend);
+    if(!Number.isFinite(amountNumber)||amountNumber<=0||!Number.isFinite(capNumber)||capNumber<=0||amountNumber>capNumber)throw new Error('Amount must be positive and must not exceed max spend.');
+    const asset=(marketAssets||[]).find(a=>String(a.ticker).toUpperCase()===ticker)||(last&&last.asset)||null;
+    if(!asset||asset.demo===true)throw new Error('A verified live RWA asset is required; demo data cannot be simulated.');
+    if(asset.dataQuality!=='ok'||asset.actionable!==true)throw new Error('This asset is not actionable under the current data-quality, spread, or risk guardrails.');
+    const marketStatus=String(asset.marketStatus||'').trim();
+    if(!/^(open|trading|market[ _]open|regular|regular[ _]session)$/i.test(marketStatus)||asset.openState===false||String(asset.openState||'').toLowerCase()==='false')throw new Error('Underlying equity market is closed or unconfirmed. Simulation is locked to prevent stale-reference execution.');
+    const toToken=String(asset.tokenContractAddress||'').trim();
+    if(!/^0x[a-fA-F0-9]{40}$/.test(toToken))throw new Error('A verified RWA token contract address is required.');
+    if(fromToken.toLowerCase()===toToken.toLowerCase())throw new Error('Spend token and RWA token must differ.');
+    const walletAddressForSim=String(walletAddress||'').trim();
+    if(!/^0x[a-fA-F0-9]{40}$/.test(walletAddressForSim))throw new Error('Connected wallet address is invalid.');
+    const gates=window.PRONOUS_EXECUTION_GATES;
+    const policy=window.PRONOUS_TX_POLICY;
+    if(!gates||typeof gates.canonicalJson!=='function')throw new Error('Execution security module is not loaded. Reload after the dashboard update.');
+    if(!policy||typeof policy.validateBroadcastTx!=='function')throw new Error('BSC transaction allowlist is not loaded. Execution remains blocked.');
+    const paramsSnapshot=window.__pronousExecutionParams?window.__pronousExecutionParams():{ticker,amount,maxSpend,fromTokenAddress:fromToken,wallet:walletAddressForSim};
+    const buildParams=new URLSearchParams({
+      action:'quoteBuild',ticker,fromTokenAddress:fromToken,toTokenAddress:toToken,amount,maxSpend,
+      userWalletAddress:walletAddressForSim,vendor:'LiquidMesh',slippagePercent:'0.5',
+      approveTransaction:'true',ackOffHours:String(Boolean(document.getElementById('ackOffHours')?.checked))
+    });
+    const buildResponse=await fetch('/api/agent?'+buildParams.toString(),{cache:'no-store'});
+    const built=await buildResponse.json().catch(()=>({}));
+    if(!buildResponse.ok)throw new Error(built.error||built.message||('Live transaction build failed (HTTP '+buildResponse.status+').'));
+    if(built.mode!=='live-quote-build'||built.broadcast!==false)throw new Error('The API did not return a verified live transaction build. Demo/unavailable responses cannot pass simulation.');
+    const buildRoot=built.built||built;
+    const buildData=buildRoot.data||buildRoot;
+    const rawTx=buildData.tx||buildData.evmTx||buildData.swapTransaction||buildData.transaction||buildRoot.tx||null;
+    if(!rawTx||typeof rawTx!=='object')throw new Error('The live builder returned no supported unsigned transaction. No simulation was marked passed.');
+    const txTo=String(rawTx.to||'').trim();
+    const txData=String(rawTx.data||rawTx.input||'').trim();
+    if(!/^0x[a-fA-F0-9]{40}$/.test(txTo)||!/^0x[0-9a-fA-F]{8,}$/.test(txData))throw new Error('Unsigned transaction is missing a valid contract target or calldata.');
+    if(rawTx.from&&String(rawTx.from).toLowerCase()!==walletAddressForSim.toLowerCase())throw new Error('Built transaction wallet does not match the connected wallet.');
+    const tx={from:walletAddressForSim,to:txTo,data:txData,value:rawTx.value==null?'0x0':String(rawTx.value)};
+    if(rawTx.gas!=null)tx.gas=rawTx.gas;
+    if(rawTx.gasLimit!=null)tx.gasLimit=rawTx.gasLimit;
+    if(rawTx.gasPrice!=null)tx.gasPrice=rawTx.gasPrice;
+    if(rawTx.maxFeePerGas!=null)tx.maxFeePerGas=rawTx.maxFeePerGas;
+    if(rawTx.maxPriorityFeePerGas!=null)tx.maxPriorityFeePerGas=rawTx.maxPriorityFeePerGas;
+    const allowed=policy.validateBroadcastTx(tx,56);
+    if(!allowed.ok)throw new Error('BSC transaction policy blocked this build: '+allowed.error);
+    if(window.__pronousExecutionParams&&gates.canonicalJson(window.__pronousExecutionParams())!==gates.canonicalJson(paramsSnapshot))throw new Error('Execution inputs changed while the transaction was being built. Start again.');
+    if(quoteBox)quoteBox.textContent='Live Binance transaction build received. Checking BSC eth_call simulation…';
+    const simParams=new URLSearchParams({action:'simulateTx',ticker,userWalletAddress:walletAddressForSim,evmTx:JSON.stringify(tx)});
+    const simResponse=await fetch('/api/agent?'+simParams.toString(),{cache:'no-store'});
+    const simResult=await simResponse.json().catch(()=>({}));
+    if(!simResponse.ok||simResult.status!=='PASSED'||!simResult.simulation||simResult.simulation.status!=='PASSED')throw new Error(simResult.reason||simResult.error||'BSC eth_call simulation did not pass.');
+    if(window.__pronousExecutionParams&&gates.canonicalJson(window.__pronousExecutionParams())!==gates.canonicalJson(paramsSnapshot))throw new Error('Execution inputs changed while simulation was running. Start again.');
+    const paramsHash=await hashExecutionValue({params:paramsSnapshot,tx});
+    window.__pronousBuiltTx=tx;
+    window.__pronousSimulation=simResult.simulation;
+    window.__pronousSimTxHash=paramsHash;
+    window.__pronousParamsHash=paramsHash;
+    window.__pronousSimulated=true;
+    window.__pronousConfirmed=false;
+    latestQuote=built;
+    window.latestQuote=built;
+    setExecutionStep('quote','LIVE BUILD');
+    setExecutionStep('simulation','BSC ETH_CALL PASSED');
+    if(planBox)planBox.textContent='BSC chain simulation passed (eth_call at latest block). No transaction has been signed or sent. Review the quote, then explicitly confirm before opening the wallet signing prompt.';
+    if(quoteBox)quoteBox.textContent='LIVE QUOTE/BUILD · BSC eth_call PASSED · broadcast=false · nothing signed or sent.';
+    if(gate)gate.textContent='Simulation passed. Review the quote, then confirm explicitly.';
+    const confirmBtn=document.getElementById('confirmActionBtn');
+    if(confirmBtn)confirmBtn.disabled=false;
+    window.dispatchEvent(new CustomEvent('pronous:simulation-passed'));
+  }catch(e){
+    resetExecutionState('simulation failed');
+    setExecutionStep('simulation','BLOCKED');
+    const message=e?.message||String(e);
+    if(planBox)planBox.textContent='Simulation blocked: '+message;
+    if(quoteBox)quoteBox.textContent='No executable quote approved. '+message;
+    if(gate)gate.textContent='Execution remains locked. '+message;
+  }
+}
 function confirmAction(){if(!window.__pronousSimulated){return}window.__pronousConfirmed=true;setExecutionStep('confirmation','CONFIRMED');const gate=document.getElementById('poaGateStatus');if(gate)gate.textContent='Confirmed. You may create POA or execute.';const execBtn=document.getElementById('executeOnchainBtn');if(execBtn)execBtn.disabled=false;}
 async function createCurrentPOA(){const box=document.getElementById('poaCurrent');box.textContent='Creating POA…';try{const r=await fetch('/api/poa',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'create',wallet:walletAddress,ticker:document.getElementById('ticker').value})});const j=await r.json();currentPOA=j;box.textContent=JSON.stringify(j,null,2);document.getElementById('poaStaticHash').textContent=j.hash||'No session proof';}catch(e){box.textContent='POA create failed: '+e.message;}}
 async function anchorCurrentPOA(){const box=document.getElementById('poaAnchorStatus');if(!currentPOA){box.textContent='Create POA first.';return}box.textContent='Anchoring…';try{const r=await fetch('/api/poa',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'anchor',poa:currentPOA,anchor:document.getElementById('poaAnchorInput').value})});const j=await r.json();box.textContent=j.txHash?'Anchored: '+j.txHash:'Anchor result: '+JSON.stringify(j);if(j.txHash){const a=document.getElementById('poaAnchorTx');a.href='https://bscscan.com/tx/'+j.txHash;a.textContent='View on BscScan';a.style.display='inline';}}catch(e){box.textContent='Anchor failed: '+e.message;}}
