@@ -43,7 +43,8 @@ test("wallet chooser renders real Browser and Privy choices", () => {
 
 test("simulation cannot pass without live build, allowlisted tx and successful BSC eth_call", () => {
   assert.match(app, /built\.mode!=='live-quote-build'/);
-  assert.match(app, /window\.PRONOUS_TX_POLICY\.validateBroadcastTx/);
+  assert.match(app, /const policy=window\.PRONOUS_TX_POLICY/);
+  assert.match(app, /policy\.validateBroadcastTx\(tx,56\)/);
   assert.match(app, /action:'simulateTx'/);
   assert.match(app, /simResult\.status!=='PASSED'/);
   assert.match(app, /simResult\.simulation\.status!=='PASSED'/);
