@@ -426,10 +426,14 @@
         return;
       }
     }
-    const saved = window.marketAssets;
-    window.marketAssets = rows;
-    try { window.renderMarket(); }
-    finally { window.marketAssets = saved; }
+    if (typeof window.PRONOUS_RENDER_MARKET_ROWS === "function") {
+      window.PRONOUS_RENDER_MARKET_ROWS(rows);
+    } else {
+      const saved = window.marketAssets;
+      window.marketAssets = rows;
+      try { window.renderMarket(); }
+      finally { window.marketAssets = saved; }
+    }
   }
 
   function bindChrome() {
