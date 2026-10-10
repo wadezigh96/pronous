@@ -112,6 +112,7 @@
     const originalLoadMarket = window.loadMarket;
     window.loadMarket = async function loadMarket(opts) {
       const box = document.getElementById("marketTable");
+      if (!(opts && opts.silent)) setSystemFeedStatus("CHECKING RWA FEED", "Refreshing verified upstream data…", false);
       if (box && !(window.marketAssets || []).length) box.textContent = "Loading live RWA data…";
       try {
         const allAssets = [];
