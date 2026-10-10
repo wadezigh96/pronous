@@ -61,7 +61,7 @@ Actionable flags require a valid ratio, acceptable data quality, a configured ga
 
 - `40102` remains a single error for multiple distinct failure modes (path, algorithm, key).
 - `volume24H` unit is still undocumented.
-- The three-category work branch adds local MCP tools `agentic_wallet_status` and `agentic_wallet_quote`. The adapter uses the official `baw` CLI only for wallet reads and quote previews, validates live PRONOUS data, max-spend and market state, and always returns `broadcast: false`. Live CLI authentication and wallet connectivity still require verification on the operator device; no order is claimed.
+- The three-category work branch adds local MCP tools `agentic_wallet_status` and `agentic_wallet_quote`. The adapter uses the official `baw` CLI only for wallet reads and quote previews, validates live PRONOUS data, max-spend and market state, and always returns `broadcast: false`. Direct operator-device wallet status, balance, quote, and one BNB→USDT CLI order are now verified (see §8). This is not execution through the PRONOUS MCP/API and is not a tokenized-stock trade; the PRONOUS adapter remains quote-only.
 - The nested BNB Agent Studio seller now attaches a verified PRONOUS scan snapshot to ticker research tasks and makes the research task/skill discoverable in its A2A card. The workspace compiles and its policy tests run in a dedicated workflow; the `studio.toml`, operator-owned wallet/LLM configuration, hosted provider deployment, endpoint and ERC-8004 runtime identity are still not verified.
 - Simulation schema matching the swap builder is not independently verified.
 - Rate limiting is per warm function instance; production-wide enforcement would require shared state.
@@ -83,3 +83,20 @@ Current production (2026-10-10):
 Audit workflow (with timeouts, npm cache, and install retries) completed successfully on the merged PR: https://github.com/wadezigh96/pronous/actions/runs/37999867180.
 
 No production probe artifact is claimed beyond the live endpoint responses inspected above. Server-side broadcast remains disabled.
+
+## 8. Live Agentic Wallet CLI smoke test (2026-10-10)
+
+A user-approved, direct operator-device `baw market-order swap` was executed on BNB Smart Chain mainnet (chainId 56) to verify that the wallet CLI can submit and complete a real market order. This is a wallet/CLI smoke test only; it did **not** route through the PRONOUS API/MCP adapter and did **not** trade a tokenized stock.
+
+- **Order ID:** `26101000001954786511`
+- **Order status:** `FINISHED` (from `baw market-order list --orderId 26101000001954786511 --binanceChainId 56 --json`)
+- **Transaction hash:** [`0x72fff2b91f185314f633550ca3727b28a52275dc78afd3e287cd178c0e88a0c7`](https://bscscan.com/tx/0x72fff2b91f185314f633550ca3727b28a52275dc78afd3e287cd178c0e88a0c7)
+- **Input:** 0.0005 BNB
+- **Quote output before execution:** 0.374419082392055826 USDT
+- **Actual output reported by order history:** 0.374478155412700851 USDT
+- **Slippage tolerance configured:** 0.5%; **MEV protection:** enabled; **gas level:** MEDIUM
+- **Operator-reported on-chain check:** BscScan showed Success. The subsequent wallet balance query returned 0.374478155412700851 USDT and 0.001135983657424455 BNB.
+- **Prior BNB balance:** 0.001696207822463896 BNB. The later balance delta includes both the 0.0005 BNB input and transaction costs; the exact gas fee is not recorded in this report and must be read from the explorer transaction details before making a fee claim.
+- **Execution boundary:** this proves a manually approved wallet CLI swap on BSC. It does not prove that PRONOUS's server broadcasts transactions, that the local MCP adapter executes orders, or that any RWA/tokenized-stock trade is actionable. The current NVDAon production scan was off-hours/stale-reference and non-actionable, so no RWA swap was attempted.
+
+This evidence updates the earlier wallet CLI status from “no order claimed” to one explicitly scoped live CLI smoke test. It does not change the separate status of the hosted Agent Studio runtime, which remains unverified.
