@@ -12,8 +12,9 @@ const SUPPORTED_PLATFORMS = new Set(["ondo", "bstock", "xstocks"]);
 function amountValue(value) {
   const text = String(value ?? "").trim();
   if (!DECIMAL_RE.test(text)) return null;
-  const number = Number(text);
-  return Number.isFinite(number) && number > 0 ? { text, number } : null;
+  const [whole, fraction = ""] = text.split(".");
+  const units = BigInt(whole + fraction.padEnd(18, "0"));
+  return units > 0n ? { text, units } : null;
 }
 
 async function getJson(url, fetchImpl = fetch) {
@@ -31,7 +32,7 @@ export function buildAgenticWalletQuoteArgs({ amount, maxSpend, tokenAddress, ch
   const spend = amountValue(amount);
   const cap = amountValue(maxSpend);
   if (!spend || !cap) throw new Error("INVALID_AMOUNT_OR_MAX_SPEND");
-  if (spend.number > cap.number) throw new Error("SPEND_CAP_EXCEEDED");
+  if (spend.units > cap.units) throw new Error("SPEND_CAP_EXCEEDED");
   if (Number(chainId) !== BSC_CHAIN_ID) throw new Error("BSC_MAINNET_ONLY");
   const address = String(tokenAddress ?? "").trim();
   if (!ADDRESS_RE.test(address)) throw new Error("INVALID_TOKEN_ADDRESS");
@@ -58,10 +59,17 @@ export async function runBawJson(args, {
   const walletRead = args[0] === "wallet" &&
     ["status", "chains", "address", "balance"].includes(args[1]) &&
     args.length === 3 && args[2] === "--json";
-  const marketQuote = args[0] === "market-order" &&
-    args[1] === "quote" && args.at(-1) === "--json" &&
-    args.includes("--fromTokenQty") && args.includes("--fromToken") &&
-    args.includes("--toToken") && args.includes("--binanceChainId");
+  const quoteAmount = args[3] === undefined ? null : amountValue(args[3]);
+  const quoteTokenIn = String(args[5] ?? "").toLowerCase();
+  const quoteTokenOut = String(args[7] ?? "");
+  const marketQuote = args.length === 11 &&
+    args[0] === "market-order" && args[1] === "quote" &&
+    args[2] === "--fromTokenQty" && quoteAmount !== null &&
+    args[4] === "--fromToken" && quoteTokenIn === BSC_USDT.toLowerCase() &&
+    args[6] === "--toToken" && ADDRESS_RE.test(quoteTokenOut) &&
+    quoteTokenOut.toLowerCase() !== BSC_USDT.toLowerCase() &&
+    args[8] === "--binanceChainId" && args[9] === String(BSC_CHAIN_ID) &&
+    args[10] === "--json";
   if (!walletRead && !marketQuote) throw new Error("BAW_COMMAND_NOT_ALLOWLISTED");
   try {
     const result = await exec(binary, args, {
@@ -112,7 +120,7 @@ export async function quoteWithAgenticWallet({
   const spend = amountValue(amount);
   const cap = amountValue(maxSpend);
   if (!spend || !cap) throw new Error("INVALID_AMOUNT_OR_MAX_SPEND");
-  if (spend.number > cap.number) throw new Error("SPEND_CAP_EXCEEDED");
+  if (spend.units > cap.units) throw new Error("SPEND_CAP_EXCEEDED");
   const symbol = String(ticker ?? "").trim().toUpperCase();
   if (!/^[A-Z0-9.-]{1,20}$/.test(symbol)) throw new Error("INVALID_TICKER");
 
@@ -127,8 +135,13 @@ export async function quoteWithAgenticWallet({
   }
   const tokenAddress = String(asset.tokenContractAddress ?? "");
   if (!ADDRESS_RE.test(tokenAddress)) throw new Error("INVALID_RWA_TOKEN_ADDRESS");
-  if (asset.dataQuality !== "ok" || Number(asset.tokenPrice) <= 0 ||
-      Number(asset.referencePrice) <= 0 || Number(asset.shareRatio ?? asset.tokenToShareRatio) <= 0) {
+  const tokenPrice = Number(asset.tokenPrice);
+  const referencePrice = Number(asset.referencePrice);
+  const shareRatio = Number(asset.shareRatio ?? asset.tokenToShareRatio);
+  if (asset.dataQuality !== "ok" ||
+      !Number.isFinite(tokenPrice) || tokenPrice <= 0 ||
+      !Number.isFinite(referencePrice) || referencePrice <= 0 ||
+      !Number.isFinite(shareRatio) || shareRatio <= 0) {
     throw new Error("INVALID_OR_MISSING_PRICE_RATIO");
   }
   const marketStatus = String(asset.marketStatus ?? "").trim();
