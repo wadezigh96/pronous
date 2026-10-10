@@ -246,15 +246,12 @@
       window.__pronousSelectedAsset = asset;
       const last = $("chartLast");
       const chg = $("chartChange");
-      const label = $("tapeLabel");
-      const px = Number(asset.tokenPrice ?? asset.referencePrice);
-      const gap = Number(asset.spreadPct);
-      if (last && Number.isFinite(px)) last.textContent = px >= 1 ? px.toFixed(2) : String(px);
-      if (chg && Number.isFinite(gap)) {
-        chg.textContent = fmtPct(gap);
-        chg.className = gap >= 0 ? "pos" : "neg";
-      }
-      if (label) label.textContent = t + "/USDT · " + currentBar().toUpperCase();
+      const label = $("assetChartLabel");
+      const source = $("assetChartSrc");
+      if (last) last.textContent = "—";
+      if (chg) { chg.textContent = "Loading verified candle history…"; chg.className = "muted"; }
+      if (label) label.textContent = t + " · " + currentBar().toUpperCase() + " · loading";
+      if (source) source.textContent = "FETCHING CANDLES";
       const contract = $("contractDisplay");
       if (contract) contract.textContent = asset.tokenContractAddress || "—";
       if (typeof window.renderClock === "function") {
