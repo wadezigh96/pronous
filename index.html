@@ -58,7 +58,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <a class="navitem" href="#skills-section">Skills</a>
 <a class="navitem" href="#studio-section">Agent Studio</a>
 <a class="navitem" href="#onchain-section">On-chain</a></div>
-<div class="side-foot"><div class="tag live-tag">System Online</div><div class="muted small">BSC · Live Data</div></div>
+<div class="side-foot"><div id="systemStatus" class="tag">CHECKING RWA FEED</div><div id="feedSummary" class="muted small">Live data status will be verified on load.</div></div>
 </aside>
 <main class="main"><div class="wrap board-wrap">
 <div class="topbar board-topbar">
@@ -91,7 +91,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 </section>
 <section class="card board-card market-card" id="market">
 <div class="card-head"><div class="card-title-row"><h2>Market Watch</h2><span class="market-count" id="marketCount">—</span></div><small>Top Movers</small></div>
-<div class="mw-tabs"><button class="mw-tab active" type="button">Gainers</button><button class="mw-tab" type="button">Losers</button><button class="mw-tab" type="button">Volume</button></div>
+<div class="mw-tabs"><button class="mw-tab active" type="button">Premium</button><button class="mw-tab" type="button">Discount</button><button class="mw-tab" type="button">Volume</button></div>
 <div class="market-watch-body open" id="marketWatchBody">
 <div class="market-head"><span id="marketUpdated" class="muted small">—</span>
 <button class="secondary" type="button" onclick="loadMarket()">Refresh</button></div>
@@ -111,15 +111,15 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <canvas id="gapChart" width="980" height="210"></canvas></div>
 </section>
 <section class="card board-card studio-card" id="studio-section">
-<div class="card-head"><div class="card-title-row"><h2>Agent Studio</h2></div><span id="studioStatus" class="tag online-tag">Online</span></div>
+<div class="card-head"><div class="card-title-row"><h2>Agent Studio</h2></div><span id="studioStatus" class="tag">NOT DEPLOYED</span></div>
 <div class="studio-desc muted small">AI Agent powered by BNB Chain</div>
 <div class="agent-list">
 <div class="agent-item"><span class="agent-dot active"></span><div><b>Market Analysis</b><span>Runtime status not verified</span></div></div>
 <div class="agent-item"><span class="agent-dot active"></span><div><b>RWA Monitor</b><span>Feed status shown in Market panel</span></div></div>
-<div class="agent-item"><span class="agent-dot idle"></span><div><b>Execution Planner</b><span>Idle · Ready</span></div></div>
-<div class="agent-item"><span class="agent-dot active"></span><div><b>Portfolio Guard</b><span>Active · Risk Control</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>Execution Planner</b><span>Plan only · live transaction requires simulation and wallet approval</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>Portfolio Guard</b><span>Guardrails in the desk · no background execution</span></div></div>
 </div>
-<button type="button" class="studio-open-btn" onclick="openAgentStudioDocs()">Open Agent Studio</button>
+<button type="button" class="studio-open-btn" onclick="openAgentStudioDocs()">Official Agent Studio docs</button>
 <div class="studio-actions"><button class="secondary" type="button" onclick="copyAgentStudioPrompt()">Copy deploy prompt</button>
 <div id="studioFeedback" class="muted small">Prompt ready.</div></div>
 </section>
@@ -167,6 +167,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="row"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount">
 <input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend">
 <button type="button" onclick="preflight()">Run preflight</button></div>
+<div class="row"><label class="muted small"><input id="ackOffHours" type="checkbox"> I understand the reference may be stale outside regular equity-market hours. This acknowledges the warning only; closed-market execution remains blocked.</label></div>
 <div class="row"><input id="fromTokenAddress" placeholder="Spend token e.g. USDT">
 <button class="secondary" type="button" onclick="requestQuote()">Get quote</button></div>
 <div class="row">
@@ -200,9 +201,11 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 </main></div>
 <div id="walletChooser" class="wallet-chooser" hidden aria-hidden="true">
 <div class="wallet-chooser-backdrop" onclick="closeWalletChooser()"></div>
-<section class="wallet-chooser-panel" role="dialog" aria-labelledby="walletChooserTitle">
+<section class="wallet-chooser-panel" role="dialog" aria-labelledby="walletChooserTitle" aria-modal="true">
   <h2 id="walletChooserTitle">Connect Web3 Wallet</h2>
-  <div id="walletList" class="wallet-list">Loading wallets…</div>
+  <p class="muted small">Choose an injected browser wallet or use Privy to connect an external wallet / email login. PRONOUS only requests connection here; it does not sign a transaction.</p>
+  <div id="walletList" class="wallet-list">Choose a connection method below.</div>
+  <div id="walletChooserMessage" class="muted small" role="status" aria-live="polite"></div>
   <div class="wallet-chooser-actions">
     <button type="button" class="secondary" onclick="closeWalletChooser()">Cancel</button>
   </div>
@@ -215,11 +218,16 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
   <div id="drawerContent"></div>
 </section>
 </div>
+<script src="/lib/execution-gates.js"></script>
+<script src="/lib/tx-policy.js"></script>
 <script src="/desk-app.js"></script>
 <script src="/desk-live.js"></script>
 <script src="/desk-charts.js"></script>
 <script src="/desk-onchain.js"></script>
 <script src="/desk-bridge.js"></script>
+<script src="/desk-exec.js"></script>
+<script src="/desk-parity.js"></script>
+<script src="/cmc-radar.js"></script>
 <script src="/wallet-connect.js"></script>
 <script>document.querySelectorAll('.sig-tab,.mw-tab,.cmc-tab,.oc-tab,.chart-tf,.tf-btn').forEach(btn=>{btn.addEventListener('click',function(){const g=this.parentElement;if(g)g.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');});});</script>
 </body>
