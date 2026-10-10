@@ -131,9 +131,12 @@ export async function quoteWithAgenticWallet({
       Number(asset.referencePrice) <= 0 || Number(asset.shareRatio ?? asset.tokenToShareRatio) <= 0) {
     throw new Error("INVALID_OR_MISSING_PRICE_RATIO");
   }
-  const marketStatus = String(asset.marketStatus ?? "");
+  const marketStatus = String(asset.marketStatus ?? "").trim();
   if (/closed|off.?hours|pre.?market|post.?market|after.?hours|overnight|extended.?hours|no.?trading/i.test(marketStatus)) {
     throw new Error("UNDERLYING_MARKET_CLOSED");
+  }
+  if (!/^(open|trading|market[ _]open|regular|regular[ _]session)$/i.test(marketStatus)) {
+    throw new Error("MARKET_HOURS_NOT_CONFIRMED");
   }
 
   const preflightUrl = new URL("/api/agent", apiBase);
