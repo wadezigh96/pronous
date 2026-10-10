@@ -100,7 +100,7 @@ export async function fetchPronousSnapshot(
       return unavailable(normalized, "INVALID_OR_MISSING_PRICE_RATIO");
     }
     const status = asset?.marketStatus ?? body?.market?.marketStatus ?? null;
-    const closed = marketIsClosed(status) || body?.market?.referenceStale === true;
+    const closed = marketIsClosed(status) || body?.market?.referenceStale === true || asset?.openState === false || String(asset?.openState ?? "").toLowerCase() === "false";
     const adjustedSpread = Number(asset?.adjustedSpreadPct ?? body?.market?.adjustedSpreadPct);
     return {
       status: "VERIFIED_LIVE",
