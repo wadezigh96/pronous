@@ -134,7 +134,12 @@
     const box = $("signalList");
     if (!box) return;
     const rows = pickSignals(assets());
-    if (!rows.length) return;
+    if (!rows.length) {
+      box.textContent = "No verified live assets match this filter. Check the live feed status before retrying.";
+      const upd = $("signalUpdated");
+      if (upd) upd.textContent = "NO MATCHING LIVE ASSETS";
+      return;
+    }
     const selected = String($("ticker")?.value || window.__pronousSelectedAsset?.ticker || "").toUpperCase();
     box.innerHTML = rows
       .map((a) => {
