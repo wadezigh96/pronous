@@ -56,7 +56,16 @@ window.PRONOUS_SET_MARKET_ASSETS=function(rows){
   updateGapKpi();
   renderMarket();
   renderRadar();
+  if(typeof window.renderPronousSignals==='function')window.renderPronousSignals();
   if(typeof window.drawGapChart==='function')window.drawGapChart();
+  if(!marketAssets.length){
+    const chartLast=document.getElementById('chartLast');
+    const chartChange=document.getElementById('chartChange');
+    const chartSource=document.getElementById('assetChartSrc');
+    if(chartLast)chartLast.textContent='—';
+    if(chartChange)chartChange.textContent='Live chart data unavailable';
+    if(chartSource)chartSource.textContent='UNAVAILABLE';
+  }
 };
 window.PRONOUS_RENDER_MARKET_ROWS=function(rows){
   const original=marketAssets;
