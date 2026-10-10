@@ -44,8 +44,15 @@ function setStatus(text) {
 function setWalletDisplay(wallet) {
   const source = document.getElementById('walletSource');
   const addr = document.getElementById('walletAddressTop');
+  const btn = document.getElementById('connectWalletBtn');
   if (source) source.textContent = wallet ? (wallet.source === 'privy' ? 'PRIVY' : 'BROWSER WALLET') : 'NO WALLET';
   if (addr) addr.textContent = wallet ? shortAddress(wallet.address) : 'Not connected';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = wallet
+      ? (normalizeChainId(wallet.chainId) === 56 ? 'Disconnect' : 'Switch to BSC')
+      : 'Connect Wallet';
+  }
 }
 function shortAddress(address) {
   const a = String(address || '');
@@ -202,8 +209,14 @@ function exposeWalletApi() {
 async function ensureBsc(provider = activeProvider) {
   if (!provider?.request) throw new Error('Active wallet provider unavailable');
   const chainId = await provider.request({ method: 'eth_chainId' });
-  if (String(chainId).toLowerCase() === BSC_HEX) {
-    if (activeWallet) activeWallet = { ...activeWallet, chainId: 56 };
+  if (normalizeChainId(chainId) === 56) {
+    if (activeWallet && normalizeChainId(activeWallet.chainId) !== 56) {
+      const previous = activeWallet;
+      activeWallet = { ...activeWallet, chainId: 56 };
+      emitWalletChanged(activeWallet, 'switched to BSC', previous);
+    } else if (activeWallet) {
+      activeWallet = { ...activeWallet, chainId: 56 };
+    }
     return 56;
   }
   try {
@@ -226,7 +239,7 @@ async function ensureBsc(provider = activeProvider) {
     }
   }
   const after = await provider.request({ method: 'eth_chainId' });
-  if (String(after).toLowerCase() !== BSC_HEX) throw new Error('Wallet did not switch to BSC Mainnet');
+  if (normalizeChainId(after) !== 56) throw new Error('Wallet did not switch to BSC Mainnet');
   if (activeWallet) {
     const previous = activeWallet;
     activeWallet = { ...activeWallet, chainId: 56 };
@@ -362,15 +375,79 @@ async function bindPrivyWallet(wallet) {
   const chainId = await provider.request({ method: 'eth_chainId' });
   setActiveWallet('privy', provider, address, chainId);
 }
+function setChooserMessage(text) {
+  const box = document.getElementById('walletChooserMessage');
+  if (box) box.textContent = String(text || '');
+}
+function renderWalletChooser() {
+  const list = document.getElementById('walletList');
+  if (!list) return;
+  list.replaceChildren();
+  const wallets = listAvailableWallets();
+  const addChoice = (titleText, detailText, onChoose) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary wallet-choice-button';
+    button.style.width = '100%';
+    button.style.display = 'flex';
+    button.style.flexDirection = 'column';
+    button.style.alignItems = 'flex-start';
+    button.style.gap = '4px';
+    button.style.margin = '6px 0';
+    const title = document.createElement('strong');
+    title.textContent = titleText;
+    const detail = document.createElement('span');
+    detail.className = 'muted small';
+    detail.textContent = detailText;
+    button.append(title, detail);
+    button.addEventListener('click', () => {
+      setChooserMessage('');
+      onChoose();
+    });
+    list.appendChild(button);
+  };
+
+  if (wallets.length) {
+    wallets.forEach((wallet) => {
+      addChoice(
+        wallet.name || 'Browser Wallet',
+        'Connect this injected wallet, then confirm BNB Smart Chain (56).',
+        () => window.connectBrowserWallet(wallet.provider)
+      );
+    });
+  } else {
+    addChoice(
+      'Browser wallet (MetaMask / Binance Wallet)',
+      'Use a compatible browser extension or open PRONOUS from your wallet DApp browser.',
+      () => window.connectBrowserWallet()
+    );
+  }
+  addChoice(
+    'Email / Google (Privy)',
+    'Connect an existing EVM wallet, or use email/Google to create an embedded wallet.',
+    () => window.connectPrivyWallet()
+  );
+}
 function openWalletChooser() {
   const modal = document.getElementById('walletChooser');
-  if (modal) modal.hidden = false;
+  if (modal) {
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  setChooserMessage('');
+  renderWalletChooser();
+  // Wallets may announce after the page scripts run; refresh the list once.
+  setTimeout(renderWalletChooser, 250);
   setStatus('CHOOSE WALLET');
   setButton('Choose wallet…', true);
 }
 function closeWalletChooser() {
   const modal = document.getElementById('walletChooser');
-  if (modal) modal.hidden = true;
+  if (modal) {
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  setChooserMessage('');
   if (!activeWallet) setButton('Connect Wallet', false);
 }
 async function connectPrivy() {
@@ -494,7 +571,7 @@ async function bootPrivy() {
       embeddedWallets: { createOnLogin: 'users-without-wallets', requireUserOwnedRecoveryOnCreate: false }
     }
   }, React.createElement(Bridge)));
-  if (getPreference() !== 'privy') setStatus('WALLET NOT CONNECTED');
+  if (getPreference() !== 'privy' && !activeWallet) setStatus('WALLET NOT CONNECTED');
 }
 window.openWalletChooser = openWalletChooser;
 window.closeWalletChooser = closeWalletChooser;
@@ -506,6 +583,9 @@ window.connectBrowserWallet = async function (preferredProvider) {
   catch (e) {
     const message = e?.message || String(e);
     setStatus('BROWSER WALLET ERROR: ' + message);
+    setChooserMessage(/no browser wallet detected/i.test(message)
+      ? 'No injected wallet was detected. Open this page in your wallet DApp browser, or choose Email / Google (Privy).'
+      : 'Browser wallet connection failed: ' + message);
     setButton('Connect Wallet', false);
     console.warn('PRONOUS browser wallet connect failed:', e);
   }
@@ -517,14 +597,36 @@ window.connectPrivyWallet = async function () {
   try { await connectPrivy(); }
   catch (e) {
     const message = e?.message || String(e);
-    if (/cancel|closed|dismiss|rejected/i.test(message)) setStatus('WALLET NOT CONNECTED');
-    else setStatus('PRIVY ERROR: ' + message);
+    if (/cancel|closed|dismiss|rejected/i.test(message)) {
+      setStatus('WALLET NOT CONNECTED');
+      setChooserMessage('Connection cancelled. Choose a wallet method to try again.');
+    } else {
+      setStatus('PRIVY ERROR: ' + message);
+      setChooserMessage('Privy connection failed: ' + message);
+    }
     setButton('Connect Wallet', false);
   }
   finally { connecting = false; }
 };
 window.connectWallet = async function connectWallet() {
-  if (activeWallet) { await disconnectActive(); return; }
+  if (activeWallet) {
+    if (normalizeChainId(activeWallet.chainId) !== 56) {
+      try {
+        await ensureBsc(activeProvider);
+        const chainId = await activeProvider.request({ method: 'eth_chainId' });
+        activeWallet = { ...activeWallet, chainId: normalizeChainId(chainId) };
+        setWalletDisplay(activeWallet);
+        setStatus(activeWallet.source === 'privy' ? 'PRIVY WALLET CONNECTED · BSC' : 'BROWSER WALLET CONNECTED · BSC');
+      } catch (e) {
+        const message = e?.message || String(e);
+        setStatus('WALLET CHAIN SWITCH FAILED: ' + message);
+        setChooserMessage('Could not switch to BNB Smart Chain (56): ' + message);
+      }
+      return;
+    }
+    await disconnectActive();
+    return;
+  }
   if (getPreference() === 'injected') return window.connectBrowserWallet();
   if (getPreference() === 'privy' && privyConnect) return window.connectPrivyWallet();
   openWalletChooser();
@@ -544,7 +646,9 @@ exposeWalletApi();
 restoreInjectedWallet().catch(() => false);
 bootPrivy().catch(err => {
   bridgeError = err?.message || String(err);
-  setStatus('WALLET NOT CONNECTED');
-  setButton('Connect Wallet', false);
+  if (!activeWallet) {
+    setStatus('WALLET NOT CONNECTED');
+    setButton('Connect Wallet', false);
+  }
   console.warn('PRONOUS Privy optional boot skipped:', err);
 });
