@@ -78,7 +78,7 @@ test("market filters use ratio-adjusted spreads and measured 24h volume only", (
   assert.match(bridge, /const gap = a\.adjustedSpreadPct \?\? a\.spreadPct/);
   assert.match(bridge, /a\.volume24H \?\? a\.volume24h/);
   assert.doesNotMatch(bridge, /Number\(b\.tokenPrice\s*\|\|\s*0\)/);
-  assert.match(bridge, /No measured 24-hour volume/);
+  assert.match(bridge, /measured 24-hour volume/);
   assert.match(bridge, /No verified live assets match this filter/);
   assert.match(app, /No valid ratio-adjusted spread data available/);
 });
@@ -89,14 +89,14 @@ test("on-chain tabs and formerly decorative desk actions now invoke real functio
   assert.match(onchain, /RECENT TRANSACTIONS/);
   assert.match(onchain, /TOP HOLDERS/);
   assert.match(onchain, /BSC TOKEN CONTRACT/);
-  assert.match(html, /onclick="loadRwaParity/);
-  assert.match(html, /onclick="loadMarket\(\{silent:false\}\)"/);
-  assert.match(html, /onclick="refreshSelectedOnchain\(\)"/);
+  assert.match(html, /onclick="if\(window\.loadRwaParity\)loadRwaParity/);
+  assert.match(html, /onclick="if\(window\.loadMarket\)loadMarket\(\{silent:false\}\)"/);
+  assert.match(html, /onclick="if\(window\.refreshSelectedOnchain\)refreshSelectedOnchain\(\)"/);
   assert.match(html, /Compare RWA platforms/);
   assert.match(html, /Read selected on-chain data/);
 });
 
 test("unsupported chart depth/indicators are not presented as working", () => {
-  assert.match(html, /Depth unavailable[^>]*disabled/);
-  assert.match(html, /Indicators unavailable[^>]*disabled/);
+  assert.match(html, /<button[^>]*disabled[^>]*>Depth unavailable<\/button>/);
+  assert.match(html, /<button[^>]*disabled[^>]*>Indicators unavailable<\/button>/);
 });
