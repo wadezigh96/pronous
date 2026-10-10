@@ -1,51 +1,34 @@
 # PRONOUS × Binance Agentic Wallet / Wallet Skills
 
-PRONOUS is designed to target the Best Use of Agentic Wallet / Wallet Skills special prize.
+## Implemented in this branch
 
-Official Binance Agentic Wallet documentation:
-https://developers.binance.com/en/docs/products/agentic-wallet/welcome
+The local stdio MCP server exposes `agentic_wallet_status` and `agentic_wallet_quote`:
 
-Install the official skill:
+- `agentic_wallet_status` calls the official `baw` CLI for status, chains, address and balances. The data is not mocked; CLI sign-in is still required on the operator's device.
+- `agentic_wallet_quote` first requires a live PRONOUS scan for a supported Ondo/bStocks/xStocks token, a valid contract address and share ratio, acceptable data quality, an open underlying market, and `READY_FOR_SIMULATION` preflight. It enforces the explicit max-spend cap, then requests a quote through the official Agentic Wallet CLI on BSC mainnet (chain ID 56).
+- The MCP adapter is quote-only. It never signs or broadcasts a transaction and returns `broadcast: false`. A returned quote is not a fill or a profit guarantee.
+
+## Install the official Wallet Skill
+
+On the same machine where the local PRONOUS MCP server runs:
+
+```bash
 npx skills add binance/binance-skills-hub/skills/binance-web3/binance-agentic-wallet
+```
 
-## Agent execution contract
+Then, through the AI client that has the official skill installed, say **“Sign in to Binance Agentic Wallet”** and finish setup in the Binance App. Never share seed phrases, private keys, password, recovery material, or session tokens in chat or GitHub.
 
-The agent converts natural-language requests into a structured intent and validates:
-- BSC mainnet (chain ID 56)
-- spot tokenized-stock operations only
-- bStocks, Ondo or xStocks as the supported asset layer
-- explicit maximum spend
-- approved token scope
-- quote before execution
-- simulation/preflight before execution
-- user confirmation for the first live trade
-- no private keys in the browser or repository
+## Run and verify locally
 
-## Wallet Skills flow
+From the repository root, run:
 
-1. wallet status
-2. wallet address / wallet balance
-3. PRONOUS RWA scan
-4. calculate token-vs-reference spread
-5. produce a structured intent
-6. obtain a quote
-7. run safety checks
-8. ask for confirmation when required
-9. execute the spot order through Agentic Wallet
-10. return order/transaction status and an audit record
+```bash
+npm test
+npm run mcp
+```
 
-Useful commands:
-- baw wallet status --json
-- baw wallet chains --json
-- baw wallet address --json
-- baw wallet balance --json
-- baw market-order quote --fromTokenQty <amount> --fromToken <address> --toToken <address> --binanceChainId 56 --json
-- baw market-order swap --fromTokenQty <amount> --fromToken <address> --toToken <address> --binanceChainId 56 --slippage auto --mev true --gasLevel MEDIUM --json
+Configure the client to use `npm run mcp` as a local stdio MCP server. Confirm the two new tools appear. Invoke `agentic_wallet_status` first. Only after the live Wallet CLI is signed in should you call `agentic_wallet_quote`, with an explicit ticker, amount and maxSpend (for example `NVDA`, `1`, `2`). This example is a read-only quote request, not authorization to buy or trade.
 
-PRONOUS adds an application-level policy layer so the agent can explain why an action is allowed or blocked.
+## Security boundary / evidence status
 
-## Public-first mode
-
-PRONOUS remains useful without credentials. The public web app runs deterministic simulation and never broadcasts a transaction in demo mode.
-
-Live execution requires the user's own authenticated Agentic Wallet and funds. Never commit wallet secrets.
+The helper uses `execFile` (not a shell), an allowlist of wallet-read and quote subcommands, bounded output/time, JSON parsing, BSC chain pinning, max spend, live-data gates, and market-session checks. Automated tests cover these guards. The feature is a local integration, not a hosted Vercel signer. Do not claim live wallet connectivity until the operator runs the status command in a signed-in environment. This PRONOUS adapter intentionally does not expose swap/broadcast.

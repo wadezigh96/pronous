@@ -8,7 +8,7 @@
 
 **Watch → Compare → Explain → Guard → Prepare → Confirm**
 
-[Live App](https://pronous.vercel.app/) · [**User Utilities**](https://pronous.vercel.app/utilities.html) · [Submission](docs/SUBMISSION.md) · [Product](docs/PRODUCT.md) · [User Utilities docs](docs/USER_UTILITIES.md) · [x402](docs/X402.md) · [DevEx](docs/DEVEX_REPORT.md) · [Demo](docs/DEMO_VIDEO.md)
+[Live App](https://pronous.vercel.app/) · [**User Utilities**](https://pronous.vercel.app/utilities.html) · [Submission](docs/SUBMISSION.md) · [Product](docs/PRODUCT.md) · [User Utilities docs](docs/USER_UTILITIES.md) · [x402](docs/X402.md) · [DevEx](docs/DEVEX_REPORT.md) · [Demo](docs/DEMO_VIDEO.md) · [Three-category readiness](docs/THREE_CATEGORY_READINESS.md)
 
 </div>
 

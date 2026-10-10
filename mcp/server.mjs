@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import * as z from "zod/v4";
 import { cmcGlobalContext, cmcCryptoPrice, cmcUnavailable } from "./cmc.mjs";
+import { readAgenticWalletStatus, quoteWithAgenticWallet } from "./agentic-wallet.mjs";
 
 const API = process.env.PRONOUS_API_URL || "https://pronous.vercel.app";
 
@@ -392,6 +393,53 @@ function createServer() {
             }
           ]
         };
+      }
+    }
+  );
+
+  server.registerTool(
+    "agentic_wallet_status",
+    {
+      description: "Read-only Binance Agentic Wallet status, supported chains, address and balances through the official baw CLI.",
+      inputSchema: z.object({})
+    },
+    async () => {
+      try {
+        return { content: [{ type: "text", text: JSON.stringify(await readAgenticWalletStatus(), null, 2) }] };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({
+          agent: "PRONOUS",
+          mode: "unavailable",
+          error: String(error?.message || "AGENTIC_WALLET_UNAVAILABLE"),
+          execution: { broadcast: false, tradeExecuted: false }
+        }, null, 2) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "agentic_wallet_quote",
+    {
+      description: "Get a BSC mainnet quote preview using Binance Agentic Wallet after PRONOUS live-data, market-state and spend-cap checks. Quote only; not a trade.",
+      inputSchema: z.object({
+        ticker: z.string().min(1).max(20),
+        amount: z.number().positive(),
+        maxSpend: z.number().positive()
+      })
+    },
+    async ({ ticker, amount, maxSpend }) => {
+      try {
+        return { content: [{ type: "text", text: JSON.stringify(
+          await quoteWithAgenticWallet({ ticker, amount, maxSpend }), null, 2
+        ) }] };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({
+          agent: "PRONOUS",
+          mode: "blocked-or-unavailable",
+          ticker: String(ticker || "").toUpperCase(),
+          error: String(error?.message || "AGENTIC_WALLET_QUOTE_UNAVAILABLE"),
+          execution: { broadcast: false, tradeExecuted: false }
+        }, null, 2) }] };
       }
     }
   );

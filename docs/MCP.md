@@ -34,6 +34,8 @@ To use another deployment, add:
 - **market_assets** — inspect monitored tokenized stocks
 - **scan_asset** — scan a ticker and its token/reference gap
 - **preflight** — check a proposed spend against deterministic guardrails
+- **agentic_wallet_status** — read Binance Agentic Wallet status, supported chains, address and balances from the official `baw` CLI
+- **agentic_wallet_quote** — request a fresh BSC mainnet quote only after PRONOUS validates live token data, market session, ratio and spend cap
 - **ask_pronous** — ask about tokenized stocks, gaps, market hours, BSC and execution
 
 Example:
@@ -44,15 +46,14 @@ Use PRONOUS to scan NVDA and explain the token/reference gap.
 
 ### Safety boundary
 
-MCP exposes market intelligence and preflight only.
+MCP market scans and preflight remain read-only. The optional Agentic Wallet tools use the installed official `baw` CLI for wallet reads and a quote preview; they require the operator to complete Wallet Skill authentication on their device. The quote tool enforces BSC mainnet, a verified supported RWA token, explicit max spend, valid ratio/data quality, and an open underlying market.
 
-It does **not** expose:
-- private keys
-- seed phrases
-- wallet signing
+The PRONOUS MCP adapter does **not** expose:
+- private keys, seed phrases, or unlock passwords
+- swap submission or transaction signing
 - transaction broadcast
 
-The user remains the final approval boundary for any wallet action.
+Quote output is not an order or fill. The result includes `broadcast: false`; the human must independently review any order in Binance Agentic Wallet and complete its required confirmation.
 
 ### Local test
 
