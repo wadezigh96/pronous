@@ -602,7 +602,7 @@ module.exports = async function handler(req,res) {
 
       try {
         const simulation=await simulateEvmTransaction(simulationTx);
-        return res.status(200).json({network:"BSC",chainId:56,ticker,evmTx,simulation});
+        return res.status(200).json({status:simulation.status,network:"BSC",chainId:56,ticker,evmTx,simulation,broadcast:false});
       } catch(e) {
         return res.status(422).json({network:"BSC",chainId:56,ticker,broadcast:false,status:"FAILED",reason:e.message,code:e.rpcCode||null});
       }
