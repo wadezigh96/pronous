@@ -45,6 +45,50 @@ PRONOUS is a BSC Mainnet spot desk, not an unsupervised trading bot. Read the st
 
 Any preview/development changes remain subject to the linked CI run and the deployment status for the exact merge commit. The live URL must not be assumed to be running branch-preview code before that deployment is verified.
 
+## Architecture
+
+```mermaid
+flowchart TB
+    USER[User / MCP client] --> UI[Market desk and utilities]
+    UI --> API[Vercel serverless API]
+    USER --> MCP[Local stdio MCP server]
+    MCP --> API
+    API --> DATA[Market data adapters]
+    DATA --> BINANCE[Binance Web3 RWA data]
+    DATA --> REF[Reference prices and market context]
+    API --> INTEL[Normalize, compare and explain]
+    INTEL --> POLICY[Deterministic policy and execution gates]
+    POLICY -->|blocked or warning| REVIEW[Explain result / require acknowledgement]
+    POLICY -->|eligible for preview| QUOTE[PancakeSwap quote preview]
+    QUOTE --> SIM[Preflight / simulation]
+    SIM --> APPROVAL[Explicit user review]
+    APPROVAL --> WALLET[User-controlled wallet boundary]
+    WALLET -. optional proof .-> POA[PoaAnchor / POA attestation]
+    POLICY --> AUDIT[Result and audit evidence]
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for module responsibilities, trust boundaries, and the request lifecycle.
+
+## Repository structure
+
+```text
+pronous/
+├── index.html, desk-*.js, desk-*.css   # Main market desk UI
+├── utilities.html                      # Read-only user utility center
+├── wallet-connect.js                   # Browser wallet connection
+├── api/                                # Vercel serverless API handlers
+├── lib/                                # Market, policy, RPC, quote and execution modules
+├── mcp/                                # Local stdio MCP server and tools
+├── agent/                              # Agentic Wallet / Agent Studio docs and schemas
+├── pronous/                            # BNB Agent Studio seller workspace
+├── contracts/                          # PoaAnchor contract and verification evidence
+├── scripts/                            # Tests, audits, probes and verification scripts
+├── docs/                               # Architecture, product, submission and evidence
+├── .github/workflows/                  # CI, audit and diagnostic workflows
+├── package.json                        # MCP package, scripts and dependencies
+└── vercel.json                         # Deployment routing/configuration
+```
+
 ## About
 
 PRONOUS is an **agent utility layer** and **market desk** for tokenized equities on **BNB Smart Chain**.
