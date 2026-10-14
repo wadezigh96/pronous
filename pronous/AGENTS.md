@@ -33,7 +33,7 @@ every intent to the right playbook via its references.
    decimals, rejects non-representable values instead of rounding, and
    signs the selected token and exact atomic amount. Never put an LLM in the
    quote path.
-5. **Deploy with `bag deploy --provider bnb|aws|azure|nodeops`.** Every deploy or
+5. **Deploy with `bag deploy --provider bnb|aws|azure`.** Every deploy or
    redeploy requires a visible provider choice. Studio runs its local business
    gates, then delegates cloud credentials, secrets, packaging and lifecycle
    calls to the pinned bnbagent-deploy CLI. Do not bypass this boundary with
