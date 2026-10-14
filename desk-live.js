@@ -15,6 +15,16 @@
     return { label: "OBSERVE", cls: "muted" };
   }
 
+  function setSystemFeedStatus(labelText, summaryText, live) {
+    const label = document.getElementById("systemStatus");
+    const summary = document.getElementById("feedSummary");
+    if (label) {
+      label.textContent = labelText;
+      label.className = "tag " + (live ? "live" : "demo");
+    }
+    if (summary) summary.textContent = summaryText;
+  }
+
   function arm() {
     if (window.__pronousLiveArmed) return;
     if (typeof window.loadMarket !== "function" || typeof window.renderRadar !== "function") {
@@ -102,6 +112,7 @@
     const originalLoadMarket = window.loadMarket;
     window.loadMarket = async function loadMarket(opts) {
       const box = document.getElementById("marketTable");
+      if (!(opts && opts.silent)) setSystemFeedStatus("CHECKING RWA FEED", "Refreshing verified upstream data…", false);
       if (box && !(window.marketAssets || []).length) box.textContent = "Loading live RWA data…";
       try {
         const allAssets = [];
@@ -131,6 +142,7 @@
         }
         marketAssets = allAssets;
         window.marketAssets = marketAssets;
+        setSystemFeedStatus("RWA FEED LIVE", "BSC · " + marketAssets.length + " upstream tokenized assets · read-only feed", true);
         const mode = document.getElementById("marketMode");
         if (mode) {
           mode.textContent = "LIVE DATA";
@@ -167,11 +179,19 @@
         if (!(opts && opts.silent) && typeof renderClock === "function") renderClock(marketAssets[0]);
         if (window.drawGapChart) drawGapChart();
       } catch (e) {
+        // Clear previously loaded assets so a failed refresh cannot leave stale prices looking current.
+        window.__pronousSelectedAsset = null;
+        window.__pronousChartBar = null;
+        if (typeof window.PRONOUS_SET_MARKET_ASSETS === "function") window.PRONOUS_SET_MARKET_ASSETS([]);
+        else window.marketAssets = [];
         if (box) box.textContent = "Market data unavailable: " + (e.message || "unknown error") + ". No static/demo prices are substituted.";
+        setSystemFeedStatus("RWA FEED UNAVAILABLE", "Live market feed could not be verified · no demo prices substituted", false);
         const mode = document.getElementById("marketMode");
         if (mode) { mode.textContent = "UNAVAILABLE"; mode.className = "tag demo"; }
         const kpiMode = document.getElementById("kpiMode");
         if (kpiMode) kpiMode.textContent = "OFFLINE";
+        const kpiAssets = document.getElementById("kpiAssets");
+        if (kpiAssets) kpiAssets.textContent = "0";
         const pulse = document.getElementById("radarPulse");
         if (pulse) pulse.textContent = "API UNAVAILABLE";
         window.__pronousRadarAssets = [];

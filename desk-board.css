@@ -259,8 +259,10 @@
 .board-ui .tf-group { display: flex; gap: 3px; }
 .board-ui .chart-price-line { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-shrink: 0; }
 .board-ui .chart-last { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
-.board-ui .gap-chart { flex: 1; min-height: 0; }
-.board-ui .gap-chart canvas { height: 180px !important; width: 100% !important; }
+.board-ui .asset-chart { flex: 1; min-height: 0; margin-bottom: 8px; }
+.board-ui .asset-chart canvas { height: 180px !important; width: 100% !important; }
+.board-ui .gap-chart { flex: 0 0 auto; min-height: 0; }
+.board-ui .gap-chart canvas { height: 120px !important; width: 100% !important; }
 
 .board-ui .online-tag, .board-ui .verified-tag, .board-ui .live-tag {
   background: rgba(61, 214, 140, 0.1); border-color: rgba(61, 214, 140, 0.25); color: #3dd68c; font-size: 10px;

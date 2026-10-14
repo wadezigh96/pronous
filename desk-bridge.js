@@ -43,26 +43,29 @@
     const exec = $("walletAddress");
     const btn = $("connectWalletBtn");
     const kpi = $("kpiExec");
+    const chainId = Number(detail?.chainId || 0);
     if (status) {
-      status.textContent = address
-        ? source === "privy"
-          ? "PRIVY WALLET · BSC"
-          : "BROWSER WALLET · BSC"
-        : "WALLET NOT CONNECTED";
+      status.textContent = !address
+        ? "WALLET NOT CONNECTED"
+        : chainId !== 56
+          ? "WALLET CONNECTED · WRONG CHAIN" + (chainId ? " (" + chainId + ")" : "")
+          : source === "privy" ? "PRIVY WALLET · BSC" : "BROWSER WALLET · BSC";
     }
     if (src) src.textContent = address ? (source === "privy" ? "PRIVY" : "BROWSER WALLET") : "NO WALLET";
     if (top) top.textContent = short;
     if (exec) exec.textContent = short;
     if (btn) {
-      btn.textContent = address ? "Disconnect" : "Connect Wallet";
+      btn.textContent = address ? (chainId === 56 ? "Disconnect" : "Switch to BSC") : "Connect Wallet";
       btn.disabled = false;
     }
-    if (kpi) kpi.textContent = address ? "ARMED" : "LOCKED";
+    if (kpi) kpi.textContent = !address ? "LOCKED" : chainId === 56 ? "ARMED" : "WRONG CHAIN";
     const confirmBtn = $("confirmActionBtn");
     if (confirmBtn && !address) confirmBtn.disabled = true;
     const gate = $("poaGateStatus");
-    if (gate && address) {
-      if (!gate.dataset.locked) gate.textContent = "Wallet connected · run preflight before confirm.";
+    if (gate && address && chainId !== 56) {
+      gate.textContent = "Switch wallet to BSC Mainnet (chain ID 56) before preflight or simulation.";
+    } else if (gate && address) {
+      if (!gate.dataset.locked) gate.textContent = "Wallet connected · run preflight before simulation.";
     } else if (gate && !address) {
       gate.textContent = "Connect wallet, then simulate before confirmation.";
     }
@@ -80,7 +83,7 @@
         ? {
             address,
             source: typeof api.getSource === "function" ? api.getSource() : "injected",
-            chainId: typeof api.getChainId === "function" ? api.getChainId() : 56
+            chainId: typeof api.getChainId === "function" ? api.getChainId() : null
           }
         : null
     );
@@ -131,19 +134,26 @@
     const box = $("signalList");
     if (!box) return;
     const rows = pickSignals(assets());
-    if (!rows.length) return;
+    if (!rows.length) {
+      box.textContent = "No verified live assets match this filter. Check the live feed status before retrying.";
+      const upd = $("signalUpdated");
+      if (upd) upd.textContent = "NO MATCHING LIVE ASSETS";
+      return;
+    }
     const selected = String($("ticker")?.value || window.__pronousSelectedAsset?.ticker || "").toUpperCase();
     box.innerHTML = rows
       .map((a) => {
         const t = String(a.ticker || "").toUpperCase();
         const name = esc(a.companyName || a.tokenSymbol || t);
         const px = Number(a.tokenPrice ?? a.referencePrice);
-        const gap = Number(a.spreadPct);
-        const pos = Number.isFinite(gap) ? gap >= 0 : true;
-        const actionable = a.actionable !== false && a.dataQuality !== 'unreliable';
-        const badge = !actionable ? "neutral" : !Number.isFinite(gap) ? "neutral" : Math.abs(gap) < 0.15 ? "neutral" : pos ? "bullish" : "discount";
-        const badgeLabel = !actionable ? "Guarded" : badge === "bullish" ? "Premium" : badge === "discount" ? "Discount" : "Aligned";
-        const spark = pos ? "▂▃▄▅▆▇" : "▇▆▅▄▃▂";
+        const gapRaw = a.spreadPct ?? a.adjustedSpreadPct;
+        const gap = gapRaw == null || gapRaw === "" ? NaN : Number(gapRaw);
+        const hasGap = Number.isFinite(gap);
+        const pos = hasGap && gap >= 0;
+        const actionable = a.actionable === true && a.dataQuality === "ok";
+        const badge = !actionable ? "neutral" : !hasGap ? "neutral" : Math.abs(gap) < 0.15 ? "neutral" : pos ? "bullish" : "discount";
+        const badgeLabel = !actionable ? "Guarded" : !hasGap ? "No spread data" : badge === "bullish" ? "Premium" : badge === "discount" ? "Discount" : "Aligned";
+        const spark = !hasGap ? "—" : pos ? "▂▃▄▅▆▇" : "▇▆▅▄▃▂";
         const on = t === selected ? " is-selected" : "";
         return (
           '<div class="signal-row' +
@@ -163,7 +173,7 @@
           '<div class="sig-price">' +
           fmtPrice(px) +
           ' <span class="' +
-          (pos ? "pos" : "neg") +
+          (!hasGap ? "muted" : pos ? "pos" : "neg") +
           '">' +
           fmtPct(gap) +
           "</span></div>" +
@@ -192,6 +202,8 @@
       });
     });
   }
+
+  window.renderPronousSignals = renderSignalList;
 
   function currentBar() {
     const active = document.querySelector(".tf-btn.active");
@@ -234,15 +246,12 @@
       window.__pronousSelectedAsset = asset;
       const last = $("chartLast");
       const chg = $("chartChange");
-      const label = $("tapeLabel");
-      const px = Number(asset.tokenPrice ?? asset.referencePrice);
-      const gap = Number(asset.spreadPct);
-      if (last && Number.isFinite(px)) last.textContent = px >= 1 ? px.toFixed(2) : String(px);
-      if (chg && Number.isFinite(gap)) {
-        chg.textContent = fmtPct(gap);
-        chg.className = gap >= 0 ? "pos" : "neg";
-      }
-      if (label) label.textContent = t + "/USDT · " + currentBar().toUpperCase();
+      const label = $("assetChartLabel");
+      const source = $("assetChartSrc");
+      if (last) last.textContent = "—";
+      if (chg) { chg.textContent = "Loading verified candle history…"; chg.className = "muted"; }
+      if (label) label.textContent = t + " · " + currentBar().toUpperCase() + " · loading";
+      if (source) source.textContent = "FETCHING CANDLES";
       const contract = $("contractDisplay");
       if (contract) contract.textContent = asset.tokenContractAddress || "—";
       if (typeof window.renderClock === "function") {
@@ -381,18 +390,49 @@
   }
 
   function applyMarketTab() {
-    const tab = window.__pronousMwTab || "gainers";
+    const tab = window.__pronousMwTab || "premium";
     if (typeof window.renderMarket !== "function") return;
     const originalAssets = assets();
     if (!originalAssets.length) return;
     let rows = originalAssets.slice();
-    if (tab === "gainers") rows = rows.filter((a) => Number(a.spreadPct) >= 0).sort((a, b) => Number(b.spreadPct) - Number(a.spreadPct));
-    else if (tab === "losers") rows = rows.filter((a) => Number(a.spreadPct) < 0).sort((a, b) => Number(a.spreadPct) - Number(b.spreadPct));
-    else if (tab === "volume") rows = rows.slice().sort((a, b) => Number(b.tokenPrice || 0) - Number(a.tokenPrice || 0));
-    const saved = window.marketAssets;
-    window.marketAssets = rows;
-    try { window.renderMarket(); }
-    finally { window.marketAssets = saved; }
+    if (tab === "premium" || tab === "discount") {
+      rows = rows.filter((a) => {
+        const gap = a.adjustedSpreadPct ?? a.spreadPct;
+        return a.dataQuality === "ok" && gap != null && Number.isFinite(Number(gap)) &&
+          (tab === "premium" ? Number(gap) >= 0 : Number(gap) < 0);
+      }).sort((a, b) => {
+        const left = Number(a.adjustedSpreadPct ?? a.spreadPct);
+        const right = Number(b.adjustedSpreadPct ?? b.spreadPct);
+        return tab === "premium" ? right - left : left - right;
+      });
+      if (!rows.length) {
+        const box = $("marketTable");
+        const count = $("marketCount");
+        if (count) count.textContent = "0";
+        if (box) box.textContent = "No verified ratio-adjusted spread data available for this filter.";
+        return;
+      }
+    } else if (tab === "volume") {
+      rows = rows.filter((a) => {
+        const value = a.volume24H ?? a.volume24h;
+        return value != null && value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0;
+      }).sort((a, b) => Number(b.volume24H ?? b.volume24h) - Number(a.volume24H ?? a.volume24h));
+      if (!rows.length) {
+        const box = $("marketTable");
+        const count = $("marketCount");
+        if (count) count.textContent = "—";
+        if (box) box.textContent = "The upstream feed did not provide measured 24-hour volume. No volume ranking is shown.";
+        return;
+      }
+    }
+    if (typeof window.PRONOUS_RENDER_MARKET_ROWS === "function") {
+      window.PRONOUS_RENDER_MARKET_ROWS(rows);
+    } else {
+      const saved = window.marketAssets;
+      window.marketAssets = rows;
+      try { window.renderMarket(); }
+      finally { window.marketAssets = saved; }
+    }
   }
 
   function bindChrome() {
@@ -412,7 +452,7 @@
       btn.addEventListener("click", () => {
         document.querySelectorAll(".mw-tab").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-        window.__pronousMwTab = ["gainers", "losers", "volume"][i] || "gainers";
+        window.__pronousMwTab = ["premium", "discount", "volume"][i] || "premium";
         applyMarketTab();
       });
     });

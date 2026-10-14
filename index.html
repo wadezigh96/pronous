@@ -58,7 +58,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <a class="navitem" href="#skills-section">Skills</a>
 <a class="navitem" href="#studio-section">Agent Studio</a>
 <a class="navitem" href="#onchain-section">On-chain</a></div>
-<div class="side-foot"><div class="tag live-tag">System Online</div><div class="muted small">BSC · Live Data</div></div>
+<div class="side-foot"><div id="systemStatus" class="tag">CHECKING RWA FEED</div><div id="feedSummary" class="muted small">Live data status will be verified on load.</div></div>
 </aside>
 <main class="main"><div class="wrap board-wrap">
 <div class="topbar board-topbar">
@@ -81,17 +81,17 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="scan-row"><input id="ticker" value="NVDA" placeholder="Search asset or strategy…"><button type="button" onclick="scan()">Scan</button></div>
 <div class="scan-results" id="scan">Ready.</div>
 <div class="opp-list">
-<div class="opp-item"><div><b>Top Gainers</b><span>AI scan · 5m</span></div></div>
-<div class="opp-item"><div><b>RWA Opportunities</b><span>On-chain · 15m</span></div></div>
-<div class="opp-item"><div><b>Swing Setup</b><span>Technical · 15m</span></div></div>
-<div class="opp-item"><div><b>Portfolio Rebalance</b><span>Risk · 30m</span></div></div>
+<button class="opp-item" type="button" onclick="scan()" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Scan selected ticker</b><span>Live read-only analysis · on demand</span></div></button>
+<button class="opp-item" type="button" onclick="if(window.loadRwaParity)loadRwaParity((document.getElementById('ticker')?.value||'NVDA').trim().toUpperCase())" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Compare RWA platforms</b><span>Fetch live token/reference parity</span></div></button>
+<button class="opp-item" type="button" onclick="if(window.loadMarket)loadMarket({silent:false})" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Refresh live feed</b><span>Reload upstream tokenized assets</span></div></button>
+<button class="opp-item" type="button" onclick="if(window.refreshSelectedOnchain)refreshSelectedOnchain()" style="background:transparent;border:0;color:inherit;text-align:left;width:100%;cursor:pointer;font:inherit"><div><b>Read selected on-chain data</b><span>Contract, transactions, holders and pools</span></div></button>
 </div>
 <div class="plan-box" id="plan">No plan yet.</div>
 <button class="secondary" type="button" onclick="simulate()">Simulate execution</button>
 </section>
 <section class="card board-card market-card" id="market">
 <div class="card-head"><div class="card-title-row"><h2>Market Watch</h2><span class="market-count" id="marketCount">—</span></div><small>Top Movers</small></div>
-<div class="mw-tabs"><button class="mw-tab active" type="button">Gainers</button><button class="mw-tab" type="button">Losers</button><button class="mw-tab" type="button">Volume</button></div>
+<div class="mw-tabs"><button class="mw-tab active" type="button">Premium</button><button class="mw-tab" type="button">Discount</button><button class="mw-tab" type="button">Volume</button></div>
 <div class="market-watch-body open" id="marketWatchBody">
 <div class="market-head"><span id="marketUpdated" class="muted small">—</span>
 <button class="secondary" type="button" onclick="loadMarket()">Refresh</button></div>
@@ -103,23 +103,25 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 </section>
 <section class="card board-card chart-card" id="overview">
 <div class="card-head"><div class="card-title-row"><h2>Asset Chart</h2></div>
-<div class="chart-controls"><button class="chart-tf active" type="button">Candles</button><button class="chart-tf" type="button">Depth</button><button class="chart-tf" type="button">Indicators</button></div></div>
+<div class="chart-controls"><button class="chart-tf active" type="button" title="Uses live candle endpoint when available">Candles</button><button class="chart-tf" type="button" disabled title="A live order-book depth endpoint is not wired into this desk yet">Depth unavailable</button><button class="chart-tf" type="button" disabled title="Indicator calculations are not implemented for this chart yet">Indicators unavailable</button></div></div>
 <div class="chart-pair-row"><select id="chartPair" class="pair-select"><option>NVDA/USDT</option><option>AAPL/USDT</option><option>TSLA/USDT</option></select>
 <div class="tf-group"><button class="tf-btn" type="button">1m</button><button class="tf-btn active" type="button">5m</button><button class="tf-btn" type="button">15m</button><button class="tf-btn" type="button">1h</button><button class="tf-btn" type="button">4h</button><button class="tf-btn" type="button">1D</button></div></div>
-<div class="chart-price-line"><span class="chart-last" id="chartLast">—</span><span class="muted" id="chartChange">Waiting for live asset data…</span></div>
-<div class="chart-box gap-chart"><div class="chart-meta"><span id="tapeLabel">NVDA/USDT · 5m</span><span>SPOT · BSC</span></div>
-<canvas id="gapChart" width="980" height="210"></canvas></div>
+<div class="chart-price-line"><span class="chart-last" id="chartLast">—</span><span class="muted" id="chartChange">Waiting for verified candle data…</span></div>
+<div class="chart-box asset-chart"><div class="chart-meta"><span id="assetChartLabel">NVDA · waiting for selection</span><span id="assetChartSrc">CANDLE FEED CHECKING</span></div>
+<canvas id="assetChart" width="980" height="210" aria-label="Selected asset live candle chart"></canvas></div>
+<div class="chart-box gap-chart"><div class="chart-meta"><span id="tapeLabel">Live ratio-adjusted spread overview</span><span>BSC · READ ONLY</span></div>
+<canvas id="gapChart" width="980" height="150" aria-label="Verified RWA spread overview"></canvas></div>
 </section>
 <section class="card board-card studio-card" id="studio-section">
-<div class="card-head"><div class="card-title-row"><h2>Agent Studio</h2></div><span id="studioStatus" class="tag online-tag">Online</span></div>
+<div class="card-head"><div class="card-title-row"><h2>Agent Studio</h2></div><span id="studioStatus" class="tag">NOT DEPLOYED</span></div>
 <div class="studio-desc muted small">AI Agent powered by BNB Chain</div>
 <div class="agent-list">
-<div class="agent-item"><span class="agent-dot active"></span><div><b>Market Analysis</b><span>Runtime status not verified</span></div></div>
-<div class="agent-item"><span class="agent-dot active"></span><div><b>RWA Monitor</b><span>Feed status shown in Market panel</span></div></div>
-<div class="agent-item"><span class="agent-dot idle"></span><div><b>Execution Planner</b><span>Idle · Ready</span></div></div>
-<div class="agent-item"><span class="agent-dot active"></span><div><b>Portfolio Guard</b><span>Active · Risk Control</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>Market Analysis</b><span>On-demand scan · actual API status shown in the desk</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>RWA Monitor</b><span>Read-only feed · not a hosted background agent</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>Execution Planner</b><span>Plan only · live transaction requires simulation and wallet approval</span></div></div>
+<div class="agent-item"><span class="agent-dot idle"></span><div><b>Portfolio Guard</b><span>Guardrails in the desk · no background execution</span></div></div>
 </div>
-<button type="button" class="studio-open-btn" onclick="openAgentStudioDocs()">Open Agent Studio</button>
+<button type="button" class="studio-open-btn" onclick="openAgentStudioDocs()">Official Agent Studio docs</button>
 <div class="studio-actions"><button class="secondary" type="button" onclick="copyAgentStudioPrompt()">Copy deploy prompt</button>
 <div id="studioFeedback" class="muted small">Prompt ready.</div></div>
 </section>
@@ -167,6 +169,7 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 <div class="row"><input id="amount" type="number" min="0" step="0.01" value="10" placeholder="Spend amount">
 <input id="maxSpend" type="number" min="0" step="0.01" value="100" placeholder="Max spend">
 <button type="button" onclick="preflight()">Run preflight</button></div>
+<div class="row"><label class="muted small"><input id="ackOffHours" type="checkbox"> I understand the reference may be stale outside regular equity-market hours. This acknowledges the warning only; closed-market execution remains blocked.</label></div>
 <div class="row"><input id="fromTokenAddress" placeholder="Spend token e.g. USDT">
 <button class="secondary" type="button" onclick="requestQuote()">Get quote</button></div>
 <div class="row">
@@ -200,9 +203,11 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
 </main></div>
 <div id="walletChooser" class="wallet-chooser" hidden aria-hidden="true">
 <div class="wallet-chooser-backdrop" onclick="closeWalletChooser()"></div>
-<section class="wallet-chooser-panel" role="dialog" aria-labelledby="walletChooserTitle">
+<section class="wallet-chooser-panel" role="dialog" aria-labelledby="walletChooserTitle" aria-modal="true">
   <h2 id="walletChooserTitle">Connect Web3 Wallet</h2>
-  <div id="walletList" class="wallet-list">Loading wallets…</div>
+  <p class="muted small">Choose an injected browser wallet or use Privy to connect an external wallet / email login. PRONOUS only requests connection here; it does not sign a transaction.</p>
+  <div id="walletList" class="wallet-list"><button type="button" class="secondary wallet-choice-button" onclick="connectBrowserWallet()">Browser wallet</button><button type="button" class="secondary wallet-choice-button" onclick="connectPrivyWallet()">Email / Google (Privy)</button></div>
+  <div id="walletChooserMessage" class="muted small" role="status" aria-live="polite"></div>
   <div class="wallet-chooser-actions">
     <button type="button" class="secondary" onclick="closeWalletChooser()">Cancel</button>
   </div>
@@ -215,11 +220,16 @@ html body.board-ui .side{position:sticky!important;top:0!important;height:100vh!
   <div id="drawerContent"></div>
 </section>
 </div>
+<script src="/lib/execution-gates.js"></script>
+<script src="/lib/tx-policy.js"></script>
 <script src="/desk-app.js"></script>
 <script src="/desk-live.js"></script>
 <script src="/desk-charts.js"></script>
 <script src="/desk-onchain.js"></script>
 <script src="/desk-bridge.js"></script>
+<script src="/desk-exec.js"></script>
+<script src="/desk-parity.js"></script>
+<script src="/cmc-radar.js"></script>
 <script src="/wallet-connect.js"></script>
 <script>document.querySelectorAll('.sig-tab,.mw-tab,.cmc-tab,.oc-tab,.chart-tf,.tf-btn').forEach(btn=>{btn.addEventListener('click',function(){const g=this.parentElement;if(g)g.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');});});</script>
 </body>
