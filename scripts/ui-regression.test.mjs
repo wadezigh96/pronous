@@ -54,6 +54,12 @@ test("simulation cannot pass without live build, allowlisted tx and successful B
   assert.match(agentApi, /status:"FAILED",reason:e\.message/);
 });
 
+test("explicit confirmation returns a boolean accepted by the on-chain execution gate", () => {
+  assert.match(app, /function confirmAction\\(\\)\\{if\\(!window\\.__pronousSimulated\\)\\{return false\\}/);
+  assert.match(app, /execBtn\\.disabled=false;return true;\\}/);
+  assert.match(onchain, /if \\(result !== true\\) \\{/);
+});
+
 test("simulation blocks demo and off-hours or unverified assets", () => {
   assert.match(app, /built\.mode!=='live-quote-build'/);
   assert.match(app, /asset\.demo===true/);
